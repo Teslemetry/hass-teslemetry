@@ -18,7 +18,7 @@
     "entity": {
         "climate": {
           "driver_temp": {
-            "name": "[%key:component::climate::title%]",
+            "name": "Climate",
             "state_attributes": {
               "preset_mode": {
                 "state": {
