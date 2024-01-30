@@ -8,15 +8,9 @@
 
 [![Discord][discord-shield]][discord]
 
-_Integration to integrate with [Teslemetry][hacs-teslemetry]._
+_Integration to integrate with [Teslemetry]("https://teslemetry.com")._
 
 **This integration will set up the following platforms.**
-
-Platform | Description
--- | --
-`binary_sensor` | Show something `True` or `False`.
-`sensor` | Show info from blueprint API.
-`switch` | Switch something `True` or `False`.
 
 ## Installation
 
@@ -31,10 +25,6 @@ Platform | Description
 ## Configuration is done in the UI
 
 <!---->
-
-## Contributions are welcome!
-
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
 ***
 
