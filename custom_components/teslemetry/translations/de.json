@@ -1,0 +1,148 @@
+{
+  "config": {
+    "error": {
+      "subscription_required": "Anmeldung auf {short_url} erforderlich"
+    },
+    "step": {
+      "user": {
+        "description": "Zugangs-Token von {url}"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "driver_temp": {
+        "name": "Klima",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "off": "Standard",
+              "keep": "Halten",
+              "dog": "Hunde-Modus",
+              "camp": "Camp-Modus"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "charge_state_usable_battery_level": {
+        "name": "Batterie"
+      },
+      "charge_state_charge_energy_added": {
+        "name": "Nachgeladene Energie"
+      },
+      "charge_state_charger_power": {
+        "name": "Ladeger\u00e4t Leistung"
+      },
+      "charge_state_charger_voltage": {
+        "name": "Ladeger\u00e4t Spannung"
+      },
+      "charge_state_charger_actual_current": {
+        "name": "Ladeger\u00e4t Strom"
+      },
+      "charge_state_charge_rate": {
+        "name": "Ladegeschwindigkeit"
+      },
+      "charge_state_battery_range": {
+        "name": "Reichweite"
+      },
+      "charge_state_minutes_to_full_charge": {
+        "name": "Ladeende"
+      },
+      "drive_state_speed": {
+        "name": "Geschwindigkeit"
+      },
+      "drive_state_power": {
+        "name": "Antriebsleistung"
+      },
+      "drive_state_shift_state": {
+        "name": "Gangschaltung",
+        "state": {
+          "p": "Parken",
+          "d": "Fahren (D)",
+          "r": "R\u00fcckw\u00e4rts",
+          "n": "Neutral"
+        }
+      },
+      "vehicle_state_odometer": {
+        "name": "Kilometerz\u00e4hler"
+      },
+      "vehicle_state_tpms_pressure_fl": {
+        "name": "Reifendruck vorne links"
+      },
+      "vehicle_state_tpms_pressure_fr": {
+        "name": "Reifendruck vorne rechts"
+      },
+      "vehicle_state_tpms_pressure_rl": {
+        "name": "Reifendruck hinten links"
+      },
+      "vehicle_state_tpms_pressure_rr": {
+        "name": "Reifendruck hinten rechts"
+      },
+      "climate_state_inside_temp": {
+        "name": "Innentemperatur"
+      },
+      "climate_state_outside_temp": {
+        "name": "Au\u00dfentemperatur"
+      },
+      "climate_state_driver_temp_setting": {
+        "name": "Temperatureinstellung Fahrerseite"
+      },
+      "climate_state_passenger_temp_setting": {
+        "name": "Temperatureinstellung Beifahrerseite"
+      },
+      "drive_state_active_route_traffic_minutes_delay": {
+        "name": "Verkehrsbedingte Verz\u00f6gerung"
+      },
+      "drive_state_active_route_energy_at_arrival": {
+        "name": "Ladestand am Ziel"
+      },
+      "drive_state_active_route_miles_to_arrival": {
+        "name": "Entfernung bis zum Ziel"
+      },
+      "drive_state_active_route_minutes_to_arrival": {
+        "name": "Ankunftszeit"
+      },
+      "drive_state_active_route_destination": {
+        "name": "Ziel"
+      },
+      "solar_power": {
+        "name": "Photovoltaik Leistung"
+      },
+      "energy_left": {
+        "name": "Verbleibende Energie"
+      },
+      "total_pack_energy": {
+        "name": "Maximale Energie"
+      },
+      "percentage_charged": {
+        "name": "Ladestand"
+      },
+      "battery_power": {
+        "name": "Leistung Batterie"
+      },
+      "load_power": {
+        "name": "Leistung Last"
+      },
+      "grid_power": {
+        "name": "Leistung Netz"
+      },
+      "generator_power": {
+        "name": "Generatorleistung"
+      },
+      "wall_connector_state": {
+        "name": "Wallbox Status"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wallbox Fehler"
+      },
+      "wall_connector_power": {
+        "name": "Wallbox Leistung"
+      },
+      "vin": {
+        "name": "FIN"
+      }
+    }
+  }
+}
