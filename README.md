@@ -41,8 +41,8 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Teslemetry/hacs-teslemetry.svg?style=for-the-badge
 [commits]: https://github.com/teslemetry/hacs-teslemetry/commits/main
 [discord]: https://discord.gg/7wZwHaZbWD
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
+[discord-shield]: https://img.shields.io/discord/1197069901664358460.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/teslemetry/hacs-teslemetry.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-Joakim%20Sørensen%20%40ludeeus-blue.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/badge/maintainer-Brett%20Adams%20%40Bre77-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/teslemetry/hacs-teslemetry.svg?style=for-the-badge
 [releases]: https://github.com/teslemetry/hacs-teslemetry/releases
