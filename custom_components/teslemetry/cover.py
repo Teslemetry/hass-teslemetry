@@ -91,7 +91,7 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return not self._value
+        return not self.get()
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
@@ -117,7 +117,7 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return self._value == TeslemetryCoverStates.CLOSED
+        return self.get() == TeslemetryCoverStates.CLOSED
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
@@ -138,16 +138,16 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return self._value == TeslemetryCoverStates.CLOSED
+        return self.get() == TeslemetryCoverStates.CLOSED
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
-        if self._value == TeslemetryCoverStates.CLOSED:
+        if self.get() == TeslemetryCoverStates.CLOSED:
             self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.OPEN))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
-        if self._value == TeslemetryCoverStates.OPEN:
+        if self.get() == TeslemetryCoverStates.OPEN:
             self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.CLOSED))
