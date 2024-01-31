@@ -61,18 +61,18 @@ DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_auto_seat_climate_left",
-        device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:car-seat-heater",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_auto_seat_climate_right",
-        device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:car-seat-heater",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_auto_steering_wheel_heat",
-        device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:steering",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_cabin_overheat_protection",
