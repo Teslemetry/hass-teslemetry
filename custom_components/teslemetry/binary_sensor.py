@@ -169,7 +169,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryBinarySensorEntity(vehicle.state_coordinator, description)
+        TeslemetryBinarySensorEntity(vehicle, description)
         for vehicle in data.vehicles
         for description in DESCRIPTIONS
     )
