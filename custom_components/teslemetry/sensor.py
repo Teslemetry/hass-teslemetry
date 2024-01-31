@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import cast
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -38,14 +39,6 @@ from .entity import (
     TeslemetryWallConnectorEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-
-
-@callback
-def minutes_to_datetime(value: StateType) -> datetime | None:
-    """Convert relative hours into absolute datetime."""
-    if isinstance(value, int | float) and value > 0:
-        return dt_util.now() + timedelta(minutes=value)
-    return None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -102,7 +95,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_minutes_to_full_charge",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=minutes_to_datetime,
+        value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float,value)),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
@@ -129,7 +122,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         icon="mdi:car-shift-pattern",
         options=["p", "d", "r", "n"],
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda x: x.lower() if isinstance(x, str) else x,
+        value_fn=lambda x: cast(str,x).lower(),
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -403,6 +396,11 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Return the state of the sensor."""
         return self.entity_description.value_fn(self.get())
 
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.entity_description.available_fn(self.get())
+
 
 class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
@@ -422,6 +420,11 @@ class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         return self.get()
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.entity_description.available_fn(self.get())
 
 
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
@@ -447,3 +450,8 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         return self._value
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.entity_description.available_fn(self._value)
