@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN, TeslemetryState
 from .entity import (
@@ -32,6 +33,7 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
     is_on: Callable[..., bool] = lambda x: x
+    available_fn: Callable[[StateType], bool] = lambda x: x is not None
 
 
 DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
@@ -193,3 +195,8 @@ class TeslemetryBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         """Return the state of the binary sensor."""
         return self.entity_description.is_on(self.get())
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.entity_description.available_fn(self.get())
