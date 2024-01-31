@@ -55,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if "vin" in product:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
-            coordinator = TeslemetryVehicleDataCoordinator(hass, api)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,

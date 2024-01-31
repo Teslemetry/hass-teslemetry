@@ -19,7 +19,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
 
-    def __init__(self, hass: HomeAssistant, api: VehicleSpecific) -> None:
+    def __init__(self, hass: HomeAssistant, api: VehicleSpecific, product: dict) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
             hass,
@@ -28,7 +28,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=SYNC_INTERVAL),
         )
         self.api = api
-        self.data = {"state": None}
+        self.data = product
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
