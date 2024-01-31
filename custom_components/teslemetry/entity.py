@@ -15,6 +15,7 @@ from .coordinator import (
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
+
 class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator]):
     """Parent class for Teslemetry Entities."""
 
@@ -31,7 +32,10 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
         self.api = vehicle.api
         self._wakelock = vehicle.wakelock
 
-        car_type = self.coordinator.data["vehicle_config_car_type"]
+        if(car_type := self.coordinator.data.get("vehicle_config_car_type")):
+            car_type = MODELS.get(car_type, car_type)
+        if(sw_version := self.coordinator.data.get("vehicle_state_car_version")):
+           sw_version = sw_version.split(" ")[0]
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{vehicle.vin}-{key}"
@@ -39,12 +43,18 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
             identifiers={(DOMAIN, vehicle.vin)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
-            name=self.coordinator.data["vehicle_state_vehicle_name"],
-            model=MODELS.get(car_type, car_type),
-            sw_version=self.coordinator.data["vehicle_state_car_version"].split(" ")[0],
-            hw_version=self.coordinator.data["vehicle_config_driver_assist"],
+            name=self.coordinator.data.get("vehicle_state_vehicle_name"),
+            model=car_type,
+            sw_version=sw_version,
+            hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
             serial_number=vehicle.vin,
         )
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.get() is not None
+
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
@@ -71,7 +81,6 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
         for key, value in args:
             self.coordinator.data[key] = value
         self.async_write_ha_state()
-
 
 
 class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator]):
@@ -131,6 +140,11 @@ class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergyDataCoordi
         )
 
     @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self._value is not None
+
+    @property
     def _value(self) -> int:
         """Return a specific wall connector value from coordinator data."""
-        return self.coordinator.data["wall_connectors"][self.din].get(self.key)
+        return self.coordinator.data.get("wall_connectors", {}).get(self.din, {}).get(self.key)

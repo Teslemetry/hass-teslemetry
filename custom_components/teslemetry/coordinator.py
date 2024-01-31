@@ -17,6 +17,8 @@ SYNC_INTERVAL = 60
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
+
+
     def __init__(self, hass: HomeAssistant, api: VehicleSpecific) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
@@ -26,22 +28,10 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=SYNC_INTERVAL),
         )
         self.api = api
-
-    async def async_config_entry_first_refresh(self) -> None:
-        """Perform first refresh."""
-        try:
-            response = await self.api.wake_up()
-            if response["response"]["state"] != TeslemetryState.ONLINE:
-                # The first refresh will fail, so retry later
-                raise ConfigEntryNotReady("Vehicle is not online")
-        except TeslaFleetError as e:
-            # The first refresh will also fail, so retry later
-            raise ConfigEntryNotReady from e
-        await super().async_config_entry_first_refresh()
+        self.data = {"state": None}
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
-
         try:
             data = await self.api.vehicle_data()
         except VehicleOffline:
