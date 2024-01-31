@@ -42,7 +42,7 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 @callback
 def minutes_to_datetime(value: StateType) -> datetime | None:
     """Convert relative hours into absolute datetime."""
-    if isinstance(value, (int, float)) and value > 0:
+    if isinstance(value, int | float) and value > 0:
         return dt_util.now() + timedelta(minutes=value)
     return None
 
