@@ -25,6 +25,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
 )
+from homeassistant.util.variance import ignore_variance
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -52,6 +53,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
+    available_fn: Callable[[StateType], bool] = lambda x: x is not None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
@@ -67,6 +69,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
+        value_fn=ignore_variance(0.2)
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_power",
@@ -224,7 +227,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_minutes_to_arrival",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=minutes_to_datetime,
+        value_fn=ignore_variance(
+            lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
+            timedelta(seconds=30),
+        ),
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_destination",
