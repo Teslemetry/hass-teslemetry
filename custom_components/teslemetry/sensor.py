@@ -62,7 +62,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
-        value_fn=ignore_variance(0.2)
+        value_fn=ignore_variance(lambda x: x, 0.2),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_power",
@@ -95,7 +95,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_minutes_to_full_charge",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float,value)),
+        value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
@@ -122,7 +122,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         icon="mdi:car-shift-pattern",
         options=["p", "d", "r", "n"],
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda x: cast(str,x).lower(),
+        value_fn=lambda x: cast(str, x).lower(),
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -399,7 +399,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        return super().available and self.get() is not None
 
 
 class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
@@ -424,7 +424,7 @@ class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        return super().available and self.get() is not None
 
 
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
@@ -454,4 +454,4 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self._value)
+        return super().available and self._value is not None

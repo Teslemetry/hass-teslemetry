@@ -21,10 +21,6 @@ from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryWallConnectorEntity,
 )
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 
@@ -33,8 +29,6 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
     is_on: Callable[..., bool] = lambda x: x
-    available_fn: Callable[[StateType], bool] = lambda x: x is not None
-
 
 DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
@@ -199,4 +193,5 @@ class TeslemetryBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        return super().available and self.get() is not None
+
