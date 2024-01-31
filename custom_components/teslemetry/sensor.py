@@ -96,6 +96,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
+        available_fn=lambda value: value is not None and value > 0,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
@@ -399,7 +400,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.get() is not None
+        return super().available and self.entity_description.available_fn(self.get())
 
 
 class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
