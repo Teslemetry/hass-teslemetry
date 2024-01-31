@@ -3,14 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from Teslemetry_api import (
-    close_charge_port,
-    close_windows,
-    open_close_rear_trunk,
-    open_front_trunk,
-    open_unlock_charge_port,
-    vent_windows,
-)
+from tesla_fleet_api.const import WindowCommands, Trunks
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -66,7 +59,7 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
-        await self.run(vent_windows)
+        await self.api.window_control(command=WindowCommands.VENT)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.OPEN),
             ("vehicle_state_fp_window", TeslemetryCoverStates.OPEN),
@@ -76,7 +69,7 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
-        await self.run(close_windows)
+        await self.api.window_control(command=WindowCommands.CLOSE)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.CLOSED),
             ("vehicle_state_fp_window", TeslemetryCoverStates.CLOSED),
@@ -102,12 +95,12 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
-        await self.run(open_unlock_charge_port)
+        await self.api.charge_port_door_open()
         self.set((self.key, True))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
-        await self.run(close_charge_port)
+        await self.api.charge_port_door_close()
         self.set((self.key, False))
 
 
@@ -128,7 +121,7 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
-        await self.run(open_front_trunk)
+        await self.api.actuate_trunk(Trunks.FRONT)
         self.set((self.key, TeslemetryCoverStates.OPEN))
 
 
@@ -150,11 +143,11 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
         if self._value == TeslemetryCoverStates.CLOSED:
-            await self.run(open_close_rear_trunk)
+            self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.OPEN))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
         if self._value == TeslemetryCoverStates.OPEN:
-            await self.run(open_close_rear_trunk)
+            self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.CLOSED))
