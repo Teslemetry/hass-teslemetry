@@ -45,7 +45,7 @@ DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
         icon="mdi:car-key",
     ),
     TeslemetryButtonEntityDescription(
-        key="boombox", func=lambda api: api.remote_boombox(), icon="mdi:volume-high"
+        key="boombox", func=lambda api: api.remote_boombox(0), icon="mdi:volume-high"
     ),
 )
 
