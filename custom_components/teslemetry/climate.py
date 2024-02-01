@@ -38,6 +38,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     _attr_max_temp = 28
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
+    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     _attr_preset_modes = ["off", "keep", "dog", "camp"]
 
     def __init__(
@@ -50,9 +51,10 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         super().__init__(vehicle, side)
         print(scopes)
         print(Scopes.VEHICLE_CMDS in scopes)
+
+        # Require VEHICLE_CMDS to make changes
         if Scopes.VEHICLE_CMDS in scopes:
-            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-        print(self._attr_supported_features)
+            self._attr_supported_features = ClimateEntityFeature(0)
 
     @property
     def hvac_mode(self) -> HVACMode | None:
