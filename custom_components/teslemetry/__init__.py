@@ -3,6 +3,7 @@ import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
+from tesla_fleet_api.const import Scopes
 from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
 
 from homeassistant.config_entries import ConfigEntry
@@ -25,6 +26,7 @@ PLATFORMS: Final = [
     Platform.CLIMATE,
     Platform.DEVICE_TRACKER,
     Platform.LOCK,
+    Platform.MEDIA_PLAYER,
     Platform.SENSOR,
 ]
 
@@ -40,6 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
+        scopes = (await teslemetry.metadata())["scopes"]
         products = (await teslemetry.products())["response"]
     except InvalidToken:
         LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
@@ -54,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicles: list[TeslemetryVehicleData] = []
     energysites: list[TeslemetryEnergyData] = []
     for product in products:
-        if "vin" in product:
+        if "vin" in product and Scopes.VEHICLE_DEVICE_DATA in scopes:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
@@ -65,7 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     vin=vin,
                 )
             )
-        elif "energy_site_id" in product:
+        elif "energy_site_id" in product and Scopes.ENERGY_DEVICE_DATA in scopes:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
             energysites.append(
@@ -91,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup Platforms
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
-        vehicles, energysites
+        vehicles, energysites, scopes
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
