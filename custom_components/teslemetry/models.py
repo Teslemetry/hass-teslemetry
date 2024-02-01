@@ -5,6 +5,7 @@ import asyncio
 from dataclasses import dataclass
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
+from tesla_fleet_api.const import Scopes
 
 from .coordinator import (
     TeslemetryEnergyDataCoordinator,
@@ -18,6 +19,7 @@ class TeslemetryData:
 
     vehicles: list[TeslemetryVehicleData]
     energysites: list[TeslemetryEnergyData]
+    scopes: list[Scopes]
 
 
 @dataclass
