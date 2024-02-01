@@ -1,148 +1,343 @@
 {
-  "config": {
-    "error": {
-      "subscription_required": "Anmeldung auf {short_url} erforderlich"
-    },
-    "step": {
-      "user": {
-        "description": "Zugangs-Token von {url}"
-      }
-    }
-  },
-  "entity": {
-    "climate": {
-      "driver_temp": {
-        "name": "Klima",
-        "state_attributes": {
-          "preset_mode": {
-            "state": {
-              "off": "Standard",
-              "keep": "Halten",
-              "dog": "Hunde-Modus",
-              "camp": "Camp-Modus"
+    "config": {
+        "error": {
+            "subscription_required": "Anmeldung auf {short_url} erforderlich"
+        },
+        "step": {
+            "user": {
+                "description": "Zugangs-Token von {url}"
             }
+        }
+    },
+    "entity": {
+	"climate": {
+	    "driver_temp": {
+                "name": "Klima",
+		"state_attributes": {
+		    "preset_mode": {
+			"state": {
+                            "off": "Standard",
+                            "keep": "Halten",
+                            "dog": "Hunde-Modus",
+                            "camp": "Camp-Modus"
+			}
+		    }
+		}
+	    }
+	},
+        "sensor": {
+          "charge_state_usable_battery_level": {
+            "name": "Batterie"
+          },
+          "charge_state_charge_energy_added": {
+            "name": "Nachgeladene Energie"
+          },
+          "charge_state_charger_power": {
+            "name": "Ladeleistung"
+          },
+          "charge_state_charger_voltage": {
+            "name": "Ladeger\u00e4t Spannung"
+          },
+          "charge_state_charger_actual_current": {
+            "name": "Ladestrom"
+          },
+          "charge_state_charge_rate": {
+            "name": "Ladegeschwindigkeit"
+          },
+          "charge_state_battery_range": {
+            "name": "Reichweite"
+          },
+          "charge_state_minutes_to_full_charge": {
+            "name": "Ladeende"
+          },
+          "drive_state_speed": {
+            "name": "Geschwindigkeit"
+          },
+          "drive_state_power": {
+            "name": "Antriebsleistung"
+          },
+          "drive_state_shift_state": {
+            "name": "Gangschaltung",
+            "state": {
+              "p": "Parken",
+              "d": "Fahren (D)",
+              "r": "R\u00fcckw\u00e4rts",
+              "n": "Neutral"
+            }
+          },
+          "vehicle_state_odometer": {
+            "name": "Kilometerz\u00e4hler"
+          },
+          "vehicle_state_tpms_pressure_fl": {
+            "name": "Reifendruck vorne links"
+          },
+          "vehicle_state_tpms_pressure_fr": {
+            "name": "Reifendruck vorne rechts"
+          },
+          "vehicle_state_tpms_pressure_rl": {
+            "name": "Reifendruck hinten links"
+          },
+          "vehicle_state_tpms_pressure_rr": {
+            "name": "Reifendruck hinten rechts"
+          },
+          "climate_state_inside_temp": {
+            "name": "Innentemperatur"
+          },
+          "climate_state_outside_temp": {
+            "name": "Au\u00dfentemperatur"
+          },
+          "climate_state_driver_temp_setting": {
+            "name": "Zieltemperatur Fahrerseite"
+          },
+          "climate_state_passenger_temp_setting": {
+            "name": "Zieltemperatur Beifahrerseite"
+          },
+          "drive_state_active_route_traffic_minutes_delay": {
+            "name": "Verkehrsbedingte Verz\u00f6gerung"
+          },
+          "drive_state_active_route_energy_at_arrival": {
+            "name": "Ladestand am Ziel"
+          },
+          "drive_state_active_route_miles_to_arrival": {
+            "name": "Entfernung bis zum Ziel"
+          },
+          "drive_state_active_route_minutes_to_arrival": {
+            "name": "Ankunftszeit"
+          },
+          "drive_state_active_route_destination": {
+            "name": "Navigationsziel"
+          }
+        },
+        "device_tracker": {
+          "location": {
+            "name": "Position",
+            "state_attributes": {
+              "heading": {
+                "name": "Fahrtrichtung"
+              },
+              "speed": {
+                "name": "Geschwindigkeit"
+              }
+            }
+          },
+          "route": {
+            "name": "Navigationsziel"
+          }
+        },
+        "lock": {
+          "vehicle_state_locked": {
+            "name": "Verriegelt"
+          },
+          "charge_state_charge_port_latch": {
+            "name": "Ladekabel verriegelt"
+          }
+        },
+        "media_player": {
+          "media": {
+            "name": "Media Player"
+          }
+        },
+        "cover": {
+          "windows": {
+            "name": "Fester (Spalt)"
+          },
+          "charge_state_charge_port_door_open": {
+            "name": "Ladeanschlussklappe"
+          },
+          "vehicle_state_ft": { "name": "Frunk" },
+          "vehicle_state_rt": { "name": "Kofferraum" }
+        },
+        "select": {
+          "climate_state_seat_heater_left": {
+            "name": "Sitzheizung vorne links",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_right": {
+            "name": "Sitzheizung vorne rechts",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_rear_left": {
+            "name": "Sitzheizung hinten links",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_rear_center": {
+            "name": "Sitzheizung hinten mitte",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_rear_right": {
+            "name": "Sitzheizung hinten rechts",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_third_row_left": {
+            "name": "Sitzheizung dritte Reihe links",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          },
+          "climate_state_seat_heater_third_row_right": {
+            "name": "Sitzheizung dritte Reihe rechts",
+            "state": {
+              "off": "Aus",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            }
+          }
+        },
+        "binary_sensor": {
+          "state": {
+            "name": "Verbindungsstatus"
+          },
+          "charge_state_battery_heater_on": {
+            "name": "Batterieheizung"
+          },
+          "charge_state_charge_enable_request": {
+            "name": "Ladeaufforderung"
+          },
+          "charge_state_charge_port_door_open": {
+            "name": "Ladeanschlussklappe"
+          },
+          "charge_state_charging_state": {
+            "name": "Ladevorgang"
+          },
+          "charge_state_preconditioning_enabled": {
+            "name": "Vorkonditionierung"
+          },
+          "charge_state_scheduled_charging_pending": {
+            "name": "Geplantes Laden"
+          },
+          "charge_state_trip_charging": {
+            "name": "Laden entlang der Route"
+          },
+          "charge_state_conn_charge_cable": {
+            "name": "Ladekabel"
+          },
+          "climate_state_auto_seat_climate_left": {
+            "name": "Automatische Sitzklimatisierung links"
+          },
+          "climate_state_auto_seat_climate_right": {
+            "name": "Automatische Sitzklimatisierung rechts"
+          },
+          "climate_state_auto_steering_wheel_heat": {
+            "name": "Automatische Lenkradheizung"
+          },
+          "climate_state_cabin_overheat_protection": {
+            "name": "Überhitzungsschutz Innenraum"
+          },
+          "climate_state_cabin_overheat_protection_actively_cooling": {
+            "name": "Aktiver Überhitzungsschutz Innenraum"
+          },
+          "vehicle_state_dashcam_state": {
+            "name": "Dashcam"
+          },
+          "vehicle_state_is_user_present": {
+            "name": "Benutzer anwesend"
+          },
+          "vehicle_state_tpms_soft_warning_fl": {
+            "name": "Reifendruckkontrolle vorne links"
+          },
+          "vehicle_state_tpms_soft_warning_fr": {
+            "name": "Reifendruckkontrolle vorne rechts"
+          },
+          "vehicle_state_tpms_soft_warning_rl": {
+            "name": "Reifendruckkontrolle hinten links"
+          },
+          "vehicle_state_tpms_soft_warning_rr": {
+            "name": "Reifendruckkontrolle hinten rechts"
+          },
+          "vehicle_state_fd_window": {
+            "name": "Fenster Fahrerseite vorne"
+          },
+          "vehicle_state_fp_window": {
+            "name": "Fenster Beifahrerseite vorne"
+          },
+          "vehicle_state_rd_window": {
+            "name": "Fenster Fahrerseite hinten"
+          },
+          "vehicle_state_rp_window": {
+            "name": "Fenster Beifahrerseite hinten"
+          },
+          "vehicle_state_df": {
+            "name": "Tür Fahrerseite vorne"
+          },
+          "vehicle_state_pf": {
+            "name": "Tür Beifahrerseite vorne"
+          },
+          "vehicle_state_dr": {
+            "name": "Tür Fahrerseite hinten"
+          },
+          "vehicle_state_pr": {
+            "name": "Tür Beifahrerseite hinten"
+          }
+        },
+        "button": {
+          "wake": { "name": "Aufwecken" },
+          "flash_lights": { "name": "Licht" },
+          "honk": { "name": "Hupe" },
+          "trigger_homelink": { "name": "Homelink" },
+          "enable_keyless_driving": { "name": "Start" },
+          "boombox": { "name": "Furz" }
+        },
+        "switch": {
+          "charge_state_charge_enable_request": {
+            "name": "Laden"
+          },
+          "climate_state_defrost_mode": {
+            "name": "Fahrzeug enteisen"
+          },
+          "vehicle_state_sentry_mode": {
+            "name": "Wächter-Modus"
+          },
+          "vehicle_state_valet_mode": {
+            "name": "Valet-Modus"
+          },
+          "climate_state_steering_wheel_heater": {
+            "name": "Lenkradheizung"
+          }
+        },
+        "number": {
+          "charge_state_charge_current_request": {
+            "name": "Charge current"
+          },
+          "charge_state_charge_limit_soc": {
+            "name": "Ladelimit"
+          },
+          "vehicle_state_speed_limit_mode_current_limit_mph": {
+            "name": "Tempobegrenzung"
+          }
+        },
+        "update": {
+          "update": {
+            "name": "Update"
           }
         }
       }
-    },
-    "sensor": {
-      "charge_state_usable_battery_level": {
-        "name": "Batterie"
-      },
-      "charge_state_charge_energy_added": {
-        "name": "Nachgeladene Energie"
-      },
-      "charge_state_charger_power": {
-        "name": "Ladeger\u00e4t Leistung"
-      },
-      "charge_state_charger_voltage": {
-        "name": "Ladeger\u00e4t Spannung"
-      },
-      "charge_state_charger_actual_current": {
-        "name": "Ladeger\u00e4t Strom"
-      },
-      "charge_state_charge_rate": {
-        "name": "Ladegeschwindigkeit"
-      },
-      "charge_state_battery_range": {
-        "name": "Reichweite"
-      },
-      "charge_state_minutes_to_full_charge": {
-        "name": "Ladeende"
-      },
-      "drive_state_speed": {
-        "name": "Geschwindigkeit"
-      },
-      "drive_state_power": {
-        "name": "Antriebsleistung"
-      },
-      "drive_state_shift_state": {
-        "name": "Gangschaltung",
-        "state": {
-          "p": "Parken",
-          "d": "Fahren (D)",
-          "r": "R\u00fcckw\u00e4rts",
-          "n": "Neutral"
-        }
-      },
-      "vehicle_state_odometer": {
-        "name": "Kilometerz\u00e4hler"
-      },
-      "vehicle_state_tpms_pressure_fl": {
-        "name": "Reifendruck vorne links"
-      },
-      "vehicle_state_tpms_pressure_fr": {
-        "name": "Reifendruck vorne rechts"
-      },
-      "vehicle_state_tpms_pressure_rl": {
-        "name": "Reifendruck hinten links"
-      },
-      "vehicle_state_tpms_pressure_rr": {
-        "name": "Reifendruck hinten rechts"
-      },
-      "climate_state_inside_temp": {
-        "name": "Innentemperatur"
-      },
-      "climate_state_outside_temp": {
-        "name": "Au\u00dfentemperatur"
-      },
-      "climate_state_driver_temp_setting": {
-        "name": "Temperatureinstellung Fahrerseite"
-      },
-      "climate_state_passenger_temp_setting": {
-        "name": "Temperatureinstellung Beifahrerseite"
-      },
-      "drive_state_active_route_traffic_minutes_delay": {
-        "name": "Verkehrsbedingte Verz\u00f6gerung"
-      },
-      "drive_state_active_route_energy_at_arrival": {
-        "name": "Ladestand am Ziel"
-      },
-      "drive_state_active_route_miles_to_arrival": {
-        "name": "Entfernung bis zum Ziel"
-      },
-      "drive_state_active_route_minutes_to_arrival": {
-        "name": "Ankunftszeit"
-      },
-      "drive_state_active_route_destination": {
-        "name": "Ziel"
-      },
-      "solar_power": {
-        "name": "Photovoltaik Leistung"
-      },
-      "energy_left": {
-        "name": "Verbleibende Energie"
-      },
-      "total_pack_energy": {
-        "name": "Maximale Energie"
-      },
-      "percentage_charged": {
-        "name": "Ladestand"
-      },
-      "battery_power": {
-        "name": "Leistung Batterie"
-      },
-      "load_power": {
-        "name": "Leistung Last"
-      },
-      "grid_power": {
-        "name": "Leistung Netz"
-      },
-      "generator_power": {
-        "name": "Generatorleistung"
-      },
-      "wall_connector_state": {
-        "name": "Wallbox Status"
-      },
-      "wall_connector_fault_state": {
-        "name": "Wallbox Fehler"
-      },
-      "wall_connector_power": {
-        "name": "Wallbox Leistung"
-      },
-      "vin": {
-        "name": "FIN"
-      }
-    }
-  }
 }
