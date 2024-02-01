@@ -50,11 +50,6 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
             serial_number=vehicle.vin,
         )
 
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.get() is not None
-
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
@@ -138,11 +133,6 @@ class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergyDataCoordi
             via_device=(DOMAIN, str(energysite.id)),
             serial_number=din.split("-")[-1],
         )
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self._value is not None
 
     @property
     def _value(self) -> int:
