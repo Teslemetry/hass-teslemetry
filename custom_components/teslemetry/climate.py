@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
-
+from tesla_fleet_api.const import Scopes
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetryClimateSide
 from .context import handle_command
 from .entity import TeslemetryVehicleEntity
-
+from .models import TeslemetryVehicleData
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -25,7 +25,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER)
+        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, data.scopes)
         for vehicle in data.vehicles
     )
 
@@ -38,10 +38,21 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     _attr_max_temp = 28
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
-    _attr_supported_features = (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    )
     _attr_preset_modes = ["off", "keep", "dog", "camp"]
+
+    def __init__(
+        self,
+        vehicle: TeslemetryVehicleData,
+        side: TeslemetryClimateSide,
+        scopes: Scopes,
+    ) -> None:
+        """Initialize the climate."""
+        super().__init__(vehicle, side)
+        print(scopes)
+        print(Scopes.VEHICLE_CMDS in scopes)
+        if Scopes.VEHICLE_CMDS in scopes:
+            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        print(self._attr_supported_features)
 
     @property
     def hvac_mode(self) -> HVACMode | None:
