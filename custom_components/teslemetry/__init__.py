@@ -24,6 +24,7 @@ PLATFORMS: Final = [
     Platform.COVER,
     Platform.CLIMATE,
     Platform.DEVICE_TRACKER,
+    Platform.LOCK,
     Platform.SENSOR,
 ]
 
