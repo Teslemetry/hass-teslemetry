@@ -84,12 +84,16 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     """Cover entity for the charge port."""
 
     _attr_device_class = CoverDeviceClass.DOOR
+    _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
+
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "charge_state_charge_port_door_open")
-        if Scopes.VEHICLE_CMDS in scopes:
-            self._attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
+
+        # Require VEHICLE_CMDS to make changes
+        if Scopes.VEHICLE_CMDS not in scopes:
+            self._attr_supported_features = CoverEntityFeature(0)
 
     @property
     def is_closed(self) -> bool | None:
@@ -125,7 +129,7 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
-        await self.api.actuate_trunk(Trunks.FRONT)
+        await self.api.actuate_trunk(which_trunk=Trunks.FRONT)
         self.set((self.key, TeslemetryCoverStates.OPEN))
 
 
