@@ -23,6 +23,7 @@ PLATFORMS: Final = [
     Platform.BUTTON,
     Platform.COVER,
     Platform.CLIMATE,
+    Platform.DEVICE_TRACKER,
     Platform.SENSOR,
 ]
 
