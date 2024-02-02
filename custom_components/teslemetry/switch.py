@@ -79,7 +79,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             TeslemetrySwitchEntity(vehicle, description)
-            for vehicle in data.vehilces
+            for vehicle in data.vehicles
             for description in DESCRIPTIONS
         ]
     )
