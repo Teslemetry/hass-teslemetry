@@ -115,6 +115,11 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         self.entity_description = description
 
     @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.get() is not None
+
+    @property
     def native_value(self) -> float | None:
         """Return the value reported by the number."""
         return self.get()
