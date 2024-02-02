@@ -43,7 +43,7 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
             identifiers={(DOMAIN, vehicle.vin)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
-            name=self.coordinator.data.get("vehicle_state_vehicle_name"),
+            name=self.coordinator.data.get("vehicle_state_vehicle_name") or self.coordinator.data.get("display_name") or vehicle.vin,
             model=car_type,
             sw_version=sw_version,
             hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
