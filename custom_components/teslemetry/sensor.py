@@ -40,6 +40,14 @@ from .entity import (
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
+ChargeStates = {
+    "Starting": "starting",
+    "Charging": "charging",
+    "Stopped": "stopped",
+    "Complete": "complete",
+    "Disconnected": "disconnected",
+    "NoPower": "no_power",
+}
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
@@ -50,6 +58,13 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
+    TeslemetrySensorEntityDescription(
+        key="charge_state_charging_state",
+        icon="mdi:ev-station",
+        options=list(ChargeStates.values()),
+        device_class=SensorDeviceClass.ENUM,
+        value_fn=lambda value: ChargeStates[cast(str, value)],
+    ),
     TeslemetrySensorEntityDescription(
         key="charge_state_usable_battery_level",
         state_class=SensorStateClass.MEASUREMENT,
