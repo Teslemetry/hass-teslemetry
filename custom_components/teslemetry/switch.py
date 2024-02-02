@@ -61,7 +61,7 @@ DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scopes.VEHICLE_CMDS]
     ),
     TeslemetrySwitchEntityDescription(
-        key="climate_state_remote_auto_steering_wheel_heat_climate_request",
+        key="climate_state_auto_steering_wheel_heat",
         on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=True),
         off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=False),
         icon="mdi:steering",
