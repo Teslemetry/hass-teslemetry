@@ -27,6 +27,7 @@ PLATFORMS: Final = [
     Platform.DEVICE_TRACKER,
     Platform.LOCK,
     Platform.MEDIA_PLAYER,
+    Platform.NUMBER,
     Platform.SENSOR,
 ]
 
@@ -42,6 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
+        #scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
         scopes = (await teslemetry.metadata())["scopes"]
         products = (await teslemetry.products())["response"]
     except InvalidToken:
