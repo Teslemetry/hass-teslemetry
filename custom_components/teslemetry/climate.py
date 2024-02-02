@@ -49,8 +49,6 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     ) -> None:
         """Initialize the climate."""
         super().__init__(vehicle, side)
-        print(scopes)
-        print(Scopes.VEHICLE_CMDS in scopes)
 
         # Require VEHICLE_CMDS to make changes
         if Scopes.VEHICLE_CMDS in scopes:
