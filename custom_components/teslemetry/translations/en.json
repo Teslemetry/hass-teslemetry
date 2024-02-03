@@ -1,15 +1,15 @@
 {
   "config": {
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_access_token": "[%key:common::config_flow::error::invalid_access_token%]",
+      "cannot_connect": "Failed to connect",
+      "invalid_access_token": "Invalid access token",
       "subscription_required": "Subscription required, please visit {short_url}",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     },
     "step": {
       "user": {
         "data": {
-          "access_token": "[%key:common::config_flow::data::access_token%]"
+          "access_token": "Access token"
         },
         "description": "Enter an access token from {url}."
       }
@@ -25,6 +25,9 @@
       },
       "charge_state_charge_port_door_open": {
         "name": "Charge port door"
+      },
+      "charge_state_charging_state": {
+        "name": "Charging"
       },
       "charge_state_conn_charge_cable": {
         "name": "Charge cable"
@@ -112,7 +115,7 @@
     },
     "climate": {
       "driver_temp": {
-        "name": "[%key:component::climate::title%]",
+        "name": "Climate",
         "state_attributes": {
           "preset_mode": {
             "state": {
@@ -160,12 +163,12 @@
         "name": "Charge cable lock"
       },
       "vehicle_state_locked": {
-        "name": "[%key:component::lock::title%]"
+        "name": "Lock"
       }
     },
     "media_player": {
       "media": {
-        "name": "[%key:component::media_player::title%]"
+        "name": "Media Player"
       }
     },
     "number": {
@@ -186,61 +189,61 @@
           "high": "High",
           "low": "Low",
           "medium": "Medium",
-          "off": "[%key:common::state::off%]"
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_rear_center": {
         "name": "Seat heater rear center",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_rear_left": {
         "name": "Seat heater rear left",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_rear_right": {
         "name": "Seat heater rear right",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_right": {
         "name": "Seat heater right",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_third_row_left": {
         "name": "Seat heater third row left",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       },
       "climate_state_seat_heater_third_row_right": {
         "name": "Seat heater third row right",
         "state": {
-          "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:common::state::off%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium",
+          "off": "Off"
         }
       }
     },
@@ -371,7 +374,7 @@
     },
     "switch": {
       "charge_state_charge_enable_request": {
-        "name": "Charge"
+        "name": "Caharge"
       },
       "climate_state_auto_seat_climate_left": {
         "name": "Auto seat climate left"
@@ -382,6 +385,12 @@
       "climate_state_auto_steering_wheel_heat": {
         "name": "Auto steering wheel heater"
       },
+      "climate_state_defrost_mode": {
+        "name": "Defrost mode"
+      },
+      "climate_state_steering_wheel_heater": {
+        "name": "Steering wheel heater"
+      },
       "vehicle_state_sentry_mode": {
         "name": "Sentry mode"
       },
@@ -391,7 +400,7 @@
     },
     "update": {
       "update": {
-        "name": "[%key:component::update::title%]"
+        "name": "Update"
       }
     }
   }
