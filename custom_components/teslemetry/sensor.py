@@ -64,7 +64,6 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_state_charging_state",
-        icon="mdi:ev-station",
         options=list(ChargeStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda value: ChargeStates[cast(str, value)],
@@ -139,7 +138,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_shift_state",
-        icon="mdi:car-shift-pattern",
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda x: ShiftStates.get(x,"p"),
@@ -247,7 +245,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_destination",
-        icon="mdi:map-marker",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
@@ -260,7 +257,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:solar-power",
     ),
     SensorEntityDescription(
         key="energy_left",
@@ -270,7 +266,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:battery",
     ),
     SensorEntityDescription(
         key="total_pack_energy",
@@ -280,7 +275,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:battery-high",
     ),
     SensorEntityDescription(
         key="percentage_charged",
@@ -296,7 +290,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:home-battery",
     ),
     SensorEntityDescription(
         key="load_power",
@@ -305,7 +298,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:power-plug",
     ),
     SensorEntityDescription(
         key="grid_power",
@@ -314,7 +306,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:transmission-tower",
     ),
     SensorEntityDescription(
         key="grid_services_power",
@@ -323,7 +314,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:transmission-tower",
     ),
     SensorEntityDescription(
         key="generator_power",
@@ -332,7 +322,6 @@ ENERGY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:generator-stationary",
     ),
 )
 
@@ -342,14 +331,12 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.ENUM,
-        icon="mdi:ev-station",
     ),
     SensorEntityDescription(
         key="wall_connector_fault_state",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.ENUM,
-        icon="mdi:ev-station",
     ),
     SensorEntityDescription(
         key="wall_connector_power",
@@ -358,11 +345,9 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
-        icon="mdi:ev-station",
     ),
     SensorEntityDescription(
         key="vin",
-        icon="mdi:car-electric",
     ),
 )
 

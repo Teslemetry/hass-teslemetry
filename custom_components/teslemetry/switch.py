@@ -43,28 +43,24 @@ DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         key="charge_state_charge_enable_request",
         on_func=lambda api: api.start_charging(),
         off_func=lambda api: api.stop_charging(),
-        icon="mdi:ev-station",
         scopes=[Scopes.VEHICLE_CMDS,Scopes.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
-        icon="mdi:shield-car",
         scopes=[Scopes.VEHICLE_CMDS]
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
         on_func=lambda api: api.set_valet_mode(on=True),
         off_func=lambda api: api.set_valet_mode(on=False),
-        icon="mdi:car-key",
         scopes=[Scopes.VEHICLE_CMDS]
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_steering_wheel_heat",
         on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=True),
         off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=False),
-        icon="mdi:steering",
         scopes=[Scopes.VEHICLE_CMDS]
     ),
 )
