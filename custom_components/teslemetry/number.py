@@ -41,7 +41,7 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     scopes: list[Scopes] | None = None
 
 
-DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
+VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_current_request",
         native_step=PRECISION_WHOLE,
@@ -80,6 +80,11 @@ DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
 )
 
+ENERGY_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
+    TeslemetryNumberEntityDescription(
+        key=""
+    )
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -90,7 +95,7 @@ async def async_setup_entry(
     async_add_entities(
         TeslemetryNumberEntity(vehicle, description)
         for vehicle in data.vehicles
-        for description in DESCRIPTIONS
+        for description in VEHICLE_DESCRIPTIONS
     )
 
 

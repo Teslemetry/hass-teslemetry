@@ -8,7 +8,7 @@ from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import Scopes
 
 from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
+    TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
 
@@ -37,6 +37,6 @@ class TeslemetryEnergyData:
     """Data for a vehicle in the Teslemetry integration."""
 
     api: EnergySpecific
-    coordinator: TeslemetryEnergyDataCoordinator
+    coordinator: TeslemetryEnergySiteLiveCoordinator
     id: int
     info: dict[str, str]

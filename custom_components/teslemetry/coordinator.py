@@ -10,8 +10,23 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import LOGGER, TeslemetryState
 
-SYNC_INTERVAL = 60
+VEHICLE_INTERVAL = timedelta(seconds=15)
+ENERGY_LIVE_INTERVAL = timedelta(seconds=15)
+ENERGY_INFO_INTERVAL = timedelta(seconds=60)
 
+def flatten(
+        self, data: dict[str, Any], parent: str | None = None
+    ) -> dict[str, Any]:
+    """Flatten the data structure."""
+    result = {}
+    for key, value in data.items():
+        if parent:
+            key = f"{parent}_{key}"
+        if isinstance(value, dict):
+            result.update(self._flatten(value, key))
+        else:
+            result[key] = value
+    return result
 
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
@@ -22,7 +37,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hass,
             LOGGER,
             name="Teslemetry Vehicle",
-            update_interval=timedelta(seconds=SYNC_INTERVAL),
+            update_interval=VEHICLE_INTERVAL,
         )
         self.api = api
         self.data = product
@@ -37,33 +52,19 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
 
-        return self._flatten(data["response"])
-
-    def _flatten(
-        self, data: dict[str, Any], parent: str | None = None
-    ) -> dict[str, Any]:
-        """Flatten the data structure."""
-        result = {}
-        for key, value in data.items():
-            if parent:
-                key = f"{parent}_{key}"
-            if isinstance(value, dict):
-                result.update(self._flatten(value, key))
-            else:
-                result[key] = value
-        return result
+        return flatten(data["response"])
 
 
-class TeslemetryEnergyDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Class to manage fetching data from the Teslemetry API."""
+class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Class to manage fetching energy site live status from the Teslemetry API."""
 
     def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
         """Initialize Teslemetry Energy Update Coordinator."""
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Energy Site",
-            update_interval=timedelta(seconds=SYNC_INTERVAL),
+            name="Teslemetry Energy Site Live Status",
+            update_interval=ENERGY_LIVE_INTERVAL,
         )
         self.api = api
 
@@ -81,3 +82,26 @@ class TeslemetryEnergyDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
 
         return data["response"]
+
+class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Class to manage fetching energy site info from the Teslemetry API."""
+
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
+        """Initialize Teslemetry Energy Update Coordinator."""
+        super().__init__(
+            hass,
+            LOGGER,
+            name="Teslemetry Energy Site Info",
+            update_interval=ENERGY_INFO_INTERVAL,
+        )
+        self.api = api
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Update energy site data using Teslemetry API."""
+
+        try:
+            data = await self.api.site_info()
+        except TeslaFleetError as e:
+            raise UpdateFailed(e.message) from e
+
+        return flatten(data["response"])

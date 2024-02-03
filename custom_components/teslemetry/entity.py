@@ -10,8 +10,9 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, MODELS, TeslemetryState
 from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
+    TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
+    TeslemetryEnergySiteInfoCoordinator
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -82,7 +83,7 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
         return (key or self.key) in self.coordinator.data
 
 
-class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator]):
+class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
     """Parent class for Teslemetry Energy Entities."""
 
     _attr_has_entity_name = True
@@ -115,7 +116,7 @@ class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator])
         return (key or self.key) in self.coordinator.data
 
 
-class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator]):
+class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
     """Parent class for Teslemetry Wall Connector Entities."""
 
     _attr_has_entity_name = True

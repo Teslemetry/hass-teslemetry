@@ -14,8 +14,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, LOGGER
 from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
+    TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
+    TeslemetryEnergySiteInfoCoordinator
 )
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -79,7 +80,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysites.append(
                 TeslemetryEnergyData(
                     api=api,
-                    coordinator=TeslemetryEnergyDataCoordinator(hass, api),
+                    live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
+                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api),
                     id=site_id,
                     info=product,
                 )
@@ -92,7 +94,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for vehicle in vehicles
         ),
         *(
-            energysite.coordinator.async_config_entry_first_refresh()
+            energysite.live_coordinator.async_config_entry_first_refresh()
+            for energysite in energysites
+        ),
+        *(
+            energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
     )
