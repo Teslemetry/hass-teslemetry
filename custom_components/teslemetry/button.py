@@ -11,17 +11,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryState
+from .const import DOMAIN
 from .entity import (
-    TeslemetryEnergyEntity,
     TeslemetryVehicleEntity,
-    TeslemetryWallConnectorEntity,
 )
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .models import TeslemetryVehicleData
 
 
 @dataclass(frozen=True, kw_only=True)

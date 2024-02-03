@@ -6,19 +6,12 @@ from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN
 from .entity import (
-    TeslemetryEnergyEntity,
     TeslemetryVehicleEntity,
-    TeslemetryWallConnectorEntity,
 )
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .models import TeslemetryVehicleData
 
 
 async def async_setup_entry(

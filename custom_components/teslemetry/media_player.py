@@ -12,15 +12,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import (
-    TeslemetryEnergyEntity,
     TeslemetryVehicleEntity,
-    TeslemetryWallConnectorEntity,
 )
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .models import TeslemetryVehicleData
 
 STATES = {
     "Playing": MediaPlayerState.PLAYING,

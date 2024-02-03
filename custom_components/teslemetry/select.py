@@ -1,7 +1,6 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 
-from tesla_fleet_api.const import Scopes
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,15 +9,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, TeslemetrySeatHeaterOptions
 from .entity import (
-    TeslemetryEnergyEntity,
     TeslemetryVehicleEntity,
-    TeslemetryWallConnectorEntity,
 )
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 SEAT_HEATERS = {
     "climate_state_seat_heater_left": "front_left",

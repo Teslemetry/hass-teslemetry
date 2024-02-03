@@ -6,7 +6,6 @@ from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.exceptions import TeslaFleetError, VehicleOffline
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import LOGGER, TeslemetryState
@@ -16,8 +15,6 @@ SYNC_INTERVAL = 60
 
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
-
-
 
     def __init__(self, hass: HomeAssistant, api: VehicleSpecific, product: dict) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""

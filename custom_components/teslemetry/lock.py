@@ -11,11 +11,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, TeslemetryChargeCableLockStates
 from .entity import (
-    TeslemetryEnergyEntity,
     TeslemetryVehicleEntity,
-    TeslemetryWallConnectorEntity,
 )
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .models import TeslemetryVehicleData
 
 
 async def async_setup_entry(

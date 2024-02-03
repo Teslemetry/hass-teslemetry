@@ -78,7 +78,7 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
         self.async_write_ha_state()
 
     def has(self, key: str | None = None):
-        """Checks if a key exists in the coordinator data."""
+        """Check if a key exists in the coordinator data."""
         return (key or self.key) in self.coordinator.data
 
 
@@ -111,7 +111,7 @@ class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator])
         return self.coordinator.data.get(key or self.key, default)
 
     def has(self, key: str | None = None):
-        """Checks if a key exists in the coordinator data."""
+        """Check if a key exists in the coordinator data."""
         return (key or self.key) in self.coordinator.data
 
 

@@ -106,7 +106,7 @@
             },
             "climate_state_auto_steering_wheel_heat":{
                 "default":"mdi:steering"
-            },
+            }
         }
     }
 }
