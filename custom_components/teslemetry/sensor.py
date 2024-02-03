@@ -58,7 +58,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    available_fn: Callable[[StateType], bool] = lambda: True
+    available_fn: Callable[[StateType], bool] = lambda _: True
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
