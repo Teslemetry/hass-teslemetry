@@ -50,7 +50,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=NumberDeviceClass.CURRENT,
         max_key="charge_state_charge_current_request_max",
-        func=lambda api, value: api.set_charging_amps(value),
+        func=lambda api, value: api.set_charging_amps(int(value)),
         scopes=[Scopes.VEHICLE_CHARGING_CMDS]
     ),
     TeslemetryNumberEntityDescription(
@@ -62,7 +62,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.BATTERY,
         min_key="charge_state_charge_limit_soc_min",
         max_key="charge_state_charge_limit_soc_max",
-        func=lambda api, value: api.set_charge_limit(value),
+        func=lambda api, value: api.set_charge_limit(int(value)),
         scopes=[Scopes.VEHICLE_CHARGING_CMDS,Scopes.VEHICLE_CMDS]
     ),
     TeslemetryNumberEntityDescription(
@@ -88,7 +88,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_max_value=100,
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scopes.ENERGY_CMDS],
-        func=lambda api, value: api.backup(value)
+        func=lambda api, value: api.backup(int(value))
     )
 )
 
@@ -144,5 +144,6 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
+        print(value)
         await self.entity_description.func(self.api, value)
         self.set((self.key, value))
