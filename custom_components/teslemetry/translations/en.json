@@ -285,15 +285,6 @@
           "charge_state_conn_charge_cable": {
             "name": "Charge cable"
           },
-          "climate_state_auto_seat_climate_left": {
-            "name": "Auto seat climate left"
-          },
-          "climate_state_auto_seat_climate_right": {
-            "name": "Auto seat climate right"
-          },
-          "climate_state_auto_steering_wheel_heat": {
-            "name": "Auto steering wheel heater"
-          },
           "climate_state_cabin_overheat_protection": {
             "name": "Cabin overheat protection"
           },
@@ -352,6 +343,15 @@
           "boombox": { "name": "Play fart" }
         },
         "switch": {
+          "climate_state_auto_seat_climate_left": {
+            "name": "Auto seat climate left"
+          },
+          "climate_state_auto_seat_climate_right": {
+            "name": "Auto seat climate right"
+          },
+          "climate_state_auto_steering_wheel_heat": {
+            "name": "Auto steering wheel heater"
+          },
           "charge_state_charge_enable_request": {
             "name": "Charge"
           },
