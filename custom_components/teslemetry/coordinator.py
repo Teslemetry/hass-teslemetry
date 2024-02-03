@@ -15,7 +15,7 @@ ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=300)
 
 def flatten(
-        self, data: dict[str, Any], parent: str | None = None
+        data: dict[str, Any], parent: str | None = None
     ) -> dict[str, Any]:
     """Flatten the data structure."""
     result = {}
@@ -23,7 +23,7 @@ def flatten(
         if parent:
             key = f"{parent}_{key}"
         if isinstance(value, dict):
-            result.update(self._flatten(value, key))
+            result.update(flatten(value, key))
         else:
             result[key] = value
     return result
