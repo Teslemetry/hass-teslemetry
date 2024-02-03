@@ -1,112 +1,106 @@
 {
-    "entities":{
-        "binary_sensor":{
-            "climate_state_auto_seat_climate_left":{
-                "default":"mdi:car-seat-heating",
-                "state":{
-                    "off":"mdi:car-seat"
-                }
-            },
-            "climate_state_auto_seat_climate_right":{
-                "default":"mdi:car-seat-heating",
-                "state":{
-                    "off":"mdi:car-seat"
-                }
-            },
-            "climate_state_auto_steering_wheel_heat":{
-                "default":"mdi:steering"
-            }
+    "entities": {
+      "button": {
+        "boombox": {
+          "default": "mdi:volume-high"
         },
-        "button":{
-            "wake":{
-                "default":"mdi:sleep-off"
-            },
-            "flash_lights":{
-                "default":"mdi:flashlight"
-            },
-            "honk":{
-                "default":"mdi:bullhorn"
-            },
-            "enable_keyless_driving":{
-                "default":"mdi:car-key"
-            },
-            "boombox":{
-                "default":"mdi:volume-high"
-            }
+        "enable_keyless_driving": {
+          "default": "mdi:car-key"
         },
-        "sensor":{
-            "charge_state_charging_state":
-            {
-                "default":"mdi:ev-station",
-                "state":{
-                    "starting":"mdi:play-circle",
-                    "stopped":"mdi:stop-circle",
-                    "disconnected":"mdi:connection",
-                    "no_power":"mdi:power-plug-off-outline"
-                }
-            },
-            "drive_state_shift_state":{
-                "default":"mdi:car-shift-pattern",
-                "state":{
-                    "d":"mdi:alpha-d",
-                    "p":"mdi:alpha-p",
-                    "n":"mdi:alpha-n",
-                    "r":"mdi:alpha-r"
-                }
-            },
-            "drive_state_active_route_destination":{
-                "default":"mdi:map-marker"
-            },
-            "solar_power":{
-                "default":"mdi:solar-power"
-            },
-            "energy_left":{
-                "default":"mdi:battery"
-            },
-            "total_pack_energy":{
-                "default":"mdi:battery-high"
-            },
-            "battery_power":{
-                "default":"mdi:home-battery"
-            },
-            "load_power":{
-                "default":"mdi:power-plug"
-            },
-            "grid_power":{
-                "default": "mdi:transmission-tower"
-            },
-            "grid_services_power":{
-                "default": "transmission-tower"
-            },
-            "generator_power":{
-                "default":"mdi:generator-stationary"
-            },
-            "wall_connector_state":{
-                "default":"mdi:ev-station"
-            },
-            "wall_connector_fault_state":{
-                "default":"mdi:ev-station"
-            },
-            "wall_connector_power":{
-                "default":"mdi:ev-station"
-            },
-            "vin": {
-                "default":"mdi:car-electric"
-            }
+        "flash_lights": {
+          "default": "mdi:flashlight"
         },
-        "switch":{
-            "charge_state_charge_enable_request":{
-                "default":"mdi:ev-station"
-            },
-            "vehicle_state_sentry_mode":{
-                "default":"mdi:shield-car"
-            },
-            "vehicle_state_valet_mode":{
-                "default":"mdi:car-key"
-            },
-            "climate_state_auto_steering_wheel_heat":{
-                "default":"mdi:steering"
-            }
+        "honk": {
+          "default": "mdi:bullhorn"
+        },
+        "wake": {
+          "default": "mdi:sleep-off"
         }
+      },
+      "sensor": {
+        "battery_power": {
+          "default": "mdi:home-battery"
+        },
+        "charge_state_charging_state": {
+          "default": "mdi:ev-station",
+          "state": {
+            "disconnected": "mdi:connection",
+            "no_power": "mdi:power-plug-off-outline",
+            "starting": "mdi:play-circle",
+            "stopped": "mdi:stop-circle"
+          }
+        },
+        "drive_state_active_route_destination": {
+          "default": "mdi:map-marker"
+        },
+        "drive_state_shift_state": {
+          "default": "mdi:car-shift-pattern",
+          "state": {
+            "d": "mdi:alpha-d",
+            "n": "mdi:alpha-n",
+            "p": "mdi:alpha-p",
+            "r": "mdi:alpha-r"
+          }
+        },
+        "energy_left": {
+          "default": "mdi:battery"
+        },
+        "generator_power": {
+          "default": "mdi:generator-stationary"
+        },
+        "grid_power": {
+          "default": "mdi:transmission-tower"
+        },
+        "grid_services_power": {
+          "default": "transmission-tower"
+        },
+        "load_power": {
+          "default": "mdi:power-plug"
+        },
+        "solar_power": {
+          "default": "mdi:solar-power"
+        },
+        "total_pack_energy": {
+          "default": "mdi:battery-high"
+        },
+        "vin": {
+          "default": "mdi:car-electric"
+        },
+        "wall_connector_fault_state": {
+          "default": "mdi:ev-station"
+        },
+        "wall_connector_power": {
+          "default": "mdi:ev-station"
+        },
+        "wall_connector_state": {
+          "default": "mdi:ev-station"
+        }
+      },
+      "switch": {
+        "charge_state_charge_enable_request": {
+          "default": "mdi:ev-station"
+        },
+        "climate_state_auto_seat_climate_left": {
+          "default": "mdi:car-seat-heating",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_auto_seat_climate_right": {
+          "default": "mdi:car-seat-heating",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_auto_steering_wheel_heat": {
+          "default": "mdi:steering"
+        },
+        "vehicle_state_sentry_mode": {
+          "default": "mdi:shield-car"
+        },
+        "vehicle_state_valet_mode": {
+          "default": "mdi:car-key"
+        }
+      }
     }
-}
+  }
