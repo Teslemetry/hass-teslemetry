@@ -46,7 +46,7 @@ class TeslemetryEntity(CoordinatorEntity):
         """Check if a key exists in the coordinator data."""
         return (key or self.key) in self.coordinator.data
 
-class TeslemetryVehicleEntity(TeslemetryEntity):
+class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehicleDataCoordinator]):
     """Parent class for Teslemetry Vehicle entities."""
 
     def __init__(
@@ -96,7 +96,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
 
 
-class TeslemetryEnergyLiveEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
+class TeslemetryEnergyLiveEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
     """Parent class for Teslemetry Energy Site Live entities."""
 
     def __init__(
@@ -115,7 +115,7 @@ class TeslemetryEnergyLiveEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoord
             name=self.coordinator.data.get("site_name", "Energy Site"),
         )
 
-class TeslemetryEnergyInfoEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
+class TeslemetryEnergyInfoEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteInfoCoordinator]):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
     def __init__(
@@ -135,7 +135,7 @@ class TeslemetryEnergyInfoEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoord
         )
 
 
-class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
+class TeslemetryWallConnectorEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
     """Parent class for Teslemetry Wall Connector Entities."""
 
     _attr_has_entity_name = True

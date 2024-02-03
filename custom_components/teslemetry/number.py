@@ -80,10 +80,16 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
 )
 
-ENERGY_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
+ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
-        key=""
+        key="backup_reserve_percent"
+        native_step=PRECISION_WHOLE,
+        native_min_value=0,
+        native_max_value=100,
+        native_unit_of_measurement=PERCENTAGE,
+        scopes=[Scopes.ENERGY_CMDS]
     )
+)
 
 
 async def async_setup_entry(
