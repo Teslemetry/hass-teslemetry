@@ -10,9 +10,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import LOGGER, TeslemetryState
 
-VEHICLE_INTERVAL = timedelta(seconds=15)
-ENERGY_LIVE_INTERVAL = timedelta(seconds=15)
-ENERGY_INFO_INTERVAL = timedelta(seconds=60)
+VEHICLE_INTERVAL = timedelta(seconds=30)
+ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
+ENERGY_INFO_INTERVAL = timedelta(seconds=300)
 
 def flatten(
         self, data: dict[str, Any], parent: str | None = None

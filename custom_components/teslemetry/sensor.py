@@ -34,7 +34,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .entity import (
-    TeslemetryEnergyEntity,
+    TeslemetryEnergyLiveEntity,
     TeslemetryVehicleEntity,
     TeslemetryWallConnectorEntity,
 )
@@ -407,7 +407,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         return super().available and self.has() and self.entity_description.available_fn(self.get())
 
 
-class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
+class TeslemetryEnergySensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
     entity_description: SensorEntityDescription

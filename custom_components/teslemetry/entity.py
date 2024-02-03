@@ -17,10 +17,37 @@ from .coordinator import (
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 
-class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator]):
-    """Parent class for Teslemetry Entities."""
+class TeslemetryEntity(CoordinatorEntity):
+    """Parent class for all Teslemetry entities."""
 
     _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: CoordinatorEntity,
+        key: str | int,
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        super().__init__(coordinator)
+        self.key = key
+        self._attr_translation_key = key
+
+    def get(self, key: str | None = None, default: Any | None = None) -> Any:
+        """Return a specific value from coordinator data."""
+        return self.coordinator.data.get(key or self.key, default)
+
+    def set(self, *args: Any) -> None:
+        """Set a value in coordinator data."""
+        for key, value in args:
+            self.coordinator.data[key] = value
+        self.async_write_ha_state()
+
+    def has(self, key: str | None = None):
+        """Check if a key exists in the coordinator data."""
+        return (key or self.key) in self.coordinator.data
+
+class TeslemetryVehicleEntity(TeslemetryEntity):
+    """Parent class for Teslemetry Vehicle entities."""
 
     def __init__(
         self,
@@ -28,8 +55,7 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(vehicle.coordinator)
-        self.key = key
+        super().__init__(vehicle.coordinator, key)
         self.api = vehicle.api
         self._wakelock = vehicle.wakelock
 
@@ -68,25 +94,10 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
                         raise HomeAssistantError("Could not wake up vehicle")
                     await asyncio.sleep(wait)
 
-    def get(self, key: str | None = None, default: Any | None = None) -> Any:
-        """Return a specific value from coordinator data."""
-        return self.coordinator.data.get(key or self.key, default)
-
-    def set(self, *args: Any) -> None:
-        """Set a value in coordinator data."""
-        for key, value in args:
-            self.coordinator.data[key] = value
-        self.async_write_ha_state()
-
-    def has(self, key: str | None = None):
-        """Check if a key exists in the coordinator data."""
-        return (key or self.key) in self.coordinator.data
 
 
-class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
-    """Parent class for Teslemetry Energy Entities."""
-
-    _attr_has_entity_name = True
+class TeslemetryEnergyLiveEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
+    """Parent class for Teslemetry Energy Site Live entities."""
 
     def __init__(
         self,
@@ -94,12 +105,9 @@ class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinat
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(energysite.coordinator)
-        self.key = key
-        self.api = energysite.api
-
-        self._attr_translation_key = key
+        super().__init__(energysite.live_coordinator, key)
         self._attr_unique_id = f"{energysite.id}-{key}"
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(energysite.id))},
             manufacturer="Tesla",
@@ -107,13 +115,24 @@ class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinat
             name=self.coordinator.data.get("site_name", "Energy Site"),
         )
 
-    def get(self, key: str | None = None, default: Any | None = None) -> Any:
-        """Return a specific value from coordinator data."""
-        return self.coordinator.data.get(key or self.key, default)
+class TeslemetryEnergyInfoEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator | TeslemetryEnergySiteInfoCoordinator]):
+    """Parent class for Teslemetry Energy Site Info Entities."""
 
-    def has(self, key: str | None = None):
-        """Check if a key exists in the coordinator data."""
-        return (key or self.key) in self.coordinator.data
+    def __init__(
+        self,
+        energysite: TeslemetryEnergyData,
+        key: str,
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        super().__init__(energysite.info_coordinator, key)
+        self._attr_unique_id = f"{energysite.id}-{key}"
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, str(energysite.id))},
+            manufacturer="Tesla",
+            configuration_url="https://teslemetry.com/console",
+            name=self.coordinator.data.get("site_name", "Energy Site"),
+        )
 
 
 class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
@@ -128,11 +147,9 @@ class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergySiteLiveCo
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(energysite.coordinator)
+        super().__init__(energysite.live_coordinator, key)
         self.din = din
-        self.key = key
 
-        self._attr_translation_key = key
         self._attr_unique_id = f"{energysite.id}-{din}-{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
