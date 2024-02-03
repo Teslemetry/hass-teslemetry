@@ -37,7 +37,7 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     native_min_value: float
     native_max_value: float
     min_key: str | None = None
-    max_key: str
+    max_key: str | None = None
     scopes: list[Scopes] | None = None
 
 
@@ -82,12 +82,13 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
 
 ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
-        key="backup_reserve_percent"
+        key="backup_reserve_percent",
         native_step=PRECISION_WHOLE,
         native_min_value=0,
         native_max_value=100,
         native_unit_of_measurement=PERCENTAGE,
-        scopes=[Scopes.ENERGY_CMDS]
+        scopes=[Scopes.ENERGY_CMDS],
+        func=lambda api, value: api.backup(value)
     )
 )
 
