@@ -81,9 +81,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 TeslemetryEnergyData(
                     api=api,
                     live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
-                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api),
+                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api, product),
                     id=site_id,
-                    info=product,
                 )
             )
 

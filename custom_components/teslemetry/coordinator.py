@@ -59,11 +59,11 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
     """Class to manage fetching energy site live status from the Teslemetry API."""
 
     def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
-        """Initialize Teslemetry Energy Update Coordinator."""
+        """Initialize Teslemetry Energy Site Live coordinator."""
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Energy Site Live Status",
+            name="Teslemetry Energy Site Live",
             update_interval=ENERGY_LIVE_INTERVAL,
         )
         self.api = api
@@ -86,8 +86,8 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
-        """Initialize Teslemetry Energy Update Coordinator."""
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
+        """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
             hass,
             LOGGER,
@@ -95,6 +95,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             update_interval=ENERGY_INFO_INTERVAL,
         )
         self.api = api
+        self.data = product
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update energy site data using Teslemetry API."""
