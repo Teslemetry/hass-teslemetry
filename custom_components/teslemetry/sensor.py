@@ -27,7 +27,7 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.util.variance import ignore_variance
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
@@ -49,12 +49,16 @@ ChargeStates = {
     "NoPower": "no_power",
 }
 
+ShiftStates = {
+    "P":"p", "D":"d", "R":"r", "N":"n"
+}
+
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    available_fn: Callable[[StateType], bool] = lambda x: x is not None
+    available_fn: Callable[[StateType], bool] = lambda: True
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
@@ -136,9 +140,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="drive_state_shift_state",
         icon="mdi:car-shift-pattern",
-        options=["p", "d", "r", "n"],
+        options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda x: cast(str, x).lower(),
+        value_fn=lambda x: ShiftStates.get(x,"p"),
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -415,7 +419,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        return super().available and self.has() and self.entity_description.available_fn(self.get())
 
 
 class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
@@ -440,7 +444,7 @@ class TeslemetryEnergySensorEntity(TeslemetryEnergyEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.get() is not None
+        return super().available and self.has()
 
 
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
@@ -470,4 +474,4 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self._value is not None
+        return super().available and self.din in self.coordinator.data.get("wall_connectors", {})

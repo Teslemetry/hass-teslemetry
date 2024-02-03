@@ -44,7 +44,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.get() is not None
+        return super().available and self.has()
 
     @property
     def supported_features(self) -> UpdateEntityFeature:

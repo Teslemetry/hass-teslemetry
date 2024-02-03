@@ -77,6 +77,10 @@ class TeslemetryVehicleEntity(CoordinatorEntity[TeslemetryVehicleDataCoordinator
             self.coordinator.data[key] = value
         self.async_write_ha_state()
 
+    def has(self, key: str | None = None):
+        """Checks if a key exists in the coordinator data."""
+        return (key or self.key) in self.coordinator.data
+
 
 class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator]):
     """Parent class for Teslemetry Energy Entities."""
@@ -105,6 +109,10 @@ class TeslemetryEnergyEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator])
     def get(self, key: str | None = None, default: Any | None = None) -> Any:
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(key or self.key, default)
+
+    def has(self, key: str | None = None):
+        """Checks if a key exists in the coordinator data."""
+        return (key or self.key) in self.coordinator.data
 
 
 class TeslemetryWallConnectorEntity(CoordinatorEntity[TeslemetryEnergyDataCoordinator]):
