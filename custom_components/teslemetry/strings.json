@@ -355,9 +355,6 @@
       "charge_state_charge_enable_request": {
         "name": "Charge"
       },
-      "climate_state_defrost_mode": {
-        "name": "Defrost mode"
-      },
       "vehicle_state_sentry_mode": {
         "name": "Sentry mode"
       },
@@ -365,10 +362,10 @@
         "name": "Valet mode"
       },
       "climate_state_auto_seat_climate_left": {
-        "name": "Steering wheel auto heater"
+        "name": "Left seat auto heater"
       },
       "climate_state_auto_seat_climate_right": {
-        "name": "Steering wheel auto heater"
+        "name": "Right seat auto heater"
       },
       "climate_state_auto_steering_wheel_heat": {
         "name": "Steering wheel auto heater"
