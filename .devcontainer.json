@@ -11,7 +11,13 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": ["ms-python.python", "github.vscode-pull-request-github", "ryanluker.vscode-coverage-gutters", "ms-python.vscode-pylance"],
+            "extensions": [
+                "ms-python.python",
+                "github.vscode-pull-request-github",
+                "ryanluker.vscode-coverage-gutters",
+                "ms-python.vscode-pylance",
+                "lukas-tr.materialdesignicons-intellisense"
+            ],
             "settings": {
                 "files.eol": "\n",
                 "editor.tabSize": 4,
