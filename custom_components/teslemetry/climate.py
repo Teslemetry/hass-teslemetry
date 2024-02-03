@@ -51,7 +51,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         super().__init__(vehicle, side)
 
         # Require VEHICLE_CMDS to make changes
-        if Scopes.VEHICLE_CMDS in scopes:
+        if Scopes.VEHICLE_CMDS not in scopes:
             self._attr_supported_features = ClimateEntityFeature(0)
 
     @property
