@@ -134,7 +134,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryNumberEntity:
+class TeslemetryNumberEntity(NumberEntity):
     """Base class for all Teslemetry number entities."""
 
     entity_description: TeslemetryNumberEntityDescription
@@ -166,7 +166,7 @@ class TeslemetryNumberEntity:
 
 
 class TeslemetryVehicleNumberEntity(
-    TeslemetryNumberEntity, TeslemetryVehicleEntity, NumberEntity
+    TeslemetryVehicleEntity, TeslemetryNumberEntity
 ):
     """Number entity for current charge."""
 
@@ -190,7 +190,7 @@ class TeslemetryVehicleNumberEntity(
 
 
 class TeslemetryEnergyInfoNumberSensorEntity(
-    TeslemetryNumberEntity, TeslemetryEnergyInfoEntity, NumberEntity
+    TeslemetryEnergyInfoEntity, TeslemetryNumberEntity
 ):
     """Number entity for current charge."""
 
