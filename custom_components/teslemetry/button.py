@@ -22,7 +22,7 @@ from .models import TeslemetryVehicleData
 class TeslemetryButtonEntityDescription(ButtonEntityDescription):
     """Describes a Teslemetry Button entity."""
 
-    func: Callable | None
+    func: Callable | None = None
 
 
 DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
