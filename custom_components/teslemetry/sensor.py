@@ -406,7 +406,7 @@ class TeslemetrySensorEntity:
 
 
 class TeslemetryVehicleSensorEntity(
-    TeslemetrySensorEntity, TeslemetryVehicleEntity, SensorEntity
+    TeslemetryVehicleEntity, SensorEntity
 ):
     """Base class for Teslemetry vehicle metric sensors."""
 
@@ -437,7 +437,7 @@ class TeslemetryVehicleSensorEntity(
 
 
 class TeslemetryEnergyLiveSensorEntity(
-    TeslemetrySensorEntity, TeslemetryEnergyLiveEntity, SensorEntity
+    TeslemetryEnergyLiveEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
@@ -464,7 +464,7 @@ class TeslemetryEnergyLiveSensorEntity(
 
 
 class TeslemetryWallConnectorSensorEntity(
-    TeslemetrySensorEntity, TeslemetryWallConnectorEntity, SensorEntity
+    TeslemetryWallConnectorEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
@@ -498,7 +498,7 @@ class TeslemetryWallConnectorSensorEntity(
 
 
 class TeslemetryEnergyInfoSensorEntity(
-    TeslemetrySensorEntity, TeslemetryEnergyInfoEntity, SensorEntity
+    TeslemetryEnergyInfoEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
