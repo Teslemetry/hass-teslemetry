@@ -99,7 +99,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scopes.ENERGY_CMDS],
         func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
-    )
+    ),
 )
 
 

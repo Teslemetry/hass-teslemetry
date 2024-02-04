@@ -351,10 +351,15 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
-ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = SensorEntityDescription(
-    key="vpp_backup_reserve_percent",
-    entity_category=EntityCategory.DIAGNOSTIC,
-    device_class=SensorDeviceClass.BATTERY,
+ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="vpp_backup_reserve_percent",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        device_class=SensorDeviceClass.BATTERY,
+    ),
+    SensorEntityDescription(
+        key="version"
+    )
 )
 
 
@@ -392,6 +397,7 @@ async def async_setup_entry(
         TeslemetryEnergyInfoSensorEntity(energysite, description)
         for energysite in data.energysites
         for description in ENERGY_INFO_DESCRIPTIONS
+        if description.key in energysite.info_coordinator.data
     )
 
 
