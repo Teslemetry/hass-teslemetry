@@ -61,13 +61,13 @@ class TeslemetryVehicleEntity(
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(vehicle.coordinator, key)
-        self.api = vehicle.api
-        self._wakelock = vehicle.wakelock
+        super().__init__(data.coordinator, key)
+        self.api = data.api
+        self._wakelock = data.wakelock
 
         if car_type := self.coordinator.data.get("vehicle_config_car_type"):
             car_type = MODELS.get(car_type, car_type)
@@ -75,18 +75,18 @@ class TeslemetryVehicleEntity(
             sw_version = sw_version.split(" ")[0]
 
         self._attr_translation_key = key
-        self._attr_unique_id = f"{vehicle.vin}-{key}"
+        self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, vehicle.vin)},
+            identifiers={(DOMAIN, data.vin)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=self.coordinator.data.get("vehicle_state_vehicle_name")
             or self.coordinator.data.get("display_name")
-            or vehicle.vin,
+            or data.vin,
             model=car_type,
             sw_version=sw_version,
             hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
-            serial_number=vehicle.vin,
+            serial_number=data.vin,
         )
 
     async def wake_up_if_asleep(self) -> None:
@@ -113,16 +113,16 @@ class TeslemetryEnergyLiveEntity(
 
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(energysite.live_coordinator, key)
-        self._attr_unique_id = f"{energysite.id}-{key}"
-        self.api = energysite.api
+        super().__init__(data.live_coordinator, key)
+        self._attr_unique_id = f"{data.id}-{key}"
+        self.api = data.api
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(energysite.id))},
+            identifiers={(DOMAIN, str(data.id))},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=self.coordinator.data.get("site_name", "Energy Site"),
@@ -136,16 +136,16 @@ class TeslemetryEnergyInfoEntity(
 
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(energysite.info_coordinator, key)
-        self._attr_unique_id = f"{energysite.id}-{key}"
-        self.api = energysite.api
+        super().__init__(data.info_coordinator, key)
+        self._attr_unique_id = f"{data.id}-{key}"
+        self.api = data.api
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(energysite.id))},
+            identifiers={(DOMAIN, str(data.id))},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=self.coordinator.data.get("site_name", "Energy Site"),
@@ -161,21 +161,21 @@ class TeslemetryWallConnectorEntity(
 
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         din: str,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(energysite.live_coordinator, key)
+        super().__init__(data.live_coordinator, key)
         self.din = din
 
-        self._attr_unique_id = f"{energysite.id}-{din}-{key}"
+        self._attr_unique_id = f"{data.id}-{din}-{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name="Wall Connector",
-            via_device=(DOMAIN, str(energysite.id)),
+            via_device=(DOMAIN, str(data.id)),
             serial_number=din.split("-")[-1],
         )
 
