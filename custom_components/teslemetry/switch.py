@@ -20,7 +20,7 @@ from .const import DOMAIN
 from .entity import (
     TeslemetryVehicleEntity,
 )
-from .models import TeslemetryVehicleData
+from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -32,7 +32,7 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     scopes: list[Scopes] | None = None
 
 
-DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
+VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="charge_state_charge_enable_request",
         on_func=lambda api: api.charge_start(),
@@ -75,6 +75,25 @@ DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
 )
 
+ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
+    TeslemetrySwitchEntityDescription(
+        key="components_disallow_charge_from_grid_with_solar_installed",
+        on_func=lambda api: api.grid_import_export(
+            disallow_charge_from_grid_with_solar_installed=True
+        ),
+        off_func=lambda api: api.grid_import_export(
+            disallow_charge_from_grid_with_solar_installed=False
+        ),
+        scopes=[Scopes.ENERGY_CMDS],
+    ),
+    TeslemetrySwitchEntityDescription(
+        key="user_settings_storm_mode_enabled",
+        on_func=lambda api: api.storm_mode(enabled=True),
+        off_func=lambda api: api.storm_mode(enabled=False),
+        scopes=[Scopes.ENERGY_CMDS],
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -84,18 +103,31 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            TeslemetrySwitchEntity(
+            TeslemetryVehicleSwitchEntity(
                 vehicle,
                 description,
                 any(scope in data.scopes for scope in description.scopes),
             )
             for vehicle in data.vehicles
-            for description in DESCRIPTIONS
+            for description in VEHICLE_DESCRIPTIONS
+        ]
+    )
+
+    async_add_entities(
+        [
+            TeslemetryEnergyInfoSwitchEntity(
+                energysite,
+                description,
+                any(scope in data.scopes for scope in description.scopes),
+            )
+            for energysite in data.energysites
+            for description in ENERGY_INFO_DESCRIPTIONS
+            if description.key in energysite.info_coordinator.data
         ]
     )
 
 
-class TeslemetrySwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
+class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
     """Base class for Teslemetry Switch."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
@@ -133,5 +165,45 @@ class TeslemetrySwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
         """Turn off the Switch."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
+        await self.entity_description.off_func(self.api)
+        self.set((self.entity_description.key, False))
+
+
+class TeslemetryEnergyInfoSwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
+    """Base class for Teslemetry Switch."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    entity_description: TeslemetrySwitchEntityDescription
+
+    def __init__(
+        self,
+        energysite: TeslemetryEnergyData,
+        description: TeslemetrySwitchEntityDescription,
+        scoped: bool,
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(energysite, description.key)
+        self.entity_description = description
+        self.scoped = scoped
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
+
+    @property
+    def is_on(self) -> bool:
+        """Return the state of the Switch."""
+        return self.get()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the Switch."""
+        self.raise_for_scope()
+        await self.entity_description.on_func(self.api)
+        self.set((self.entity_description.key, True))
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the Switch."""
+        self.raise_for_scope()
         await self.entity_description.off_func(self.api)
         self.set((self.entity_description.key, False))

@@ -357,9 +357,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.BATTERY,
     ),
-    SensorEntityDescription(
-        key="version"
-    )
+    SensorEntityDescription(key="version"),
 )
 
 

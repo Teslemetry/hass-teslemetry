@@ -75,21 +75,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetrySelectEntity(SelectEntity):
-    """Base class for Teslemetry select entities."""
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        return self.get()
-
-
-class TeslemetrySeatHeaterSelectEntity(TeslemetrySelectEntity, TeslemetryVehicleEntity):
+class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     """Select entity for vehicle seat heater."""
 
     _attr_options = [
@@ -104,6 +90,15 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetrySelectEntity, TeslemetryVehicle
         super().__init__(vehicle, key)
         self.scoped = scoped
 
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.get()
 
     @property
     def current_option(self) -> str | None:
@@ -119,10 +114,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetrySelectEntity, TeslemetryVehicle
         self.set((self.key, level))
 
 
-class TeslemetryEnergySiteSelectEntity(
-    TeslemetrySelectEntity,
-    TeslemetryEnergyInfoEntity
-):
+class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
     """Select entity for energy sites."""
 
     def __init__(
@@ -132,6 +124,16 @@ class TeslemetryEnergySiteSelectEntity(
         super().__init__(vehicle, description.key)
         self.scoped = scoped
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.get()
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
