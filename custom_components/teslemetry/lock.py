@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import ATTR_CODE
 
 from .const import DOMAIN, TeslemetryChargeCableLockStates
 from .entity import (
@@ -67,9 +68,11 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
     def __init__(
         self,
         vehicle: TeslemetryVehicleData,
+        scoped: bool,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "charge_state_charge_port_latch")
+        self.scoped = scoped
 
     @property
     def is_locked(self) -> bool | None:
@@ -90,3 +93,41 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
         await self.wake_up_if_asleep()
         await self.api.charge_port_door_open()
         self.set((self.key, TeslemetryChargeCableLockStates.DISENGAGED))
+
+
+class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
+    """Speed Limit with PIN entity for Tessie."""
+
+    _attr_code_format = r"^\d\d\d\d$"
+
+    def __init__(
+        self,
+        vehicle: TeslemetryVehicleData,
+        scoped: bool,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(vehicle, "vehicle_state_speed_limit_mode_active")
+        self.scoped = scoped
+
+    @property
+    def is_locked(self) -> bool | None:
+        """Return the state of the Lock."""
+        return self.get()
+
+    async def async_lock(self, **kwargs: Any) -> None:
+        """Enable speed limit with pin."""
+        code: str | None = kwargs.get(ATTR_CODE)
+        if code:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
+            await self.api.speed_limit_activate(code)
+            self.set((self.key, True))
+
+    async def async_unlock(self, **kwargs: Any) -> None:
+        """Disable speed limit with pin."""
+        code: str | None = kwargs.get(ATTR_CODE)
+        if code:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
+            await self.api.speed_limit_activate(code)
+            self.set((self.key, False))
