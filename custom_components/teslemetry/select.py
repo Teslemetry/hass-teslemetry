@@ -30,7 +30,9 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetrySeatHeaterSelectEntity(vehicle, key, Scopes.VEHICLE_CMDS in data.scopes)
+        TeslemetrySeatHeaterSelectEntity(
+            vehicle, key, Scopes.VEHICLE_CMDS in data.scopes
+        )
         for vehicle in data.vehicles
         for key in SEAT_HEATERS
     )

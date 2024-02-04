@@ -26,18 +26,13 @@ class TeslemetryButtonEntityDescription(ButtonEntityDescription):
 
 
 DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
-    TeslemetryButtonEntityDescription(
-        key="wake", func=lambda api: api.wake_up()
-    ),
+    TeslemetryButtonEntityDescription(key="wake", func=lambda api: api.wake_up()),
     TeslemetryButtonEntityDescription(
         key="flash_lights", func=lambda api: api.flash_lights()
     ),
+    TeslemetryButtonEntityDescription(key="honk", func=lambda api: api.honk_horn()),
     TeslemetryButtonEntityDescription(
-        key="honk", func=lambda api: api.honk_horn()
-    ),
-    TeslemetryButtonEntityDescription(
-        key="enable_keyless_driving",
-        func=lambda api: api.remote_start_drive()
+        key="enable_keyless_driving", func=lambda api: api.remote_start_drive()
     ),
     TeslemetryButtonEntityDescription(
         key="boombox", func=lambda api: api.remote_boombox(0)

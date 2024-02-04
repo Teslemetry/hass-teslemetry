@@ -86,7 +86,6 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
-
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "charge_state_charge_port_door_open")

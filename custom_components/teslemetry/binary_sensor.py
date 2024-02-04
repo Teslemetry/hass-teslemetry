@@ -27,6 +27,7 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
 
     is_on: Callable[..., bool] = lambda x: x
 
+
 DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="state",
@@ -176,4 +177,3 @@ class TeslemetryBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     def available(self) -> bool:
         """Return if sensor is available."""
         return super().available and self.has()
-

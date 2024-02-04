@@ -22,7 +22,8 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryUpdateEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes) for vehicle in data.vehicles
+        TeslemetryUpdateEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
+        for vehicle in data.vehicles
     )
 
 

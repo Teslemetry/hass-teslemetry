@@ -10,7 +10,7 @@ from tesla_fleet_api.const import Scopes
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator
+    TeslemetryEnergySiteInfoCoordinator,
 )
 
 

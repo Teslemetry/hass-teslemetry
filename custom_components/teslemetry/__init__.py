@@ -16,7 +16,7 @@ from .const import DOMAIN, LOGGER
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator
+    TeslemetryEnergySiteInfoCoordinator,
 )
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -32,7 +32,7 @@ PLATFORMS: Final = [
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
-    Platform.UPDATE
+    Platform.UPDATE,
 ]
 
 
@@ -47,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
-        #scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
+        # scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
         scopes = (await teslemetry.metadata())["scopes"]
         products = (await teslemetry.products())["response"]
     except InvalidToken:
@@ -81,7 +81,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 TeslemetryEnergyData(
                     api=api,
                     live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
-                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api, product),
+                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(
+                        hass, api, product
+                    ),
                     id=site_id,
                 )
             )

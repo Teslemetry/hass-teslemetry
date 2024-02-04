@@ -48,7 +48,11 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.longitude is not None and self.latitude is not None
+        return (
+            super().available
+            and self.longitude is not None
+            and self.latitude is not None
+        )
 
 
 class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):

@@ -49,9 +49,8 @@ ChargeStates = {
     "NoPower": "no_power",
 }
 
-ShiftStates = {
-    "P":"p", "D":"d", "R":"r", "N":"n"
-}
+ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}
+
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
@@ -140,7 +139,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="drive_state_shift_state",
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda x: ShiftStates.get(x,"p"),
+        value_fn=lambda x: ShiftStates.get(x, "p"),
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -404,7 +403,11 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.has() and self.entity_description.available_fn(self.get())
+        return (
+            super().available
+            and self.has()
+            and self.entity_description.available_fn(self.get())
+        )
 
 
 class TeslemetryEnergySensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
@@ -459,4 +462,6 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.din in self.coordinator.data.get("wall_connectors", {})
+        return super().available and self.din in self.coordinator.data.get(
+            "wall_connectors", {}
+        )

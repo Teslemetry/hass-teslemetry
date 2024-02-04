@@ -37,37 +37,41 @@ DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         key="charge_state_charge_enable_request",
         on_func=lambda api: api.charge_start(),
         off_func=lambda api: api.charge_stop(),
-        scopes=[Scopes.VEHICLE_CMDS,Scopes.VEHICLE_CHARGING_CMDS],
+        scopes=[Scopes.VEHICLE_CMDS, Scopes.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
-        scopes=[Scopes.VEHICLE_CMDS]
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
         on_func=lambda api: api.set_valet_mode(on=True),
         off_func=lambda api: api.set_valet_mode(on=False),
-        scopes=[Scopes.VEHICLE_CMDS]
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
-        on_func=lambda api: api.remote_auto_seat_climate_request(0,True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(0,False),
-        scopes=[Scopes.VEHICLE_CMDS]
+        on_func=lambda api: api.remote_auto_seat_climate_request(0, True),
+        off_func=lambda api: api.remote_auto_seat_climate_request(0, False),
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
-        on_func=lambda api: api.remote_auto_seat_climate_request(1,True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(1,False),
-        scopes=[Scopes.VEHICLE_CMDS]
+        on_func=lambda api: api.remote_auto_seat_climate_request(1, True),
+        off_func=lambda api: api.remote_auto_seat_climate_request(1, False),
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_steering_wheel_heat",
-        on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=True),
-        off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(on=False),
-        scopes=[Scopes.VEHICLE_CMDS]
+        on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
+            on=True
+        ),
+        off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
+            on=False
+        ),
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
 )
 
@@ -80,7 +84,11 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            TeslemetrySwitchEntity(vehicle, description, any(scope in data.scopes for scope in description.scopes))
+            TeslemetrySwitchEntity(
+                vehicle,
+                description,
+                any(scope in data.scopes for scope in description.scopes),
+            )
             for vehicle in data.vehicles
             for description in DESCRIPTIONS
         ]
@@ -97,7 +105,7 @@ class TeslemetrySwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
         self,
         vehicle: TeslemetryVehicleData,
         description: TeslemetrySwitchEntityDescription,
-        scoped: bool
+        scoped: bool,
     ) -> None:
         """Initialize the Switch."""
         super().__init__(vehicle, description.key)

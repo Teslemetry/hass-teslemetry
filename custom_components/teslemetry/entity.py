@@ -12,7 +12,7 @@ from .const import DOMAIN, MODELS, TeslemetryState
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator
+    TeslemetryEnergySiteInfoCoordinator,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -49,9 +49,14 @@ class TeslemetryEntity(CoordinatorEntity):
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""
         if not self.scoped:
-            raise ServiceValidationError(f"Missing required scope: {' or '.join(self.entity_description.scopes)}")
+            raise ServiceValidationError(
+                f"Missing required scope: {' or '.join(self.entity_description.scopes)}"
+            )
 
-class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehicleDataCoordinator]):
+
+class TeslemetryVehicleEntity(
+    TeslemetryEntity, CoordinatorEntity[TeslemetryVehicleDataCoordinator]
+):
     """Parent class for Teslemetry Vehicle entities."""
 
     def __init__(
@@ -64,10 +69,10 @@ class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehi
         self.api = vehicle.api
         self._wakelock = vehicle.wakelock
 
-        if(car_type := self.coordinator.data.get("vehicle_config_car_type")):
+        if car_type := self.coordinator.data.get("vehicle_config_car_type"):
             car_type = MODELS.get(car_type, car_type)
-        if(sw_version := self.coordinator.data.get("vehicle_state_car_version")):
-           sw_version = sw_version.split(" ")[0]
+        if sw_version := self.coordinator.data.get("vehicle_state_car_version"):
+            sw_version = sw_version.split(" ")[0]
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{vehicle.vin}-{key}"
@@ -75,13 +80,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehi
             identifiers={(DOMAIN, vehicle.vin)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
-            name=self.coordinator.data.get("vehicle_state_vehicle_name") or self.coordinator.data.get("display_name") or vehicle.vin,
+            name=self.coordinator.data.get("vehicle_state_vehicle_name")
+            or self.coordinator.data.get("display_name")
+            or vehicle.vin,
             model=car_type,
             sw_version=sw_version,
             hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
             serial_number=vehicle.vin,
         )
-
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
@@ -100,8 +106,9 @@ class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehi
                     await asyncio.sleep(wait)
 
 
-
-class TeslemetryEnergyLiveEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
+class TeslemetryEnergyLiveEntity(
+    TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]
+):
     """Parent class for Teslemetry Energy Site Live entities."""
 
     def __init__(
@@ -120,7 +127,10 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryE
             name=self.coordinator.data.get("site_name", "Energy Site"),
         )
 
-class TeslemetryEnergyInfoEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteInfoCoordinator]):
+
+class TeslemetryEnergyInfoEntity(
+    TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteInfoCoordinator]
+):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
     def __init__(
@@ -140,7 +150,9 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryE
         )
 
 
-class TeslemetryWallConnectorEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]):
+class TeslemetryWallConnectorEntity(
+    TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]
+):
     """Parent class for Teslemetry Wall Connector Entities."""
 
     _attr_has_entity_name = True
@@ -168,4 +180,8 @@ class TeslemetryWallConnectorEntity(TeslemetryEntity, CoordinatorEntity[Teslemet
     @property
     def _value(self) -> int:
         """Return a specific wall connector value from coordinator data."""
-        return self.coordinator.data.get("wall_connectors", {}).get(self.din, {}).get(self.key)
+        return (
+            self.coordinator.data.get("wall_connectors", {})
+            .get(self.din, {})
+            .get(self.key)
+        )

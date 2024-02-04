@@ -5,7 +5,7 @@ from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerState,
-    MediaPlayerEntityFeature
+    MediaPlayerEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -24,6 +24,7 @@ STATES = {
 }
 MAX_VOLUME = 11.0
 
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -31,7 +32,8 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryMediaEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes) for vehicle in data.vehicles
+        TeslemetryMediaEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
+        for vehicle in data.vehicles
     )
 
 
@@ -39,7 +41,13 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     """Vehicle Location Media Class."""
 
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
-    _attr_supported_features = MediaPlayerEntityFeature.NEXT_TRACK | MediaPlayerEntityFeature.PAUSE | MediaPlayerEntityFeature.PLAY | MediaPlayerEntityFeature.PREVIOUS_TRACK | MediaPlayerEntityFeature.VOLUME_SET
+    _attr_supported_features = (
+        MediaPlayerEntityFeature.NEXT_TRACK
+        | MediaPlayerEntityFeature.PAUSE
+        | MediaPlayerEntityFeature.PLAY
+        | MediaPlayerEntityFeature.PREVIOUS_TRACK
+        | MediaPlayerEntityFeature.VOLUME_SET
+    )
 
     def __init__(
         self,
@@ -111,7 +119,9 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         """Set volume level, range 0..1."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.api.adjust_volume(int(volume * self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)))
-
-
-
+        await self.api.adjust_volume(
+            int(
+                volume
+                * self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
+            )
+        )

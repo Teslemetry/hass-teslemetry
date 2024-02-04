@@ -14,9 +14,8 @@ VEHICLE_INTERVAL = timedelta(seconds=30)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=300)
 
-def flatten(
-        data: dict[str, Any], parent: str | None = None
-    ) -> dict[str, Any]:
+
+def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
     """Flatten the data structure."""
     result = {}
     for key, value in data.items():
@@ -28,10 +27,13 @@ def flatten(
             result[key] = value
     return result
 
+
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: VehicleSpecific, product: dict) -> None:
+    def __init__(
+        self, hass: HomeAssistant, api: VehicleSpecific, product: dict
+    ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
             hass,
@@ -82,6 +84,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         }
 
         return data["response"]
+
 
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""

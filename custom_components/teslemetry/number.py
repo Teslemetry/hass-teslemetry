@@ -51,7 +51,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.CURRENT,
         max_key="charge_state_charge_current_request_max",
         func=lambda api, value: api.set_charging_amps(int(value)),
-        scopes=[Scopes.VEHICLE_CHARGING_CMDS]
+        scopes=[Scopes.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_limit_soc",
@@ -63,7 +63,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         min_key="charge_state_charge_limit_soc_min",
         max_key="charge_state_charge_limit_soc_max",
         func=lambda api, value: api.set_charge_limit(int(value)),
-        scopes=[Scopes.VEHICLE_CHARGING_CMDS,Scopes.VEHICLE_CMDS]
+        scopes=[Scopes.VEHICLE_CHARGING_CMDS, Scopes.VEHICLE_CMDS],
     ),
     TeslemetryNumberEntityDescription(
         key="vehicle_state_speed_limit_mode_current_limit_mph",
@@ -76,20 +76,20 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         min_key="vehicle_state_speed_limit_mode_min_limit_mph",
         max_key="vehicle_state_speed_limit_mode_max_limit_mph",
         func=lambda api, value: api.speed_limit_set_limit(value),
-        scopes=[Scopes.VEHICLE_CMDS]
+        scopes=[Scopes.VEHICLE_CMDS],
     ),
 )
 
-ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
-    TeslemetryNumberEntityDescription(
-        key="backup_reserve_percent",
-        native_step=PRECISION_WHOLE,
-        native_min_value=0,
-        native_max_value=100,
-        native_unit_of_measurement=PERCENTAGE,
-        scopes=[Scopes.ENERGY_CMDS],
-        func=lambda api, value: api.backup(int(value))
-    )
+ENERGY_INFO_DESCRIPTIONS: tuple[
+    TeslemetryNumberEntityDescription, ...
+] = TeslemetryNumberEntityDescription(
+    key="backup_reserve_percent",
+    native_step=PRECISION_WHOLE,
+    native_min_value=0,
+    native_max_value=100,
+    native_unit_of_measurement=PERCENTAGE,
+    scopes=[Scopes.ENERGY_CMDS],
+    func=lambda api, value: api.backup(int(value)),
 )
 
 
@@ -100,7 +100,11 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryNumberEntity(vehicle, description, any(scope in data.scopes for scope in description.scopes))
+        TeslemetryNumberEntity(
+            vehicle,
+            description,
+            any(scope in data.scopes for scope in description.scopes),
+        )
         for vehicle in data.vehicles
         for description in VEHICLE_DESCRIPTIONS
     )
@@ -115,7 +119,7 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         self,
         vehicle: TeslemetryVehicleData,
         description: TeslemetryNumberEntityDescription,
-        scoped: bool
+        scoped: bool,
     ) -> None:
         """Initialize the Number entity."""
         super().__init__(vehicle, description.key)
