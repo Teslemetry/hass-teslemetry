@@ -164,6 +164,9 @@
       },
       "vehicle_state_locked": {
         "name": "Lock"
+      },
+      "vehicle_state_speed_limit_mode_active": {
+        "name": "Speed limit"
       }
     },
     "media_player": {
