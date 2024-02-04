@@ -1,5 +1,6 @@
 """Media Player platform for Teslemetry integration."""
 from __future__ import annotations
+from tesla_fleet_api.const import Scopes
 
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
@@ -11,7 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, Scopes
+from .const import DOMAIN
 from .entity import (
     TeslemetryVehicleEntity,
 )
@@ -58,7 +59,12 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         super().__init__(vehicle, "media")
         self.scoped = scoped
         if not scoped:
-            _attr_supported_features = MediaPlayerEntityFeature(0)
+            self._attr_supported_features = MediaPlayerEntityFeature(0)
+
+    @property
+    def max_volume(self) -> float:
+        """Return the maximum volume level."""
+        return self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
 
     @property
     def state(self) -> MediaPlayerState:
@@ -69,11 +75,18 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         )
 
     @property
+    def volume_step(self) -> float:
+        """Volume step size."""
+        return (
+            1.0
+            / self.max_volume
+            / self.get("vehicle_state_media_info_audio_volume_increment", 1.0 / 3)
+        )
+
+    @property
     def volume_level(self) -> float:
         """Volume level of the media player (0..1)."""
-        return self.get("vehicle_state_media_info_audio_volume", 0) / self.get(
-            "vehicle_state_media_info_audio_volume_max", MAX_VOLUME
-        )
+        return self.get("vehicle_state_media_info_audio_volume", 0) / self.max_volume
 
     @property
     def media_duration(self) -> int | None:
@@ -119,9 +132,30 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         """Set volume level, range 0..1."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.api.adjust_volume(
-            int(
-                volume
-                * self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
-            )
-        )
+        await self.api.adjust_volume(int(volume * self.max_volume))
+
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        if self.state != MediaPlayerState.PLAYING:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
+            await self.api.media_toggle_playback()
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        if self.state == MediaPlayerState.PLAYING:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
+            await self.api.media_toggle_playback()
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.media_next_track()
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.media_previous_track()

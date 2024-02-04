@@ -1,13 +1,14 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 
+from tesla_fleet_api.const import Scopes
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetrySeatHeaterOptions, Scopes
+from .const import DOMAIN, TeslemetrySeatHeaterOptions
 from .entity import (
     TeslemetryVehicleEntity,
 )

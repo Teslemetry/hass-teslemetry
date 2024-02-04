@@ -49,7 +49,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def supported_features(self) -> UpdateEntityFeature:
         """Flag supported features."""
-        if self.can_update and self.get("vehicle_state_software_update_status") in (
+        if self.scoped and self.get("vehicle_state_software_update_status") in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
         ):

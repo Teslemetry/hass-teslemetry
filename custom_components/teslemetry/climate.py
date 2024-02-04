@@ -26,7 +26,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, data.scopes)
+        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, Scopes.VEHICLE_CMDS in data.scopes)
         for vehicle in data.vehicles
     )
 
@@ -48,13 +48,13 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         self,
         vehicle: TeslemetryVehicleData,
         side: TeslemetryClimateSide,
-        scopes: Scopes,
+        scoped: bool,
     ) -> None:
         """Initialize the climate."""
         super().__init__(vehicle, side)
+        self.scoped = scoped
 
-        # Require VEHICLE_CMDS to make changes
-        if Scopes.VEHICLE_CMDS not in scopes:
+        if not scoped:
             self._attr_supported_features = ClimateEntityFeature(0)
 
     @property
@@ -91,16 +91,16 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.auto_conditioning_start()
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.auto_conditioning_start()
         self.set(("climate_state_is_climate_on", True))
 
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.auto_conditioning_stop()
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.auto_conditioning_stop()
         self.set(
             ("climate_state_is_climate_on", False),
             ("climate_state_climate_keeper_mode", "off"),
@@ -109,12 +109,12 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
         temp = kwargs[ATTR_TEMPERATURE]
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.set_temps(
-                driver_temp=temp,
-                passenger_temp=temp,
-            )
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.set_temps(
+            driver_temp=temp,
+            passenger_temp=temp,
+        )
 
         self.set((f"climate_state_{self.key}_setting", temp))
 
@@ -127,11 +127,11 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.set_climate_keeper_mode(
-                climate_keeper_mode=self._attr_preset_modes.index(preset_mode)
-            )
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.set_climate_keeper_mode(
+            climate_keeper_mode=self._attr_preset_modes.index(preset_mode)
+        )
         self.set(
             (
                 "climate_state_climate_keeper_mode",

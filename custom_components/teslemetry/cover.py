@@ -26,12 +26,15 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        klass(vehicle, data.scopes)
-        for klass in (
-            TeslemetryWindowEntity,
-            TeslemetryChargePortEntity,
-            TeslemetryFrontTrunkEntity,
-            TeslemetryRearTrunkEntity,
+        klass(vehicle, any(scope in data.scopes for scope in scopes))
+        for (klass, scopes) in (
+            (TeslemetryWindowEntity, [Scopes.VEHICLE_CMDS]),
+            (
+                TeslemetryChargePortEntity,
+                [Scopes.VEHICLE_CMDS, Scopes.VEHICLE_CHARGING_CMDS],
+            ),
+            (TeslemetryFrontTrunkEntity, [Scopes.VEHICLE_CMDS]),
+            (TeslemetryRearTrunkEntity, [Scopes.VEHICLE_CMDS]),
         )
         for vehicle in data.vehicles
     )
@@ -43,10 +46,11 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.WINDOW
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
+    def __init__(self, vehicle: TeslemetryVehicleData, scoped) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "windows")
-        if Scopes.VEHICLE_CMDS not in scopes:
+        self.scoped = scoped
+        if not scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
@@ -60,7 +64,9 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
         )
 
     async def async_open_cover(self, **kwargs: Any) -> None:
-        """Open windows."""
+        """Vent windows."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.window_control(command=WindowCommands.VENT)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.OPEN),
@@ -71,6 +77,8 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.window_control(command=WindowCommands.CLOSE)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.CLOSED),
@@ -86,12 +94,11 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
+    def __init__(self, vehicle: TeslemetryVehicleData, scoped) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "charge_state_charge_port_door_open")
-
-        # Require VEHICLE_CMDS to make changes
-        if Scopes.VEHICLE_CMDS not in scopes:
+        self.scoped = scoped
+        if not scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
@@ -101,11 +108,15 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.charge_port_door_open()
         self.set((self.key, True))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.charge_port_door_close()
         self.set((self.key, False))
 
@@ -116,12 +127,12 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
+    def __init__(self, vehicle: TeslemetryVehicleData, scoped) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "vehicle_state_ft")
 
-        # Require VEHICLE_CMDS to make changes
-        if Scopes.VEHICLE_CMDS not in scopes:
+        self.scoped = scoped
+        if not scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
@@ -131,6 +142,8 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.actuate_trunk(which_trunk=Trunks.FRONT)
         self.set((self.key, TeslemetryCoverStates.OPEN))
 
@@ -141,12 +154,11 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scopes]) -> None:
+    def __init__(self, vehicle: TeslemetryVehicleData, scoped) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "vehicle_state_rt")
-
-        # Require VEHICLE_CMDS to make changes
-        if Scopes.VEHICLE_CMDS not in scopes:
+        self.scoped = scoped
+        if not scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
@@ -157,11 +169,15 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
         if self.get() == TeslemetryCoverStates.CLOSED:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
             self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.OPEN))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
         if self.get() == TeslemetryCoverStates.OPEN:
+            self.raise_for_scope()
+            await self.wake_up_if_asleep()
             self.api.actuate_trunk(Trunks.REAR)
             self.set((self.key, TeslemetryCoverStates.CLOSED))

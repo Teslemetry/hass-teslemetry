@@ -1,6 +1,6 @@
 """Lock platform for Teslemetry integration."""
 from __future__ import annotations
-
+from tesla_fleet_api.const import Scopes
 from typing import Any
 
 from homeassistant.components.lock import LockEntity
@@ -24,7 +24,11 @@ async def async_setup_entry(
 
     async_add_entities(
         klass(vehicle)
-        for klass in (TeslemetryLockEntity, TeslemetryCableLockEntity)
+        for klass in (
+            TeslemetryLockEntity,
+            TeslemetryCableLockEntity,
+            Scopes.VEHICLE_CMDS in data.scopes,
+        )
         for vehicle in data.vehicles
     )
 
@@ -32,12 +36,10 @@ async def async_setup_entry(
 class TeslemetryLockEntity(TeslemetryVehicleEntity, LockEntity):
     """Lock entity for Teslemetry."""
 
-    def __init__(
-        self,
-        vehicle: TeslemetryVehicleData,
-    ) -> None:
+    def __init__(self, vehicle: TeslemetryVehicleData, scoped: bool) -> None:
         """Initialize the sensor."""
         super().__init__(vehicle, "vehicle_state_locked")
+        self.scoped = scoped
 
     @property
     def is_locked(self) -> bool | None:
@@ -46,11 +48,15 @@ class TeslemetryLockEntity(TeslemetryVehicleEntity, LockEntity):
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.door_lock()
         self.set((self.key, True))
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock the doors."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.door_unlock()
         self.set((self.key, False))
 
@@ -80,5 +86,7 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock charge cable lock."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.charge_port_door_open()
         self.set((self.key, TeslemetryChargeCableLockStates.DISENGAGED))
