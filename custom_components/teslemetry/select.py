@@ -98,11 +98,6 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
-        return self.get()
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
         return self._attr_options[self.get()]
 
     async def async_select_option(self, option: str) -> None:

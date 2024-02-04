@@ -20,7 +20,7 @@ from .entity import (
     TeslemetryEnergyLiveEntity,
     TeslemetryEnergyInfoEntity,
 )
-from .models import TeslemetryVehicleData, TeslemetryEnergyData
+from .models import TeslemetryVehicleData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -181,7 +181,7 @@ async def async_setup_entry(
 
 
 class TeslemetryBinarySensorEntity:
-    """Base class for all Teslemetry binary sensors"""
+    """Base class for all Teslemetry binary sensors."""
 
     entity_description: TeslemetryBinarySensorEntityDescription
 
