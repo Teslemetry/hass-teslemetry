@@ -150,9 +150,6 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = 
 
 ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
-        key="components_disallow_charge_from_grid_with_solar_installed",
-    ),
-    TeslemetryBinarySensorEntityDescription(
         key="components_grid_services_enabled",
     ),
 )
