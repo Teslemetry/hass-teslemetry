@@ -273,7 +273,15 @@
         "name": "Charger voltage"
       },
       "charge_state_charging_state": {
-        "name": "Charging"
+        "name": "Charging",
+        "state": {
+          "starting": "Starting",
+          "charging": "Charging",
+          "disconnected": "Disconnected",
+          "stopped": "Stopped",
+          "complete": "Complete",
+          "no_power": "No power"
+        }
       },
       "charge_state_minutes_to_full_charge": {
         "name": "Time to full charge"
