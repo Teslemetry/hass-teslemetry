@@ -19,6 +19,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryEnergyInfoEntity
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
@@ -169,7 +170,7 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
         self.set((self.entity_description.key, False))
 
 
-class TeslemetryEnergyInfoSwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
+class TeslemetryEnergyInfoSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity):
     """Base class for Teslemetry Switch."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
