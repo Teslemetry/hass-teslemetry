@@ -405,9 +405,7 @@ class TeslemetrySensorEntity:
     """Base class for all Teslemetry sensors."""
 
 
-class TeslemetryVehicleSensorEntity(
-    TeslemetryVehicleEntity, SensorEntity
-):
+class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -436,9 +434,7 @@ class TeslemetryVehicleSensorEntity(
         return self.entity_description.value_fn(self.get())
 
 
-class TeslemetryEnergyLiveSensorEntity(
-    TeslemetryEnergyLiveEntity, SensorEntity
-):
+class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -463,9 +459,7 @@ class TeslemetryEnergyLiveSensorEntity(
         return super().available and self.has()
 
 
-class TeslemetryWallConnectorSensorEntity(
-    TeslemetryWallConnectorEntity, SensorEntity
-):
+class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -497,9 +491,7 @@ class TeslemetryWallConnectorSensorEntity(
         )
 
 
-class TeslemetryEnergyInfoSensorEntity(
-    TeslemetryEnergyInfoEntity, SensorEntity
-):
+class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription

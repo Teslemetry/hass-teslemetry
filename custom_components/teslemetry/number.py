@@ -165,9 +165,7 @@ class TeslemetryNumberEntity(NumberEntity):
         return self.entity_description.native_max_value
 
 
-class TeslemetryVehicleNumberEntity(
-    TeslemetryVehicleEntity, TeslemetryNumberEntity
-):
+class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEntity):
     """Number entity for current charge."""
 
     def __init__(
