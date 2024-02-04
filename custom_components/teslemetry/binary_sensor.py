@@ -17,8 +17,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetryState
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryEnergyLiveEntity,
+    TeslemetryEnergyInfoEntity
 )
-from .models import TeslemetryVehicleData
+from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -28,7 +30,7 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     is_on: Callable[..., bool] = lambda x: x
 
 
-DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
+VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="state",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
@@ -140,6 +142,25 @@ DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
 )
 
+ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
+    TeslemetryBinarySensorEntityDescription(
+        key="backup_capable"
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="grid_services_active"
+    ),
+)
+
+
+ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
+    TeslemetryBinarySensorEntityDescription(
+        key="components_disallow_charge_from_grid_with_solar_installed",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="components_grid_services_enabled",
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -148,14 +169,25 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryBinarySensorEntity(vehicle, description)
+        TeslemetryVehicleBinarySensorEntity(vehicle, description)
         for vehicle in data.vehicles
-        for description in DESCRIPTIONS
+        for description in VEHICLE_DESCRIPTIONS
     )
 
+    async_add_entities(
+        TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
+        for energysite in data.energysites
+        for description in ENERGY_LIVE_DESCRIPTIONS
+    )
 
-class TeslemetryBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
-    """Base class for Teslemetry binary sensors."""
+    async_add_entities(
+        TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
+        for energysite in data.energysites
+        for description in ENERGY_INFO_DESCRIPTIONS
+    )
+
+class TeslemetryBinarySensorEntity():
+    """Base class for all Teslemetry binary sensors"""
 
     entity_description: TeslemetryBinarySensorEntityDescription
 
@@ -177,3 +209,15 @@ class TeslemetryBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     def available(self) -> bool:
         """Return if sensor is available."""
         return super().available and self.has()
+
+
+class TeslemetryVehicleBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryVehicleEntity, BinarySensorEntity):
+    """Base class for Teslemetry vehicle binary sensors."""
+
+
+class TeslemetryEnergyLiveBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryEnergyLiveEntity, BinarySensorEntity):
+    """Base class for Teslemetry energy live binary sensors."""
+
+
+class TeslemetryEnergyInfoBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryEnergyInfoEntity, BinarySensorEntity):
+    """Base class for Teslemetry energy info binary sensors."""
