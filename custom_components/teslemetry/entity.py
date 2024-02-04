@@ -119,6 +119,7 @@ class TeslemetryEnergyLiveEntity(
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(energysite.live_coordinator, key)
         self._attr_unique_id = f"{energysite.id}-{key}"
+        self.api = energysite.api
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(energysite.id))},
@@ -141,6 +142,7 @@ class TeslemetryEnergyInfoEntity(
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(energysite.info_coordinator, key)
         self._attr_unique_id = f"{energysite.id}-{key}"
+        self.api = energysite.api
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(energysite.id))},
