@@ -89,7 +89,7 @@ class TeslemetrySelectEntity(SelectEntity):
         return self.get()
 
 
-class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, TeslemetrySelectEntity):
+class TeslemetrySeatHeaterSelectEntity(TeslemetrySelectEntity, TeslemetryVehicleEntity):
     """Select entity for vehicle seat heater."""
 
     _attr_options = [
@@ -103,6 +103,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, TeslemetrySelect
         """Initialize the vehicle seat select entity."""
         super().__init__(vehicle, key)
         self.scoped = scoped
+
 
     @property
     def current_option(self) -> str | None:
@@ -119,7 +120,8 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, TeslemetrySelect
 
 
 class TeslemetryEnergySiteSelectEntity(
-    TeslemetryEnergyInfoEntity, TeslemetrySelectEntity
+    TeslemetrySelectEntity,
+    TeslemetryEnergyInfoEntity
 ):
     """Select entity for energy sites."""
 
@@ -127,7 +129,7 @@ class TeslemetryEnergySiteSelectEntity(
         self, vehicle, description: TeslemetrySelectEntityDescription, scoped: bool
     ) -> None:
         """Initialize the operation mode select entity."""
-        super().__init__(vehicle, "default_real_mode")
+        super().__init__(vehicle, description.key)
         self.scoped = scoped
         self.entity_description = description
 
