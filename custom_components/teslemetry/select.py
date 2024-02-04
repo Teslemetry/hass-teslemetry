@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetrySeatHeaterOptions
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryEnergySiteInfoEntity,
 )
 
 SEAT_HEATERS = {
@@ -38,9 +39,30 @@ async def async_setup_entry(
         for key in SEAT_HEATERS
     )
 
+    async_add_entities(
+        klass(
+            energysite, Scopes.ENERGY_CMDS in data.scopes
+        )
+        for klass in (TeslemetryOperationMode,TeslemetryGridMode)
+        for energysite in data.energysites
+    )
 
-class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
-    """Select entity for current charge."""
+class TeslemetrySelectEntity(SelectEntity):
+    """Base class for Teslemetry select entities."""
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.get()
+
+
+class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, TeslemetrySelectEntity):
+    """Select entity for vehicle seat heater."""
 
     _attr_options = [
         TeslemetrySeatHeaterOptions.OFF,
@@ -50,14 +72,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     ]
 
     def __init__(self, vehicle, key, scoped: bool) -> None:
-        """Initialize the select."""
+        """Initialize the vehicle seat select entity."""
         super().__init__(vehicle, key)
         self.scoped = scoped
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
 
     @property
     def current_option(self) -> str | None:
@@ -71,3 +88,45 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         level = self._attr_options.index(option)
         await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)
         self.set((self.key, level))
+
+class TeslemetryOperationMode(TeslemetryEnergySiteInfoEntity, TeslemetrySelectEntity):
+    """Select entity for energy site operation mode."""
+
+    _attr_options = [
+        "autonomous",
+        "self_consumption",
+        "backup"
+    ]
+
+    def __init__(self, vehicle, scoped: bool) -> None:
+        """Initialize the operation mode select entity."""
+        super().__init__(vehicle, "default_real_mode")
+        self.scoped = scoped
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.operation(option)
+        self.set((self.key, option))
+
+class TeslemetryGridMode(TeslemetryEnergySiteInfoEntity, TeslemetrySelectEntity):
+    """Select entity for energy site grid mode."""
+
+    _attr_options = [
+        "battery_ok",
+        "pv_only",
+        "never"
+    ]
+
+    def __init__(self, vehicle, scoped: bool) -> None:
+        """Initialize the grid mode select entity."""
+        super().__init__(vehicle, "customer_preferred_export_rule")
+        self.scoped = scoped
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.grid_import_export(customer_preferred_export_rule=option)
+        self.set((self.key, option))
