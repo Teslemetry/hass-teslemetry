@@ -323,10 +323,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
     ),
-    SensorEntityDescription(
-        key="island_status"
-    ),
-
+    SensorEntityDescription(key="island_status"),
 )
 
 WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
@@ -403,7 +400,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetrySensorEntity(SensorEntity):
+class TeslemetrySensorEntity:
     """Base class for all Teslemetry sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -419,7 +416,9 @@ class TeslemetrySensorEntity(SensorEntity):
         return super().available and self.has()
 
 
-class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, TeslemetrySensorEntity):
+class TeslemetryVehicleSensorEntity(
+    TeslemetrySensorEntity, TeslemetryVehicleEntity, SensorEntity
+):
     """Base class for Teslemetry vehicle metric sensors."""
 
     def __init__(
@@ -442,7 +441,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, TeslemetrySensorEnt
 
 
 class TeslemetryEnergyLiveSensorEntity(
-    TeslemetryEnergyLiveEntity, TeslemetrySensorEntity
+    TeslemetrySensorEntity, TeslemetryEnergyLiveEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
@@ -457,7 +456,7 @@ class TeslemetryEnergyLiveSensorEntity(
 
 
 class TeslemetryWallConnectorSensorEntity(
-    TeslemetryWallConnectorEntity, TeslemetrySensorEntity
+    TeslemetrySensorEntity, TeslemetryWallConnectorEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
@@ -488,7 +487,9 @@ class TeslemetryWallConnectorSensorEntity(
         )
 
 
-class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
+class TeslemetryEnergyInfoSensorEntity(
+    TeslemetrySensorEntity, TeslemetryEnergyInfoEntity, SensorEntity
+):
     """Base class for Teslemetry energy site metric sensors."""
 
     def __init__(

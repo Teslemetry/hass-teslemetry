@@ -91,6 +91,18 @@
       },
       "vehicle_state_tpms_soft_warning_rr": {
         "name": "Tire pressure warning rear right"
+      },
+      "backup_capable":{
+        "name": "Backup capable"
+      },
+      "grid_services_active":{
+        "name": "Grid services active"
+      },
+      "components_disallow_charge_from_grid_with_solar_installed":{
+        "name": "Disallow charge from grid with solar"
+      },
+      "components_grid_services_enabled":{
+        "name": "Grid services enabled"
       }
     },
     "button": {
@@ -183,6 +195,12 @@
       },
       "vehicle_state_speed_limit_mode_current_limit_mph": {
         "name": "Speed limit"
+      },
+      "backup_reserve_percent": {
+        "name": "Backup reserve"
+      },
+      "off_grid_vehicle_charging_reserve": {
+        "name": "Off grid reserve"
       }
     },
     "select": {
@@ -397,6 +415,15 @@
       },
       "wall_connector_state": {
         "name": "State"
+      },
+      "island_status":{
+        "name": "Island status"
+      },
+      "vpp_backup_reserve_percent":{
+        "name": "VPP backup reserve"
+      },
+      "version":{
+        "name": "Version"
       }
     },
     "switch": {

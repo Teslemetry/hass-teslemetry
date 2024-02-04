@@ -18,7 +18,7 @@ from .const import DOMAIN, TeslemetryState
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,
-    TeslemetryEnergyInfoEntity
+    TeslemetryEnergyInfoEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
@@ -143,12 +143,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
 )
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
-    TeslemetryBinarySensorEntityDescription(
-        key="backup_capable"
-    ),
-    TeslemetryBinarySensorEntityDescription(
-        key="grid_services_active"
-    ),
+    TeslemetryBinarySensorEntityDescription(key="backup_capable"),
+    TeslemetryBinarySensorEntityDescription(key="grid_services_active"),
 )
 
 
@@ -186,7 +182,8 @@ async def async_setup_entry(
         for description in ENERGY_INFO_DESCRIPTIONS
     )
 
-class TeslemetryBinarySensorEntity():
+
+class TeslemetryBinarySensorEntity:
     """Base class for all Teslemetry binary sensors"""
 
     entity_description: TeslemetryBinarySensorEntityDescription
@@ -211,13 +208,19 @@ class TeslemetryBinarySensorEntity():
         return super().available and self.has()
 
 
-class TeslemetryVehicleBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryVehicleEntity, BinarySensorEntity):
+class TeslemetryVehicleBinarySensorEntity(
+    TeslemetryBinarySensorEntity, TeslemetryVehicleEntity, BinarySensorEntity
+):
     """Base class for Teslemetry vehicle binary sensors."""
 
 
-class TeslemetryEnergyLiveBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryEnergyLiveEntity, BinarySensorEntity):
+class TeslemetryEnergyLiveBinarySensorEntity(
+    TeslemetryBinarySensorEntity, TeslemetryEnergyLiveEntity, BinarySensorEntity
+):
     """Base class for Teslemetry energy live binary sensors."""
 
 
-class TeslemetryEnergyInfoBinarySensorEntity(TeslemetryBinarySensorEntity, TeslemetryEnergyInfoEntity, BinarySensorEntity):
+class TeslemetryEnergyInfoBinarySensorEntity(
+    TeslemetryBinarySensorEntity, TeslemetryEnergyInfoEntity, BinarySensorEntity
+):
     """Base class for Teslemetry energy info binary sensors."""

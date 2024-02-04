@@ -17,10 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .entity import (
-    TeslemetryVehicleEntity,
-    TeslemetryEnergyInfoEntity
-)
+from .entity import TeslemetryVehicleEntity, TeslemetryEnergyInfoEntity
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
 
@@ -88,7 +85,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scopes.ENERGY_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
-        key="user_settings_storm_mode_enabled", #this is also in the live data as storm_mode_enabled
+        key="user_settings_storm_mode_enabled",  # this is also in the live data as storm_mode_enabled
         on_func=lambda api: api.storm_mode(enabled=True),
         off_func=lambda api: api.storm_mode(enabled=False),
         scopes=[Scopes.ENERGY_CMDS],
