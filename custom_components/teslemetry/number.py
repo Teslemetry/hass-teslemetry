@@ -146,7 +146,7 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.entity_description.func(self.api, value)
         self.set((self.key, value))

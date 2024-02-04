@@ -63,7 +63,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         level = self._attr_options.index(option)
         await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)

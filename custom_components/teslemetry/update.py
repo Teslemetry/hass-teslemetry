@@ -88,7 +88,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
         """Install an update."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.api.schedule_software_update(0)
         self.set(

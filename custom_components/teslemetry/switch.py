@@ -116,14 +116,14 @@ class TeslemetrySwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.entity_description.on_func(self.api)
         self.set((self.entity_description.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.entity_description.off_func(self.api)
         self.set((self.entity_description.key, False))

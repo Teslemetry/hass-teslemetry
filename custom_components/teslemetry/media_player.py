@@ -5,6 +5,7 @@ from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerState,
+    MediaPlayerEntityFeature
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -38,6 +39,7 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     """Vehicle Location Media Class."""
 
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
+    _attr_supported_features = MediaPlayerEntityFeature.NEXT_TRACK | MediaPlayerEntityFeature.PAUSE | MediaPlayerEntityFeature.PLAY | MediaPlayerEntityFeature.PREVIOUS_TRACK | MediaPlayerEntityFeature.VOLUME_SET
 
     def __init__(
         self,
@@ -47,6 +49,8 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         """Initialize the media player entity."""
         super().__init__(vehicle, "media")
         self.scoped = scoped
+        if not scoped:
+            _attr_supported_features = MediaPlayerEntityFeature(0)
 
     @property
     def state(self) -> MediaPlayerState:
@@ -105,7 +109,9 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        await self.raise_for_scope()
+        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.api.adjust_volume(int(volume * self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)))
+
+
 
