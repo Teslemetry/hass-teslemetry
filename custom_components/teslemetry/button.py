@@ -63,11 +63,11 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         description: TeslemetryButtonEntityDescription,
     ) -> None:
         """Initialize the button."""
-        super().__init__(vehicle, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
 
     async def async_press(self) -> None:

@@ -20,7 +20,7 @@ from .entity import (
     TeslemetryEnergyLiveEntity,
     TeslemetryEnergyInfoEntity,
 )
-from .models import TeslemetryVehicleData
+from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -180,24 +180,46 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryBinarySensorEntity:
-    """Base class for all Teslemetry binary sensors."""
+class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
+    """Base class for Teslemetry vehicle binary sensors."""
 
     entity_description: TeslemetryBinarySensorEntityDescription
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         description: TeslemetryBinarySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
 
     @property
     def is_on(self) -> bool:
         """Return the state of the binary sensor."""
         return self.entity_description.is_on(self.get())
+
+
+class TeslemetryEnergyLiveBinarySensorEntity(
+    TeslemetryEnergyLiveEntity, BinarySensorEntity
+):
+    """Base class for Teslemetry energy live binary sensors."""
+
+    entity_description: TeslemetryBinarySensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetryBinarySensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(data, description.key)
+        self.entity_description = description
 
     @property
     def available(self) -> bool:
@@ -205,19 +227,23 @@ class TeslemetryBinarySensorEntity:
         return super().available and self.has()
 
 
-class TeslemetryVehicleBinarySensorEntity(
-    TeslemetryBinarySensorEntity, TeslemetryVehicleEntity, BinarySensorEntity
-):
-    """Base class for Teslemetry vehicle binary sensors."""
-
-
-class TeslemetryEnergyLiveBinarySensorEntity(
-    TeslemetryBinarySensorEntity, TeslemetryEnergyLiveEntity, BinarySensorEntity
-):
-    """Base class for Teslemetry energy live binary sensors."""
-
-
 class TeslemetryEnergyInfoBinarySensorEntity(
-    TeslemetryBinarySensorEntity, TeslemetryEnergyInfoEntity, BinarySensorEntity
+    TeslemetryEnergyInfoEntity, BinarySensorEntity
 ):
     """Base class for Teslemetry energy info binary sensors."""
+
+    entity_description: TeslemetryBinarySensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetryBinarySensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()

@@ -133,19 +133,14 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, SwitchEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         description: TeslemetrySwitchEntityDescription,
         scoped: bool,
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(vehicle, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
         self.scoped = scoped
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
 
     @property
     def is_on(self) -> bool:
@@ -175,12 +170,12 @@ class TeslemetryEnergyInfoSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity)
 
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         description: TeslemetrySwitchEntityDescription,
         scoped: bool,
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(energysite, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
         self.scoped = scoped
 

@@ -52,11 +52,11 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         scoped: bool,
     ) -> None:
         """Initialize the media player entity."""
-        super().__init__(vehicle, "media")
+        super().__init__(data, "media")
         self.scoped = scoped
         if not scoped:
             self._attr_supported_features = MediaPlayerEntityFeature(0)

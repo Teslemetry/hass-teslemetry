@@ -323,7 +323,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
     ),
-    SensorEntityDescription(key="island_status"),
+    SensorEntityDescription(key="island_status", device_class=SensorDeviceClass.ENUM),
 )
 
 WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
@@ -357,6 +357,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="vpp_backup_reserve_percent",
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
     ),
     SensorEntityDescription(key="version"),
 )
@@ -403,31 +404,21 @@ async def async_setup_entry(
 class TeslemetrySensorEntity:
     """Base class for all Teslemetry sensors."""
 
-    entity_description: TeslemetrySensorEntityDescription
-
-    @property
-    def native_value(self) -> StateType | datetime:
-        """Return the state of the sensor."""
-        return self.entity_description.value_fn(self.get())
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
-
 
 class TeslemetryVehicleSensorEntity(
     TeslemetrySensorEntity, TeslemetryVehicleEntity, SensorEntity
 ):
     """Base class for Teslemetry vehicle metric sensors."""
 
+    entity_description: TeslemetrySensorEntityDescription
+
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         description: TeslemetrySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
 
     @property
@@ -439,20 +430,37 @@ class TeslemetryVehicleSensorEntity(
             and self.entity_description.available_fn(self.get())
         )
 
+    @property
+    def native_value(self) -> StateType | datetime:
+        """Return the state of the sensor."""
+        return self.entity_description.value_fn(self.get())
+
 
 class TeslemetryEnergyLiveSensorEntity(
     TeslemetrySensorEntity, TeslemetryEnergyLiveEntity, SensorEntity
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
+    entity_description: TeslemetrySensorEntityDescription
+
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(energysite, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def native_value(self) -> StateType | datetime:
+        """Return the state of the sensor."""
+        return self.get()
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()
 
 
 class TeslemetryWallConnectorSensorEntity(
@@ -460,15 +468,17 @@ class TeslemetryWallConnectorSensorEntity(
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
+    entity_description: TeslemetrySensorEntityDescription
+
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         din: str,
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(
-            energysite,
+            data,
             din,
             description.key,
         )
@@ -492,11 +502,23 @@ class TeslemetryEnergyInfoSensorEntity(
 ):
     """Base class for Teslemetry energy site metric sensors."""
 
+    entity_description: TeslemetrySensorEntityDescription
+
     def __init__(
         self,
-        energysite: TeslemetryEnergyData,
+        data: TeslemetryEnergyData,
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(energysite, description.key)
+        super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def native_value(self) -> StateType | datetime:
+        """Return the state of the sensor."""
+        return self.get()
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and self.has()

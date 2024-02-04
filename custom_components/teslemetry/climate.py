@@ -47,12 +47,12 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         side: TeslemetryClimateSide,
         scoped: bool,
     ) -> None:
         """Initialize the climate."""
-        super().__init__(vehicle, side)
+        super().__init__(data, side)
         self.scoped = scoped
 
         if not scoped:

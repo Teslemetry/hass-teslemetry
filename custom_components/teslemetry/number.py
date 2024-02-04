@@ -25,8 +25,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryEnergyInfoEntity,
 )
-from .models import TeslemetryVehicleData
+from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -111,7 +112,7 @@ async def async_setup_entry(
 
     # Add vehicle entities
     async_add_entities(
-        TeslemetryNumberEntity(
+        TeslemetryVehicleNumberEntity(
             vehicle,
             description,
             any(scope in data.scopes for scope in description.scopes),
@@ -122,7 +123,7 @@ async def async_setup_entry(
 
     # Add energy site entities
     async_add_entities(
-        TeslemetryNumberEntity(
+        TeslemetryEnergyInfoNumberSensorEntity(
             energysite,
             description,
             any(scope in data.scopes for scope in description.scopes),
@@ -133,21 +134,10 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
-    """Number entity for current charge."""
+class TeslemetryNumberEntity:
+    """Base class for all Teslemetry number entities."""
 
     entity_description: TeslemetryNumberEntityDescription
-
-    def __init__(
-        self,
-        vehicle: TeslemetryVehicleData,
-        description: TeslemetryNumberEntityDescription,
-        scoped: bool,
-    ) -> None:
-        """Initialize the Number entity."""
-        super().__init__(vehicle, description.key)
-        self.scoped = scoped
-        self.entity_description = description
 
     @property
     def native_value(self) -> float | None:
@@ -167,13 +157,61 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return self.get(
-            self.entity_description.max_key, self.entity_description.native_max_value
-        )
+        if self.entity_description.max_key:
+            return self.get(
+                self.entity_description.max_key,
+                self.entity_description.native_max_value,
+            )
+        return self.entity_description.native_max_value
+
+
+class TeslemetryVehicleNumberEntity(
+    TeslemetryNumberEntity, TeslemetryVehicleEntity, NumberEntity
+):
+    """Number entity for current charge."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryNumberEntityDescription,
+        scoped: bool,
+    ) -> None:
+        """Initialize the Number entity."""
+        super().__init__(data, description.key)
+        self.scoped = scoped
+        self.entity_description = description
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
+        await self.entity_description.func(self.api, value)
+        self.set((self.key, value))
+
+
+class TeslemetryEnergyInfoNumberSensorEntity(
+    TeslemetryNumberEntity, TeslemetryEnergyInfoEntity, NumberEntity
+):
+    """Number entity for current charge."""
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetryNumberEntityDescription,
+        scoped: bool,
+    ) -> None:
+        """Initialize the Number entity."""
+        super().__init__(data, description.key)
+        self.scoped = scoped
+        self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return super().available and self.has()
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        self.raise_for_scope()
         await self.entity_description.func(self.api, value)
         self.set((self.key, value))

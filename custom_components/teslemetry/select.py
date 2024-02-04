@@ -15,6 +15,7 @@ from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
 )
+from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 SEAT_HEATERS = {
     "climate_state_seat_heater_left": "front_left",
@@ -85,9 +86,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         TeslemetrySeatHeaterOptions.HIGH,
     ]
 
-    def __init__(self, vehicle, key, scoped: bool) -> None:
+    def __init__(self, data: TeslemetryVehicleData, key: str, scoped: bool) -> None:
         """Initialize the vehicle seat select entity."""
-        super().__init__(vehicle, key)
+        super().__init__(data, key)
         self.scoped = scoped
 
     @property
@@ -113,10 +114,13 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
     """Select entity for energy sites."""
 
     def __init__(
-        self, vehicle, description: TeslemetrySelectEntityDescription, scoped: bool
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetrySelectEntityDescription,
+        scoped: bool,
     ) -> None:
         """Initialize the operation mode select entity."""
-        super().__init__(vehicle, description.key)
+        super().__init__(data, description.key)
         self.scoped = scoped
         self.entity_description = description
 

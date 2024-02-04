@@ -46,9 +46,9 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
     _attr_device_class = CoverDeviceClass.WINDOW
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scoped) -> None:
+    def __init__(self, data: TeslemetryVehicleData, scoped) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "windows")
+        super().__init__(data, "windows")
         self.scoped = scoped
         if not scoped:
             self._attr_supported_features = CoverEntityFeature(0)

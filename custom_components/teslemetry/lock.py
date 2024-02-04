@@ -37,9 +37,9 @@ async def async_setup_entry(
 class TeslemetryLockEntity(TeslemetryVehicleEntity, LockEntity):
     """Lock entity for Teslemetry."""
 
-    def __init__(self, vehicle: TeslemetryVehicleData, scoped: bool) -> None:
+    def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "vehicle_state_locked")
+        super().__init__(data, "vehicle_state_locked")
         self.scoped = scoped
 
     @property
@@ -67,11 +67,11 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         scoped: bool,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "charge_state_charge_port_latch")
+        super().__init__(data, "charge_state_charge_port_latch")
         self.scoped = scoped
 
     @property
@@ -102,11 +102,11 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         scoped: bool,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "vehicle_state_speed_limit_mode_active")
+        super().__init__(data, "vehicle_state_speed_limit_mode_active")
         self.scoped = scoped
 
     @property

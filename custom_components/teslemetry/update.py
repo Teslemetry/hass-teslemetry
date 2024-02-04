@@ -34,11 +34,11 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
 
     def __init__(
         self,
-        vehicle: TeslemetryVehicleData,
+        data: TeslemetryVehicleData,
         scoped: bool,
     ) -> None:
         """Initialize the Update."""
-        super().__init__(vehicle, "update")
+        super().__init__(data, "update")
         self.scoped = scoped
 
     @property

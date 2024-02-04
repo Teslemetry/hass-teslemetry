@@ -414,7 +414,10 @@
         "name": "State"
       },
       "island_status":{
-        "name": "Island status"
+        "name": "Island status",
+        "state":{
+          "on_grid": "On grid"
+        }
       },
       "vpp_backup_reserve_percent":{
         "name": "VPP backup reserve"
@@ -451,7 +454,7 @@
       "components_disallow_charge_from_grid_with_solar_installed":{
         "name": "Disallow charge from grid with solar"
       },
-      "user_settings_storm_mode_enabled":{
+      "storm_mode_enabled":{
         "name": "Storm mode"
       }
     },
