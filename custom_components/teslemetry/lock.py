@@ -24,11 +24,11 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        klass(vehicle)
+        klass(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
         for klass in (
             TeslemetryLockEntity,
             TeslemetryCableLockEntity,
-            Scopes.VEHICLE_CMDS in data.scopes,
+            TeslemetrySpeedLimitEntity
         )
         for vehicle in data.vehicles
     )
