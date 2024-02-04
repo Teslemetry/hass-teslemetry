@@ -248,6 +248,22 @@
           "medium": "Medium",
           "off": "Off"
         }
+      },
+      "default_real_mode":{
+        "name": "Operation mode",
+        "state":{
+          "autonomous": "Autonomous",
+          "self_consumption": "Self consumption",
+          "backup": "Backup"
+        }
+      },
+      "component_net_meter_mode":{
+        "name": "Import/Export",
+        "state":{
+          "battery_ok": "Battery",
+          "pv_only": "Solar only",
+          "never": "Never"
+        }
       }
     },
     "sensor": {

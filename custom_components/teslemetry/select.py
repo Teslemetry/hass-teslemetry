@@ -138,6 +138,5 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
         await self.entity_description.func(self.api, option)
         self.set((self.key, option))
