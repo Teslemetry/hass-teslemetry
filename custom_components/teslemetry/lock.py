@@ -28,7 +28,7 @@ async def async_setup_entry(
         for klass in (
             TeslemetryLockEntity,
             TeslemetryCableLockEntity,
-            TeslemetrySpeedLimitEntity
+            TeslemetrySpeedLimitEntity,
         )
         for vehicle in data.vehicles
     )

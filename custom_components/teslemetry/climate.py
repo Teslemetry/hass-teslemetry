@@ -14,7 +14,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, TeslemetryClimateSide
-from .context import handle_command
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -26,7 +25,9 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, Scopes.VEHICLE_CMDS in data.scopes)
+        TeslemetryClimateEntity(
+            vehicle, TeslemetryClimateSide.DRIVER, Scopes.VEHICLE_CMDS in data.scopes
+        )
         for vehicle in data.vehicles
     )
 

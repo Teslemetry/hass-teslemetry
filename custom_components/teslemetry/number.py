@@ -80,16 +80,26 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
 )
 
-ENERGY_INFO_DESCRIPTIONS: tuple[
-    TeslemetryNumberEntityDescription, ...
-] = TeslemetryNumberEntityDescription(
-    key="backup_reserve_percent",
-    native_step=PRECISION_WHOLE,
-    native_min_value=0,
-    native_max_value=100,
-    native_unit_of_measurement=PERCENTAGE,
-    scopes=[Scopes.ENERGY_CMDS],
-    func=lambda api, value: api.backup(int(value)),
+ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
+    TeslemetryNumberEntityDescription(
+        key="backup_reserve_percent",
+        native_step=PRECISION_WHOLE,
+        native_min_value=0,
+        native_max_value=100,
+        native_unit_of_measurement=PERCENTAGE,
+        scopes=[Scopes.ENERGY_CMDS],
+        func=lambda api, value: api.backup(int(value)),
+    ),
+    TeslemetryNumberEntityDescription(
+        # I have no examples of this
+        key="off_grid_vehicle_charging_reserve",
+        native_step=PRECISION_WHOLE,
+        native_min_value=0,
+        native_max_value=100,
+        native_unit_of_measurement=PERCENTAGE,
+        scopes=[Scopes.ENERGY_CMDS],
+        func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
+    )
 )
 
 
@@ -99,6 +109,7 @@ async def async_setup_entry(
     """Set up the Teslemetry sensor platform from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
 
+    # Add vehicle entities
     async_add_entities(
         TeslemetryNumberEntity(
             vehicle,
@@ -107,6 +118,18 @@ async def async_setup_entry(
         )
         for vehicle in data.vehicles
         for description in VEHICLE_DESCRIPTIONS
+    )
+
+    # Add energy site entities
+    async_add_entities(
+        TeslemetryNumberEntity(
+            energysite,
+            description,
+            any(scope in data.scopes for scope in description.scopes),
+        )
+        for energysite in data.energysites
+        for description in ENERGY_INFO_DESCRIPTIONS
+        if description.key in energysite.info_coordinator.data
     )
 
 
