@@ -129,5 +129,5 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
         if code:
             self.raise_for_scope()
             await self.wake_up_if_asleep()
-            await self.api.speed_limit_activate(code)
+            await self.api.speed_limit_deactivate(code)
             self.set((self.key, False))
