@@ -100,7 +100,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryNumberEntity(vehicle, description)
+        TeslemetryNumberEntity(vehicle, description, any(scope in data.scopes for scope in description.scopes))
         for vehicle in data.vehicles
         for description in VEHICLE_DESCRIPTIONS
     )
@@ -115,9 +115,11 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         self,
         vehicle: TeslemetryVehicleData,
         description: TeslemetryNumberEntityDescription,
+        scoped: bool
     ) -> None:
         """Initialize the Number entity."""
         super().__init__(vehicle, description.key)
+        self.scoped = scoped
         self.entity_description = description
 
     @property
@@ -144,5 +146,7 @@ class TeslemetryNumberEntity(TeslemetryVehicleEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
+        await self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.entity_description.func(self.api, value)
         self.set((self.key, value))

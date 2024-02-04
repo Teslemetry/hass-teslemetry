@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetrySeatHeaterOptions
+from .const import DOMAIN, TeslemetrySeatHeaterOptions, Scopes
 from .entity import (
     TeslemetryVehicleEntity,
 )
@@ -30,7 +30,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetrySeatHeaterSelectEntity(vehicle, key)
+        TeslemetrySeatHeaterSelectEntity(vehicle, key, Scopes.VEHICLE_CMDS in data.scopes)
         for vehicle in data.vehicles
         for key in SEAT_HEATERS
     )
@@ -46,6 +46,11 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         TeslemetrySeatHeaterOptions.HIGH,
     ]
 
+    def __init__(self, vehicle, key, scoped: bool) -> None:
+        """Initialize the select."""
+        super().__init__(vehicle, key)
+        self.scoped = scoped
+
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
@@ -58,6 +63,8 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
+        await self.raise_for_scope()
+        await self.wake_up_if_asleep()
         level = self._attr_options.index(option)
         await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)
         self.set((self.key, level))

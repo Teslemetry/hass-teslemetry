@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, Scopes
 from .entity import (
     TeslemetryVehicleEntity,
 )
@@ -21,7 +21,7 @@ STATES = {
     "Paused": MediaPlayerState.PAUSED,
     "Stopped": MediaPlayerState.IDLE,
 }
-
+MAX_VOLUME = 11.0
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -30,7 +30,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryMediaEntity(vehicle) for vehicle in data.vehicles
+        TeslemetryMediaEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes) for vehicle in data.vehicles
     )
 
 
@@ -42,9 +42,11 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     def __init__(
         self,
         vehicle: TeslemetryVehicleData,
+        scoped: bool,
     ) -> None:
         """Initialize the media player entity."""
         super().__init__(vehicle, "media")
+        self.scoped = scoped
 
     @property
     def state(self) -> MediaPlayerState:
@@ -58,7 +60,7 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     def volume_level(self) -> float:
         """Volume level of the media player (0..1)."""
         return self.get("vehicle_state_media_info_audio_volume", 0) / self.get(
-            "vehicle_state_media_info_audio_volume_max", 10.333333
+            "vehicle_state_media_info_audio_volume_max", MAX_VOLUME
         )
 
     @property
@@ -100,3 +102,10 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     def source(self) -> str | None:
         """Name of the current input source."""
         return self.get("vehicle_state_media_info_now_playing_source")
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set volume level, range 0..1."""
+        await self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.api.adjust_volume(int(volume * self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)))
+

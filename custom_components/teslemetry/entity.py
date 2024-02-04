@@ -6,7 +6,7 @@ from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .const import DOMAIN, MODELS, TeslemetryState
 from .coordinator import (
@@ -45,6 +45,11 @@ class TeslemetryEntity(CoordinatorEntity):
     def has(self, key: str | None = None):
         """Check if a key exists in the coordinator data."""
         return (key or self.key) in self.coordinator.data
+
+    def raise_for_scope(self):
+        """Raise an error if a scope is not available."""
+        if not self.scoped:
+            raise ServiceValidationError(f"Missing required scope: {' or '.join(self.entity_description.scopes)}")
 
 class TeslemetryVehicleEntity(TeslemetryEntity, CoordinatorEntity[TeslemetryVehicleDataCoordinator]):
     """Parent class for Teslemetry Vehicle entities."""

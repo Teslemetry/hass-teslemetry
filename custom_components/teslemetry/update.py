@@ -22,7 +22,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryUpdateEntity(vehicle, data.scopes) for vehicle in data.vehicles
+        TeslemetryUpdateEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes) for vehicle in data.vehicles
     )
 
 
@@ -34,11 +34,11 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     def __init__(
         self,
         vehicle: TeslemetryVehicleData,
-        scopes: list[Scopes],
+        scoped: bool,
     ) -> None:
         """Initialize the Update."""
         super().__init__(vehicle, "update")
-        self.can_update = Scopes.VEHICLE_CMDS in scopes
+        self.scoped = scoped
 
     @property
     def available(self) -> bool:
@@ -88,6 +88,8 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
         """Install an update."""
+        await self.raise_for_scope()
+        await self.wake_up_if_asleep()
         await self.api.schedule_software_update(0)
         self.set(
             ("vehicle_state_software_update_status", TeslemetryUpdateStatus.INSTALLING)
