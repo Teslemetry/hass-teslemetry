@@ -38,7 +38,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         scoped: bool,
     ) -> None:
         """Initialize the Update."""
-        super().__init__(data, "update")
+        super().__init__(data, "vehicle_state_software_update_status")
         self.scoped = scoped
 
     @property
@@ -49,7 +49,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def supported_features(self) -> UpdateEntityFeature:
         """Flag supported features."""
-        if self.scoped and self.get("vehicle_state_software_update_status") in (
+        if self.scoped and self.get() in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
         ):
@@ -65,7 +65,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def latest_version(self) -> str | None:
         """Return the latest version."""
-        if self.get("vehicle_state_software_update_status") in (
+        if self.get() in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
             TeslemetryUpdateStatus.INSTALLING,
