@@ -33,7 +33,7 @@ jobs:
         uses: softprops/action-gh-release@v0.1.15
         with:
           files: ${{ github.workspace }}/custom_components/teslemetry/teslemetry.zip
-      - name: Github Releases To Discord
+      - name: "Github Releases To Discord"
         uses: SethCohen/github-releases-to-discord@v1.15.0
         with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
