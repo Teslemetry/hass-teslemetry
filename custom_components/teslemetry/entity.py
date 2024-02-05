@@ -2,6 +2,7 @@
 
 import asyncio
 from typing import Any
+from tesla_fleet_api import VehicleSpecific, EnergySpecific
 from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -33,9 +34,14 @@ class TeslemetryEntity(
         coordinator: TeslemetryVehicleDataCoordinator
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator,
+        api: VehicleSpecific | EnergySpecific,
+        key:str
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(coordinator)
+        self.api = api
+        self.key = key
+        self._attr_translation_key = key
 
     @property
     def available(self) -> bool:
@@ -71,10 +77,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.coordinator)
-        self.api = data.api
-        self.key = key
-        self._attr_translation_key = key
+        super().__init__(data.coordinator, data.api, key)
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
 
@@ -122,10 +125,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.live_coordinator)
-        self.api = data.api
-        self.key = key
-        self._attr_translation_key = key
+        super().__init__(data.live_coordinator, data.api, key)
         self._attr_unique_id = f"{data.id}-{key}"
 
         self._attr_device_info = DeviceInfo(
@@ -145,10 +145,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.info_coordinator)
-        self.api = data.api
-        self.key = key
-        self._attr_translation_key = key
+        super().__init__(data.info_coordinator, data.api, key)
         self._attr_unique_id = f"{data.id}-{key}"
 
         self._attr_device_info = DeviceInfo(
@@ -173,12 +170,9 @@ class TeslemetryWallConnectorEntity(
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.live_coordinator)
-        self.api = data.api
-        self.key = key
-        self._attr_translation_key = key
-        self.din = din
+        super().__init__(data.live_coordinator, data.api, key)
         self._attr_unique_id = f"{data.id}-{din}-{key}"
+        self.din = din
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
