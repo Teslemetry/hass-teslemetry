@@ -54,10 +54,6 @@ class TeslemetryEntity(
             self.coordinator.data[key] = value
         self.async_write_ha_state()
 
-    def has(self, key: str | None = None):
-        """Check if a key exists in the coordinator data."""
-        return (key or self.key) in self.coordinator.data
-
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""
         if not self.scoped:

@@ -92,11 +92,6 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.scoped = scoped
 
     @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
-
-    @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
         return self._attr_options[self.get()]
@@ -123,11 +118,6 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
         super().__init__(data, description.key)
         self.scoped = scoped
         self.entity_description = description
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
 
     @property
     def current_option(self) -> str | None:

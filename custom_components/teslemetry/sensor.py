@@ -422,11 +422,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return (
-            super().available
-            and self.has()
-            and self.entity_description.available_fn(self.get())
-        )
+        return super().available and self.entity_description.available_fn(self.get())
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -452,11 +448,6 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
     def native_value(self) -> StateType | datetime:
         """Return the state of the sensor."""
         return self.get()
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
 
 
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
@@ -486,9 +477,7 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     @property
     def available(self) -> bool:
         """Return if sensor is available."""
-        return super().available and self.din in self.coordinator.data.get(
-            "wall_connectors", {}
-        )
+        return self.coordinator.last_update_success
 
 
 class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
@@ -509,8 +498,3 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
     def native_value(self) -> StateType | datetime:
         """Return the state of the sensor."""
         return self.get()
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()

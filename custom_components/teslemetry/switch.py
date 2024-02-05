@@ -1,6 +1,6 @@
 """Switch platform for Teslemetry integration."""
 from __future__ import annotations
-
+from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -17,11 +17,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .entity import TeslemetryVehicleEntity, TeslemetryEnergyInfoEntity
+from .entity import (
+    TeslemetryVehicleEntity,
+    TeslemetryEnergyInfoEntity,
+    TeslemetryEnergyLiveEntity,
+)
 from .models import (
     TeslemetryVehicleData,
     TeslemetryEnergyData,
-    TeslemetryEnergyLiveEntity,
 )
 
 
@@ -77,9 +80,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
 )
 
-ENERGY_INFO_DESCRIPTIONS: tuple[
-    TeslemetrySwitchEntityDescription, ...
-] = TeslemetrySwitchEntityDescription(
+ENERGY_INFO_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="components_disallow_charge_from_grid_with_solar_installed",
     on_func=lambda api: api.grid_import_export(
         disallow_charge_from_grid_with_solar_installed=True
@@ -90,13 +91,12 @@ ENERGY_INFO_DESCRIPTIONS: tuple[
     scopes=[Scopes.ENERGY_CMDS],
 )
 
-ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
-    TeslemetrySwitchEntityDescription(
-        key="storm_mode_enabled",
-        on_func=lambda api: api.storm_mode(enabled=True),
-        off_func=lambda api: api.storm_mode(enabled=False),
-        scopes=[Scopes.ENERGY_CMDS],
-    ),
+
+ENERGY_LIVE_DESCRIPTION = TeslemetrySwitchEntityDescription(
+    key="storm_mode_enabled",
+    on_func=lambda api: api.storm_mode(enabled=True),
+    off_func=lambda api: api.storm_mode(enabled=False),
+    scopes=[Scopes.ENERGY_CMDS],
 )
 
 
@@ -107,40 +107,47 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryVehicleSwitchEntity(
-            vehicle,
-            description,
-            any(scope in data.scopes for scope in description.scopes),
+        chain(
+            (
+                TeslemetryVehicleSwitchEntity(
+                    vehicle,
+                    description,
+                    any(scope in data.scopes for scope in description.scopes),
+                )
+                for vehicle in data.vehicles
+                for description in VEHICLE_DESCRIPTIONS
+            ),
+            (
+                TeslemetryEnergyLiveSwitchEntity(
+                    energysite,
+                    ENERGY_INFO_DESCRIPTION,
+                    any(
+                        scope in data.scopes for scope in ENERGY_INFO_DESCRIPTION.scopes
+                    ),
+                )
+                for energysite in data.energysites
+                if ENERGY_INFO_DESCRIPTION.key in energysite.info_coordinator.data
+            ),
+            (
+                TeslemetryEnergyInfoSwitchEntity(
+                    energysite,
+                    ENERGY_LIVE_DESCRIPTION,
+                    any(
+                        scope in data.scopes for scope in ENERGY_LIVE_DESCRIPTION.scopes
+                    ),
+                )
+                for energysite in data.energysites
+                if ENERGY_LIVE_DESCRIPTION.key in energysite.live_coordinator.data
+            ),
         )
-        for vehicle in data.vehicles
-        for description in VEHICLE_DESCRIPTIONS
-    )
-
-    async_add_entities(
-        TeslemetryEnergyLiveSwitchEntity(
-            energysite,
-            description,
-            any(scope in data.scopes for scope in description.scopes),
-        )
-        for energysite in data.energysites
-        for description in ENERGY_LIVE_DESCRIPTIONS
-        if description.key in energysite.info_coordinator.data
-    )
-
-    async_add_entities(
-        TeslemetryEnergyInfoSwitchEntity(
-            energysite,
-            description,
-            any(scope in data.scopes for scope in description.scopes),
-        )
-        for energysite in data.energysites
-        for description in ENERGY_INFO_DESCRIPTIONS
-        if description.key in energysite.info_coordinator.data
     )
 
 
 class TeslemetrySwitchEntity(SwitchEntity):
     """Base class for all Teslemetry switch entities"""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    entity_description: TeslemetrySwitchEntityDescription
 
     @property
     def is_on(self) -> bool:
@@ -168,9 +175,6 @@ class TeslemetrySwitchEntity(SwitchEntity):
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
 
-    _attr_device_class = SwitchDeviceClass.SWITCH
-    entity_description: TeslemetrySwitchEntityDescription
-
     def __init__(
         self,
         data: TeslemetryVehicleData,
@@ -197,11 +201,10 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         self.set((self.entity_description.key, False))
 
 
-class TeslemetryEnergyLiveSwitchEntity(TeslemetryEnergyLiveEntity, SwitchEntity):
+class TeslemetryEnergyLiveSwitchEntity(
+    TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
+):
     """Base class for Teslemetry Switch."""
-
-    _attr_device_class = SwitchDeviceClass.SWITCH
-    entity_description: TeslemetrySwitchEntityDescription
 
     def __init__(
         self,
@@ -214,17 +217,11 @@ class TeslemetryEnergyLiveSwitchEntity(TeslemetryEnergyLiveEntity, SwitchEntity)
         self.entity_description = description
         self.scoped = scoped
 
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
 
-
-class TeslemetryEnergyInfoSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity):
+class TeslemetryEnergyInfoSwitchEntity(
+    TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
+):
     """Base class for Teslemetry Switch."""
-
-    _attr_device_class = SwitchDeviceClass.SWITCH
-    entity_description: TeslemetrySwitchEntityDescription
 
     def __init__(
         self,
