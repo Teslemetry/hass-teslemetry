@@ -49,16 +49,16 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update vehicle data using Teslemetry API."""
         try:
             data = await self.api.vehicle_data(
-                endpoints=[
-                    VehicleDataEndpoints.CHARGE_STATE,
-                    VehicleDataEndpoints.CLIMATE_STATE,
+                #endpoints=[
+                    #VehicleDataEndpoints.CHARGE_STATE,
+                    #VehicleDataEndpoints.CLIMATE_STATE,
                     #VehicleDataEndpoints.CLOSURES_STATE,
-                    VehicleDataEndpoints.DRIVE_STATE,
+                    #VehicleDataEndpoints.DRIVE_STATE,
                     #VehicleDataEndpoints.GUI_SETTINGS,
-                    VehicleDataEndpoints.LOCATION_DATA,
+                    #VehicleDataEndpoints.LOCATION_DATA,
                     #VehicleDataEndpoints.VEHICLE_CONFIG,
-                    VehicleDataEndpoints.VEHICLE_STATE,
-                ]
+                    #VehicleDataEndpoints.VEHICLE_STATE,
+                #]
             )
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
