@@ -26,9 +26,7 @@ class TeslemetryButtonEntityDescription(ButtonEntityDescription):
 
 
 DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
-    TeslemetryButtonEntityDescription(
-        key="wake"
-    ),  # Every button also runs wakeup
+    TeslemetryButtonEntityDescription(key="wake"),  # Every button also runs wakeup
     TeslemetryButtonEntityDescription(
         key="flash_lights", func=lambda api: api.flash_lights()
     ),
