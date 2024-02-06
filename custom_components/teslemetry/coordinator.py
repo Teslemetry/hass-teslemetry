@@ -43,22 +43,22 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=VEHICLE_INTERVAL,
         )
         self.api = api
-        self.data = product
+        self.data = flatten(product)
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
         try:
             data = await self.api.vehicle_data(
-                #endpoints=[
-                    #VehicleDataEndpoints.CHARGE_STATE,
-                    #VehicleDataEndpoints.CLIMATE_STATE,
+                endpoints=[
+                    VehicleDataEndpoints.CHARGE_STATE,
+                    VehicleDataEndpoints.CLIMATE_STATE,
                     #VehicleDataEndpoints.CLOSURES_STATE,
-                    #VehicleDataEndpoints.DRIVE_STATE,
+                    VehicleDataEndpoints.DRIVE_STATE,
                     #VehicleDataEndpoints.GUI_SETTINGS,
-                    #VehicleDataEndpoints.LOCATION_DATA,
+                    VehicleDataEndpoints.LOCATION_DATA,
                     #VehicleDataEndpoints.VEHICLE_CONFIG,
-                    #VehicleDataEndpoints.VEHICLE_STATE,
-                #]
+                    VehicleDataEndpoints.VEHICLE_STATE,
+                ] #charge_state;climate_state;drive_state;vehicle_state;location_data
             )
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
@@ -66,7 +66,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
 
-        return flatten(data["response"])
+        return {**self.data , **flatten(data["response"])}
 
 
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
