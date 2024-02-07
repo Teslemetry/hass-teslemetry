@@ -1,6 +1,7 @@
 """Binary Sensor platform for Teslemetry integration."""
 from __future__ import annotations
 
+from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -162,21 +163,24 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryVehicleBinarySensorEntity(vehicle, description)
-        for vehicle in data.vehicles
-        for description in VEHICLE_DESCRIPTIONS
-    )
-
-    async_add_entities(
-        TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
-        for energysite in data.energysites
-        for description in ENERGY_LIVE_DESCRIPTIONS
-    )
-
-    async_add_entities(
-        TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
-        for energysite in data.energysites
-        for description in ENERGY_INFO_DESCRIPTIONS
+        chain(
+            # Vehicles
+            TeslemetryVehicleBinarySensorEntity(vehicle, description)
+            for vehicle in data.vehicles
+            for description in VEHICLE_DESCRIPTIONS
+        ),
+        (
+            # Energy Site Live
+            TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
+            for energysite in data.energysites
+            for description in ENERGY_LIVE_DESCRIPTIONS
+        ),
+        (
+            # Energy Site Info
+            TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
+            for energysite in data.energysites
+            for description in ENERGY_INFO_DESCRIPTIONS
+        ),
     )
 
 

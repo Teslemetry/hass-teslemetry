@@ -42,6 +42,11 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         self.scoped = scoped
 
     @property
+    def available(self) -> bool:
+        """Return if update entity is available."""
+        return super().available and self.has()
+
+    @property
     def supported_features(self) -> UpdateEntityFeature:
         """Flag supported features."""
         if self.scoped and self.get() in (

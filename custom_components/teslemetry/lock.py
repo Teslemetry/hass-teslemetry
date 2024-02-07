@@ -26,7 +26,7 @@ async def async_setup_entry(
     async_add_entities(
         klass(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
         for klass in (
-            TeslemetryLockEntity,
+            TeslemetryVehicleLockEntity,
             TeslemetryCableLockEntity,
             TeslemetrySpeedLimitEntity,
         )
@@ -34,7 +34,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryLockEntity(TeslemetryVehicleEntity, LockEntity):
+class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
     """Lock entity for Teslemetry."""
 
     def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:

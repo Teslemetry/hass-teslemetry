@@ -87,3 +87,8 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
     def latitude(self) -> float | None:
         """Return the latitude of the device tracker."""
         return self.get("drive_state_active_route_latitude")
+
+    @property
+    def location_name(self) -> str | None:
+        """Return the location of the device tracker."""
+        return self.get("drive_state_active_route_destination")

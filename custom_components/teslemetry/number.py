@@ -1,6 +1,7 @@
 """Number platform for Teslemetry integration."""
 from __future__ import annotations
 
+from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -110,27 +111,28 @@ async def async_setup_entry(
     """Set up the Teslemetry sensor platform from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
 
-    # Add vehicle entities
     async_add_entities(
-        TeslemetryVehicleNumberEntity(
-            vehicle,
-            description,
-            any(scope in data.scopes for scope in description.scopes),
-        )
-        for vehicle in data.vehicles
-        for description in VEHICLE_DESCRIPTIONS
-    )
-
-    # Add energy site entities
-    async_add_entities(
-        TeslemetryEnergyInfoNumberSensorEntity(
-            energysite,
-            description,
-            any(scope in data.scopes for scope in description.scopes),
-        )
-        for energysite in data.energysites
-        for description in ENERGY_INFO_DESCRIPTIONS
-        if description.key in energysite.info_coordinator.data
+        chain(
+            # Add vehicle entities
+            TeslemetryVehicleNumberEntity(
+                vehicle,
+                description,
+                any(scope in data.scopes for scope in description.scopes),
+            )
+            for vehicle in data.vehicles
+            for description in VEHICLE_DESCRIPTIONS
+        ),
+        (
+            # Add energy site entities
+            TeslemetryEnergyInfoNumberSensorEntity(
+                energysite,
+                description,
+                any(scope in data.scopes for scope in description.scopes),
+            )
+            for energysite in data.energysites
+            for description in ENERGY_INFO_DESCRIPTIONS
+            if description.key in energysite.info_coordinator.data
+        ),
     )
 
 

@@ -26,7 +26,7 @@ class TeslemetryButtonEntityDescription(ButtonEntityDescription):
 
 
 DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
-    TeslemetryButtonEntityDescription(key="wake"),  # Every button also runs wakeup
+    TeslemetryButtonEntityDescription(key="wake"),  # Every button runs wakeup
     TeslemetryButtonEntityDescription(
         key="flash_lights", func=lambda api: api.flash_lights()
     ),
@@ -67,11 +67,6 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
         """Initialize the button."""
         super().__init__(data, description.key)
         self.entity_description = description
-
-    @property
-    def avaliable(self) -> bool:
-        """Return if the cover is available."""
-        return True
 
     async def async_press(self) -> None:
         """Press the button."""

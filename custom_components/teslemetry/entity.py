@@ -35,20 +35,13 @@ class TeslemetryEntity(
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator,
         api: VehicleSpecific | EnergySpecific,
-        key:str
+        key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(coordinator)
         self.api = api
         self.key = key
         self._attr_translation_key = key
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return (
-            self.coordinator.last_update_success and self.key in self.coordinator.data
-        )
 
     def get(self, key: str | None = None, default: Any | None = None) -> Any:
         """Return a specific value from coordinator data."""
@@ -59,6 +52,10 @@ class TeslemetryEntity(
         for key, value in args:
             self.coordinator.data[key] = value
         self.async_write_ha_state()
+
+    def has(self, key: str) -> bool:
+        """Return True if a specific value is in coordinator data."""
+        return key in self.coordinator.data
 
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""

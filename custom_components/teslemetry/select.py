@@ -61,22 +61,52 @@ async def async_setup_entry(
     entities = []
     for vehicle in data.vehicles:
         scoped = Scopes.VEHICLE_CMDS in data.scopes
-        entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_left", scoped))
-        entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_right", scoped))
+        entities.append(
+            TeslemetrySeatHeaterSelectEntity(
+                vehicle, "climate_state_seat_heater_left", scoped
+            )
+        )
+        entities.append(
+            TeslemetrySeatHeaterSelectEntity(
+                vehicle, "climate_state_seat_heater_right", scoped
+            )
+        )
         if vehicle.coordinator.data.get("vehicle_config_rear_seat_heaters"):
-            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_left", scoped))
-            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_center", scoped))
-            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_right", scoped))
+            entities.append(
+                TeslemetrySeatHeaterSelectEntity(
+                    vehicle, "climate_state_seat_heater_rear_left", scoped
+                )
+            )
+            entities.append(
+                TeslemetrySeatHeaterSelectEntity(
+                    vehicle, "climate_state_seat_heater_rear_center", scoped
+                )
+            )
+            entities.append(
+                TeslemetrySeatHeaterSelectEntity(
+                    vehicle, "climate_state_seat_heater_rear_right", scoped
+                )
+            )
             if vehicle.coordinator.data.get("vehicle_config_third_row_seats") != "None":
-                entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_third_row_left", scoped))
-                entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_third_row_right", scoped))
+                entities.append(
+                    TeslemetrySeatHeaterSelectEntity(
+                        vehicle, "climate_state_seat_heater_third_row_left", scoped
+                    )
+                )
+                entities.append(
+                    TeslemetrySeatHeaterSelectEntity(
+                        vehicle, "climate_state_seat_heater_third_row_right", scoped
+                    )
+                )
 
     for energysite in data.energysites:
         for description in ENERGY_INFO_DESCRIPTIONS:
             if description.key in energysite.info_coordinator.data:
-                entities.append(TeslemetryEnergySiteSelectEntity(
-                    energysite, description, Scopes.ENERGY_CMDS in data.scopes
-                ))
+                entities.append(
+                    TeslemetryEnergySiteSelectEntity(
+                        energysite, description, Scopes.ENERGY_CMDS in data.scopes
+                    )
+                )
 
     async_add_entities(entities)
 

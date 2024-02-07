@@ -65,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for product in products:
         if "vin" in product and Scopes.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
-            product.pop('cached_data', None)
+            product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)

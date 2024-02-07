@@ -152,12 +152,10 @@ class TeslemetrySwitchEntity(SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return the state of the Switch."""
-        return self.get()
-
-    @property
-    def is_on(self) -> bool:
-        """Return the state of the Switch."""
-        return self.get()
+        value = self.get()
+        if value is None:
+            return None
+        return value
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""

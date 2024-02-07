@@ -1,6 +1,7 @@
 """Sensor platform for Teslemetry integration."""
 from __future__ import annotations
 
+from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -154,7 +155,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_fl",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
-        #suggested_unit_of_measurement=UnitOfPressure.PSI,
+        # suggested_unit_of_measurement=UnitOfPressure.PSI,
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -163,7 +164,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_fr",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
-        #suggested_unit_of_measurement=UnitOfPressure.PSI,
+        # suggested_unit_of_measurement=UnitOfPressure.PSI,
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -172,7 +173,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_rl",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
-        #suggested_unit_of_measurement=UnitOfPressure.PSI,
+        # suggested_unit_of_measurement=UnitOfPressure.PSI,
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -181,7 +182,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_rr",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
-        #suggested_unit_of_measurement=UnitOfPressure.PSI,
+        # suggested_unit_of_measurement=UnitOfPressure.PSI,
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -242,10 +243,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
             lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
             timedelta(seconds=30),
         ),
-    ),
-    TeslemetrySensorEntityDescription(
-        key="drive_state_active_route_destination",
-        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
 
@@ -369,39 +366,33 @@ async def async_setup_entry(
     """Set up the Teslemetry sensor platform from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
 
-    # Add vehicles
     async_add_entities(
-        TeslemetryVehicleSensorEntity(vehicle, description)
-        for vehicle in data.vehicles
-        for description in VEHICLE_DESCRIPTIONS
-    )
-
-    # Add energy site live
-    async_add_entities(
-        TeslemetryEnergyLiveSensorEntity(energysite, description)
-        for energysite in data.energysites
-        for description in ENERGY_LIVE_DESCRIPTIONS
-        if description.key in energysite.live_coordinator.data
-    )
-
-    # Add wall connectors
-    async_add_entities(
-        TeslemetryWallConnectorSensorEntity(energysite, din, description)
-        for energysite in data.energysites
-        for din in energysite.live_coordinator.data.get("wall_connectors", {})
-        for description in WALL_CONNECTOR_DESCRIPTIONS
-    )
-
-    # Add energy site info
-    async_add_entities(
-        TeslemetryEnergyInfoSensorEntity(energysite, description)
-        for energysite in data.energysites
-        for description in ENERGY_INFO_DESCRIPTIONS
-        if description.key in energysite.info_coordinator.data
+        chain(
+            # Add vehicles
+            TeslemetryVehicleSensorEntity(vehicle, description)
+            for vehicle in data.vehicles
+            for description in VEHICLE_DESCRIPTIONS
+        ),
+        (  # Add energy site live
+            TeslemetryEnergyLiveSensorEntity(energysite, description)
+            for energysite in data.energysites
+            for description in ENERGY_LIVE_DESCRIPTIONS
+            if description.key in energysite.live_coordinator.data
+        )(  # Add wall connectors
+            TeslemetryWallConnectorSensorEntity(energysite, din, description)
+            for energysite in data.energysites
+            for din in energysite.live_coordinator.data.get("wall_connectors", {})
+            for description in WALL_CONNECTOR_DESCRIPTIONS
+        )(  # Add energy site info
+            TeslemetryEnergyInfoSensorEntity(energysite, description)
+            for energysite in data.energysites
+            for description in ENERGY_INFO_DESCRIPTIONS
+            if description.key in energysite.info_coordinator.data
+        ),
     )
 
 
-class TeslemetrySensorEntity:
+class TeslemetrySensorEntity(SensorEntity):
     """Base class for all Teslemetry sensors."""
 
 
@@ -421,8 +412,12 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        """Return if sensor entity is available."""
+        return (
+            super().available
+            and self.has()
+            and self.entity_description.available_fn(self.get())
+        )
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -443,6 +438,11 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor entity is available."""
+        return super().available and self.has()
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -470,6 +470,11 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
         self.entity_description = description
 
     @property
+    def available(self) -> bool:
+        """Return if sensor entity is available."""
+        return super().available and self.has()
+
+    @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         return self._value
@@ -493,6 +498,11 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor entity is available."""
+        return super().available and self.has()
 
     @property
     def native_value(self) -> StateType | datetime:

@@ -54,19 +54,18 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
-    def avaliable(self) -> bool:
-        """Return if the cover is available."""
-        return True
-
-    @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return (
-            self.get("vehicle_state_fd_window") == TeslemetryCoverStates.CLOSED
-            and self.get("vehicle_state_fp_window") == TeslemetryCoverStates.CLOSED
-            and self.get("vehicle_state_rd_window") == TeslemetryCoverStates.CLOSED
-            and self.get("vehicle_state_rp_window") == TeslemetryCoverStates.CLOSED
-        )
+        fd = self.get("vehicle_state_fd_window")
+        fp = self.get("vehicle_state_fp_window")
+        rd = self.get("vehicle_state_rd_window")
+        rp = self.get("vehicle_state_rp_window")
+
+        if fd or fp or rd or rp == TeslemetryCoverStates.OPEN:
+            return False
+        if fd and fp and rd and rp == TeslemetryCoverStates.CLOSED:
+            return True
+        return None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Vent windows."""
@@ -107,11 +106,6 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
-    def avaliable(self) -> bool:
-        """Return if the cover is available."""
-        return True
-
-    @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
         return not self.get()
@@ -146,14 +140,14 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
-    def avaliable(self) -> bool:
-        """Return if the cover is available."""
-        return True
-
-    @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return self.get() == TeslemetryCoverStates.CLOSED
+        value = self.get()
+        if value == TeslemetryCoverStates.CLOSED:
+            return True
+        if value == TeslemetryCoverStates.OPEN:
+            return False
+        return None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
@@ -177,14 +171,14 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
             self._attr_supported_features = CoverEntityFeature(0)
 
     @property
-    def avaliable(self) -> bool:
-        """Return if the cover is available."""
-        return True
-
-    @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return self.get() == TeslemetryCoverStates.CLOSED
+        value = self.get()
+        if value == TeslemetryCoverStates.CLOSED:
+            return True
+        if value == TeslemetryCoverStates.OPEN:
+            return False
+        return None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""

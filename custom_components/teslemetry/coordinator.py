@@ -16,16 +16,17 @@ ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=300)
 
 ENDPOINTS = [
-                    VehicleDataEndpoints.CHARGE_STATE,
-                    VehicleDataEndpoints.CLIMATE_STATE,
-                    #VehicleDataEndpoints.CLOSURES_STATE,
-                    VehicleDataEndpoints.DRIVE_STATE,
-                    #VehicleDataEndpoints.GUI_SETTINGS,
-                    VehicleDataEndpoints.LOCATION_DATA,
-                    #VehicleDataEndpoints.VEHICLE_CONFIG,
-                    VehicleDataEndpoints.VEHICLE_STATE,
-                ]
+    VehicleDataEndpoints.CHARGE_STATE,
+    VehicleDataEndpoints.CLIMATE_STATE,
+    # VehicleDataEndpoints.CLOSURES_STATE,
+    VehicleDataEndpoints.DRIVE_STATE,
+    # VehicleDataEndpoints.GUI_SETTINGS,
+    VehicleDataEndpoints.LOCATION_DATA,
+    # VehicleDataEndpoints.VEHICLE_CONFIG,
+    VehicleDataEndpoints.VEHICLE_STATE,
+]
 #
+
 
 def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
     """Flatten the data structure."""
@@ -68,7 +69,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
 
-        return {**self.data , **flatten(data["response"])}
+        return {**self.data, **flatten(data["response"])}
 
 
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
