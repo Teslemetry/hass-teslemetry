@@ -17,6 +17,20 @@
           "default": "mdi:sleep-off"
         }
       },
+      "climate": {
+        "driver_temp": {
+          "state_attributes": {
+            "preset_mode": {
+              "state": {
+                "off": "mdi:power",
+                "keep": "mdi:fan",
+                "dog": "mdi:dog",
+                "camp": "mdi:tent"
+              }
+            }
+          }
+        }
+      },
       "sensor": {
         "battery_power": {
           "default": "mdi:home-battery"
