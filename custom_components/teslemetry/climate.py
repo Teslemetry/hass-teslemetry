@@ -61,9 +61,10 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     @property
     def hvac_mode(self) -> HVACMode | None:
         """Return hvac operation ie. heat, cool mode."""
-        if self.get("climate_state_is_climate_on"):
-            return HVACMode.HEAT_COOL
-        return HVACMode.OFF
+        value = self.get("climate_state_is_climate_on")
+        if value is None:
+            return None
+        return HVACMode.HEAT_COOL if value else HVACMode.OFF
 
     @property
     def current_temperature(self) -> float | None:

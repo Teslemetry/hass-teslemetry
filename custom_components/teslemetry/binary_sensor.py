@@ -13,7 +13,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback, StateType
 
 from .const import DOMAIN, TeslemetryState
 from .entity import (
@@ -28,14 +28,14 @@ from .models import TeslemetryVehicleData, TeslemetryEnergyData
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
-    is_on: Callable[..., bool] = lambda x: x
+    is_on: StateType
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="state",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        is_on=lambda x: x == TeslemetryState.ONLINE,
+        is_on=TeslemetryState.ONLINE,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_battery_heater_on",
@@ -56,14 +56,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_conn_charge_cable",
-        is_on=lambda x: x != "<invalid>",
+        is_on="<invalid>",
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_cabin_overheat_protection",
         device_class=BinarySensorDeviceClass.RUNNING,
-        is_on=lambda x: x == "On",
+        is_on="On",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -74,7 +74,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_dashcam_state",
         device_class=BinarySensorDeviceClass.RUNNING,
-        is_on=lambda x: x == "Recording",
+        is_on="Recording",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -143,14 +143,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
 )
 
-ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
-    TeslemetryBinarySensorEntityDescription(key="backup_capable"),
-    TeslemetryBinarySensorEntityDescription(key="grid_services_active"),
+ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(key="backup_capable"),
+    BinarySensorEntityDescription(key="grid_services_active"),
 )
 
 
-ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
-    TeslemetryBinarySensorEntityDescription(
+ENERGY_INFO_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
         key="components_grid_services_enabled",
     ),
 )
@@ -164,23 +164,22 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
-            # Vehicles
-            TeslemetryVehicleBinarySensorEntity(vehicle, description)
-            for vehicle in data.vehicles
-            for description in VEHICLE_DESCRIPTIONS
-        ),
-        (
-            # Energy Site Live
-            TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
-            for energysite in data.energysites
-            for description in ENERGY_LIVE_DESCRIPTIONS
-        ),
-        (
-            # Energy Site Info
-            TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
-            for energysite in data.energysites
-            for description in ENERGY_INFO_DESCRIPTIONS
-        ),
+            (  # Vehicles
+                TeslemetryVehicleBinarySensorEntity(vehicle, description)
+                for vehicle in data.vehicles
+                for description in VEHICLE_DESCRIPTIONS
+            ),
+            (  # Energy Site Live
+                TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
+                for energysite in data.energysites
+                for description in ENERGY_LIVE_DESCRIPTIONS
+            ),
+            (  # Energy Site Info
+                TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
+                for energysite in data.energysites
+                for description in ENERGY_INFO_DESCRIPTIONS
+            ),
+        )
     )
 
 
@@ -199,9 +198,11 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         self.entity_description = description
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        return self.entity_description.is_on(self.get())
+        if self.entity_description.is_on is not None:
+            return self.exactly(self.entity_description.is_on)
+        return self.get()
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
@@ -209,7 +210,7 @@ class TeslemetryEnergyLiveBinarySensorEntity(
 ):
     """Base class for Teslemetry energy live binary sensors."""
 
-    entity_description: TeslemetryBinarySensorEntityDescription
+    entity_description: BinarySensorEntityDescription
 
     def __init__(
         self,
@@ -219,6 +220,11 @@ class TeslemetryEnergyLiveBinarySensorEntity(
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return the state of the binary sensor."""
+        return self.get()
 
 
 class TeslemetryEnergyInfoBinarySensorEntity(
@@ -226,7 +232,7 @@ class TeslemetryEnergyInfoBinarySensorEntity(
 ):
     """Base class for Teslemetry energy info binary sensors."""
 
-    entity_description: TeslemetryBinarySensorEntityDescription
+    entity_description: BinarySensorEntityDescription
 
     def __init__(
         self,
@@ -236,3 +242,8 @@ class TeslemetryEnergyInfoBinarySensorEntity(
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return the state of the binary sensor."""
+        return self.get()

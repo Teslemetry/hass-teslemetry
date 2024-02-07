@@ -47,15 +47,26 @@ class TeslemetryEntity(
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(key or self.key, default)
 
+    def exactly(self, value: Any) -> bool | None:
+        """Return if a specific value is None, or matching in coordinator data."""
+        current = self.get()
+        if current is None:
+            return None
+        return current == value
+
     def set(self, *args: Any) -> None:
         """Set a value in coordinator data."""
         for key, value in args:
             self.coordinator.data[key] = value
         self.async_write_ha_state()
 
-    def has(self, key: str) -> bool:
+    def has(self, key: str | None = None) -> bool:
         """Return True if a specific value is in coordinator data."""
-        return key in self.coordinator.data
+        return (key or self.key) in self.coordinator.data
+
+    def is_none(self, key: str | None = None) -> bool:
+        """Return True if a specific value is None in coordinator data."""
+        return self.get(key, False) is None
 
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""

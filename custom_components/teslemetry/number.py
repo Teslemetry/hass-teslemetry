@@ -113,26 +113,26 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
-            # Add vehicle entities
-            TeslemetryVehicleNumberEntity(
-                vehicle,
-                description,
-                any(scope in data.scopes for scope in description.scopes),
-            )
-            for vehicle in data.vehicles
-            for description in VEHICLE_DESCRIPTIONS
-        ),
-        (
-            # Add energy site entities
-            TeslemetryEnergyInfoNumberSensorEntity(
-                energysite,
-                description,
-                any(scope in data.scopes for scope in description.scopes),
-            )
-            for energysite in data.energysites
-            for description in ENERGY_INFO_DESCRIPTIONS
-            if description.key in energysite.info_coordinator.data
-        ),
+            (  # Add vehicle entities
+                TeslemetryVehicleNumberEntity(
+                    vehicle,
+                    description,
+                    any(scope in data.scopes for scope in description.scopes),
+                )
+                for vehicle in data.vehicles
+                for description in VEHICLE_DESCRIPTIONS
+            ),
+            (  # Add energy site entities
+                TeslemetryEnergyInfoNumberSensorEntity(
+                    energysite,
+                    description,
+                    any(scope in data.scopes for scope in description.scopes),
+                )
+                for energysite in data.energysites
+                for description in ENERGY_INFO_DESCRIPTIONS
+                if description.key in energysite.info_coordinator.data
+            ),
+        )
     )
 
 

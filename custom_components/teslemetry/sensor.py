@@ -368,27 +368,30 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
-            # Add vehicles
-            TeslemetryVehicleSensorEntity(vehicle, description)
-            for vehicle in data.vehicles
-            for description in VEHICLE_DESCRIPTIONS
-        ),
-        (  # Add energy site live
-            TeslemetryEnergyLiveSensorEntity(energysite, description)
-            for energysite in data.energysites
-            for description in ENERGY_LIVE_DESCRIPTIONS
-            if description.key in energysite.live_coordinator.data
-        )(  # Add wall connectors
-            TeslemetryWallConnectorSensorEntity(energysite, din, description)
-            for energysite in data.energysites
-            for din in energysite.live_coordinator.data.get("wall_connectors", {})
-            for description in WALL_CONNECTOR_DESCRIPTIONS
-        )(  # Add energy site info
-            TeslemetryEnergyInfoSensorEntity(energysite, description)
-            for energysite in data.energysites
-            for description in ENERGY_INFO_DESCRIPTIONS
-            if description.key in energysite.info_coordinator.data
-        ),
+            (  # Add vehicles
+                TeslemetryVehicleSensorEntity(vehicle, description)
+                for vehicle in data.vehicles
+                for description in VEHICLE_DESCRIPTIONS
+            ),
+            (  # Add energy site live
+                TeslemetryEnergyLiveSensorEntity(energysite, description)
+                for energysite in data.energysites
+                for description in ENERGY_LIVE_DESCRIPTIONS
+                if description.key in energysite.live_coordinator.data
+            ),
+            (  # Add wall connectors
+                TeslemetryWallConnectorSensorEntity(energysite, din, description)
+                for energysite in data.energysites
+                for din in energysite.live_coordinator.data.get("wall_connectors", {})
+                for description in WALL_CONNECTOR_DESCRIPTIONS
+            ),
+            (  # Add energy site info
+                TeslemetryEnergyInfoSensorEntity(energysite, description)
+                for energysite in data.energysites
+                for description in ENERGY_INFO_DESCRIPTIONS
+                if description.key in energysite.info_coordinator.data
+            ),
+        )
     )
 
 

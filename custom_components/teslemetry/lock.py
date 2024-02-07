@@ -77,7 +77,10 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
     @property
     def is_locked(self) -> bool | None:
         """Return the state of the Lock."""
-        return self.get() == TeslemetryChargeCableLockStates.ENGAGED
+        value = self.get()
+        if value is None:
+            return None
+        return value == TeslemetryChargeCableLockStates.ENGAGED
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Charge cable Lock cannot be manually locked."""
