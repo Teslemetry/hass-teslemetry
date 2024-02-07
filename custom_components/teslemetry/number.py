@@ -203,11 +203,6 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         self.scoped = scoped
         self.entity_description = description
 
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return super().available and self.has()
-
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()

@@ -195,11 +195,6 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         self.entity_description = description
 
     @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
-
-    @property
     def is_on(self) -> bool:
         """Return the state of the binary sensor."""
         return self.entity_description.is_on(self.get())
@@ -221,11 +216,6 @@ class TeslemetryEnergyLiveBinarySensorEntity(
         super().__init__(data, description.key)
         self.entity_description = description
 
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
-
 
 class TeslemetryEnergyInfoBinarySensorEntity(
     TeslemetryEnergyInfoEntity, BinarySensorEntity
@@ -242,8 +232,3 @@ class TeslemetryEnergyInfoBinarySensorEntity(
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()

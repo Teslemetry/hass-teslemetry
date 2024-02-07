@@ -68,6 +68,11 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
         super().__init__(data, description.key)
         self.entity_description = description
 
+    @property
+    def avaliable(self) -> bool:
+        """Return if the cover is available."""
+        return True
+
     async def async_press(self) -> None:
         """Press the button."""
         await self.wake_up_if_asleep()
