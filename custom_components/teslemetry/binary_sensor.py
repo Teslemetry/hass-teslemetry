@@ -13,7 +13,8 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback, StateType
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN, TeslemetryState
 from .entity import (
@@ -28,7 +29,7 @@ from .models import TeslemetryVehicleData, TeslemetryEnergyData
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
-    is_on: StateType
+    is_on: StateType = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
@@ -203,6 +204,14 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         if self.entity_description.is_on is not None:
             return self.exactly(self.entity_description.is_on)
         return self.get()
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor entity is available."""
+        return (
+            super().available
+            and self.is_not_none()
+        )
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

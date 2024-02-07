@@ -64,9 +64,9 @@ class TeslemetryEntity(
         """Return True if a specific value is in coordinator data."""
         return (key or self.key) in self.coordinator.data
 
-    def is_none(self, key: str | None = None) -> bool:
-        """Return True if a specific value is None in coordinator data."""
-        return self.get(key, False) is None
+    def is_not_none(self, key: str | None = None) -> bool:
+        """Return True if a specific value is not None in coordinator data."""
+        return self.get(key, False) is not None
 
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""

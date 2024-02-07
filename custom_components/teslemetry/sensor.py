@@ -418,14 +418,16 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Return if sensor entity is available."""
         return (
             super().available
-            and self.has()
+            and self.is_not_none()
             and self.entity_description.available_fn(self.get())
         )
 
     @property
     def native_value(self) -> StateType | datetime:
         """Return the state of the sensor."""
-        return self.entity_description.value_fn(self.get())
+        if (value := self.get()) is None:
+            return None
+        return self.entity_description.value_fn(value)
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
