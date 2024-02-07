@@ -33,6 +33,8 @@ async def async_setup_entry(
 class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
     """Base class for Teslemetry Tracker Entities."""
 
+    _attr_entity_category = None
+
     def __init__(
         self,
         vehicle: TeslemetryVehicleData,

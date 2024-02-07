@@ -15,6 +15,17 @@ VEHICLE_INTERVAL = timedelta(seconds=30)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=300)
 
+ENDPOINTS = [
+                    VehicleDataEndpoints.CHARGE_STATE,
+                    VehicleDataEndpoints.CLIMATE_STATE,
+                    #VehicleDataEndpoints.CLOSURES_STATE,
+                    VehicleDataEndpoints.DRIVE_STATE,
+                    #VehicleDataEndpoints.GUI_SETTINGS,
+                    VehicleDataEndpoints.LOCATION_DATA,
+                    #VehicleDataEndpoints.VEHICLE_CONFIG,
+                    VehicleDataEndpoints.VEHICLE_STATE,
+                ]
+#
 
 def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
     """Flatten the data structure."""
@@ -49,16 +60,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update vehicle data using Teslemetry API."""
         try:
             data = await self.api.vehicle_data(
-                endpoints=[
-                    VehicleDataEndpoints.CHARGE_STATE,
-                    VehicleDataEndpoints.CLIMATE_STATE,
-                    #VehicleDataEndpoints.CLOSURES_STATE,
-                    VehicleDataEndpoints.DRIVE_STATE,
-                    #VehicleDataEndpoints.GUI_SETTINGS,
-                    VehicleDataEndpoints.LOCATION_DATA,
-                    #VehicleDataEndpoints.VEHICLE_CONFIG,
-                    VehicleDataEndpoints.VEHICLE_STATE,
-                ] #charge_state;climate_state;drive_state;vehicle_state;location_data
+                endpoints="charge_state;climate_state;drive_state;vehicle_state;location_data"
             )
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
