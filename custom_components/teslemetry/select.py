@@ -58,22 +58,27 @@ async def async_setup_entry(
     """Set up the Teslemetry select platform from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities(
-        TeslemetrySeatHeaterSelectEntity(
-            vehicle, key, Scopes.VEHICLE_CMDS in data.scopes
-        )
-        for vehicle in data.vehicles
-        for key in SEAT_HEATERS
-    )
+    entities = []
+    for vehicle in data.vehicles:
+        scoped = Scopes.VEHICLE_CMDS in data.scopes
+        entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_left", scoped))
+        entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_right", scoped))
+        if vehicle.coordinator.data.get("vehicle_config_rear_seat_heaters"):
+            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_left", scoped))
+            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_center", scoped))
+            entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_rear_right", scoped))
+            if vehicle.coordinator.data.get("vehicle_config_third_row_seats") != "None":
+                entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_third_row_left", scoped))
+                entities.append(TeslemetrySeatHeaterSelectEntity(vehicle, "climate_state_seat_heater_third_row_right", scoped))
 
-    async_add_entities(
-        TeslemetryEnergySiteSelectEntity(
-            energysite, description, Scopes.ENERGY_CMDS in data.scopes
-        )
-        for energysite in data.energysites
-        for description in ENERGY_INFO_DESCRIPTIONS
-        if description.key in energysite.info_coordinator.data
-    )
+    for energysite in data.energysites:
+        for description in ENERGY_INFO_DESCRIPTIONS:
+            if description.key in energysite.info_coordinator.data:
+                entities.append(TeslemetryEnergySiteSelectEntity(
+                    energysite, description, Scopes.ENERGY_CMDS in data.scopes
+                ))
+
+    async_add_entities(entities)
 
 
 class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
@@ -93,13 +98,16 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
 
     @property
     def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and self.has()
+        """Return if seat heater is available."""
+        return super().available
 
     @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
-        return self._attr_options[self.get()]
+        value = self.get()
+        if value is None:
+            return None
+        return self._attr_options[value]
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
