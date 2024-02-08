@@ -1,7 +1,7 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 from dataclasses import dataclass
 from collections.abc import Callable
 
@@ -61,7 +61,7 @@ async def async_setup_entry(
 
     entities = []
     for vehicle in data.vehicles:
-        scoped = Scopes.VEHICLE_CMDS in data.scopes
+        scoped = Scope.VEHICLE_CMDS in data.scopes
         entities.append(
             TeslemetrySeatHeaterSelectEntity(
                 vehicle, "climate_state_seat_heater_left", scoped
@@ -105,7 +105,7 @@ async def async_setup_entry(
             if description.key in energysite.info_coordinator.data:
                 entities.append(
                     TeslemetryEnergySiteSelectEntity(
-                        energysite, description, Scopes.ENERGY_CMDS in data.scopes
+                        energysite, description, Scope.ENERGY_CMDS in data.scopes
                     )
                 )
 

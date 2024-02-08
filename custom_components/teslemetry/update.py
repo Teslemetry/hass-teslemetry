@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
@@ -23,7 +23,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryUpdateEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
+        TeslemetryUpdateEntity(vehicle, Scope.VEHICLE_CMDS in data.scopes)
         for vehicle in data.vehicles
     )
 

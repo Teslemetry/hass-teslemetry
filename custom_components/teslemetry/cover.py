@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import WindowCommands, Trunks, Scopes
+from tesla_fleet_api.const import WindowCommand, Trunk, Scope
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -29,13 +29,13 @@ async def async_setup_entry(
     async_add_entities(
         klass(vehicle, any(scope in data.scopes for scope in scopes))
         for (klass, scopes) in (
-            (TeslemetryWindowEntity, [Scopes.VEHICLE_CMDS]),
+            (TeslemetryWindowEntity, [Scope.VEHICLE_CMDS]),
             (
                 TeslemetryChargePortEntity,
-                [Scopes.VEHICLE_CMDS, Scopes.VEHICLE_CHARGING_CMDS],
+                [Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
             ),
-            (TeslemetryFrontTrunkEntity, [Scopes.VEHICLE_CMDS]),
-            (TeslemetryRearTrunkEntity, [Scopes.VEHICLE_CMDS]),
+            (TeslemetryFrontTrunkEntity, [Scope.VEHICLE_CMDS]),
+            (TeslemetryRearTrunkEntity, [Scope.VEHICLE_CMDS]),
         )
         for vehicle in data.vehicles
     )
@@ -73,7 +73,7 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
         self.raise_for_scope()
         with handle_command():
             await self.wake_up_if_asleep()
-            await self.api.window_control(command=WindowCommands.VENT)
+            await self.api.window_control(command=WindowCommand.VENT)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.OPEN),
             ("vehicle_state_fp_window", TeslemetryCoverStates.OPEN),
@@ -86,7 +86,7 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
         self.raise_for_scope()
         with handle_command():
             await self.wake_up_if_asleep()
-            await self.api.window_control(command=WindowCommands.CLOSE)
+            await self.api.window_control(command=WindowCommand.CLOSE)
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.CLOSED),
             ("vehicle_state_fp_window", TeslemetryCoverStates.CLOSED),

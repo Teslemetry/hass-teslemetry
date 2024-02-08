@@ -5,7 +5,7 @@ from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -42,7 +42,7 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     native_max_value: float
     min_key: str | None = None
     max_key: str | None = None
-    scopes: list[Scopes] | None = None
+    scopes: list[Scope] | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
@@ -55,7 +55,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.CURRENT,
         max_key="charge_state_charge_current_request_max",
         func=lambda api, value: api.set_charging_amps(int(value)),
-        scopes=[Scopes.VEHICLE_CHARGING_CMDS],
+        scopes=[Scope.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_limit_soc",
@@ -67,7 +67,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         min_key="charge_state_charge_limit_soc_min",
         max_key="charge_state_charge_limit_soc_max",
         func=lambda api, value: api.set_charge_limit(int(value)),
-        scopes=[Scopes.VEHICLE_CHARGING_CMDS, Scopes.VEHICLE_CMDS],
+        scopes=[Scope.VEHICLE_CHARGING_CMDS, Scope.VEHICLE_CMDS],
     ),
     TeslemetryNumberEntityDescription(
         key="vehicle_state_speed_limit_mode_current_limit_mph",
@@ -80,7 +80,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         min_key="vehicle_state_speed_limit_mode_min_limit_mph",
         max_key="vehicle_state_speed_limit_mode_max_limit_mph",
         func=lambda api, value: api.speed_limit_set_limit(value),
-        scopes=[Scopes.VEHICLE_CMDS],
+        scopes=[Scope.VEHICLE_CMDS],
     ),
 )
 
@@ -92,7 +92,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_max_value=100,
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
-        scopes=[Scopes.ENERGY_CMDS],
+        scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.backup(int(value)),
     ),
     TeslemetryNumberEntityDescription(
@@ -103,7 +103,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_max_value=100,
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
-        scopes=[Scopes.ENERGY_CMDS],
+        scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value))
     ),
 )

@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import VehicleDataEndpoints
+from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import TeslaFleetError, VehicleOffline
 
 from homeassistant.core import HomeAssistant
@@ -16,14 +16,14 @@ ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 
 ENDPOINTS = [
-    VehicleDataEndpoints.CHARGE_STATE,
-    VehicleDataEndpoints.CLIMATE_STATE,
-    # VehicleDataEndpoints.CLOSURES_STATE,
-    VehicleDataEndpoints.DRIVE_STATE,
-    # VehicleDataEndpoints.GUI_SETTINGS,
-    VehicleDataEndpoints.LOCATION_DATA,
-    # VehicleDataEndpoints.VEHICLE_CONFIG,
-    VehicleDataEndpoints.VEHICLE_STATE,
+    VehicleDataEndpoint.CHARGE_STATE,
+    VehicleDataEndpoint.CLIMATE_STATE,
+    # VehicleDataEndpoint.CLOSURES_STATE,
+    VehicleDataEndpoint.DRIVE_STATE,
+    # VehicleDataEndpoint.GUI_SETTINGS,
+    VehicleDataEndpoint.LOCATION_DATA,
+    # VehicleDataEndpoint.VEHICLE_CONFIG,
+    VehicleDataEndpoint.VEHICLE_STATE,
 ]
 
 

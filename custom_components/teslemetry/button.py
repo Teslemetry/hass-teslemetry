@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -57,7 +57,7 @@ async def async_setup_entry(
         TeslemetryButtonEntity(vehicle, description)
         for vehicle in data.vehicles
         for description in DESCRIPTIONS
-        if Scopes.VEHICLE_CMDS in data.scopes
+        if Scope.VEHICLE_CMDS in data.scopes
     )
 
 

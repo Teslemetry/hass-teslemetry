@@ -3,7 +3,7 @@ import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
 
 from homeassistant.config_entries import ConfigEntry
@@ -63,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicles: list[TeslemetryVehicleData] = []
     energysites: list[TeslemetryEnergyData] = []
     for product in products:
-        if "vin" in product and Scopes.VEHICLE_DEVICE_DATA in scopes:
+        if "vin" in product and Scope.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
             product.pop("cached_data", None)
             vin = product["vin"]
@@ -76,7 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     vin=vin,
                 )
             )
-        elif "energy_site_id" in product and Scopes.ENERGY_DEVICE_DATA in scopes:
+        elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
             energysites.append(

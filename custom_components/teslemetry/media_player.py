@@ -1,6 +1,6 @@
 """Media Player platform for Teslemetry integration."""
 from __future__ import annotations
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
@@ -34,7 +34,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryMediaEntity(vehicle, Scopes.VEHICLE_CMDS in data.scopes)
+        TeslemetryMediaEntity(vehicle, Scope.VEHICLE_CMDS in data.scopes)
         for vehicle in data.vehicles
     )
 

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
-from tesla_fleet_api.const import Scopes
+from tesla_fleet_api.const import Scope
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -27,7 +27,7 @@ async def async_setup_entry(
 
     async_add_entities(
         TeslemetryClimateEntity(
-            vehicle, TeslemetryClimateSide.DRIVER, Scopes.VEHICLE_CMDS in data.scopes
+            vehicle, TeslemetryClimateSide.DRIVER, Scope.VEHICLE_CMDS in data.scopes
         )
         for vehicle in data.vehicles
     )
