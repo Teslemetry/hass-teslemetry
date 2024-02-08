@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetryUpdateStatus
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
+from .context import handle_command
 
 
 async def async_setup_entry(
@@ -90,8 +91,9 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     ) -> None:
         """Install an update."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
-        await self.api.schedule_software_update(0)
+        with handle_command():
+            await self.wake_up_if_asleep()
+            await self.api.schedule_software_update(0)
         self.set(
             ("vehicle_state_software_update_status", TeslemetryUpdateStatus.INSTALLING)
         )

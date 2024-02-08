@@ -29,6 +29,7 @@ from .entity import (
     TeslemetryEnergyInfoEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
+from .context import handle_command
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -184,8 +185,9 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
-        await self.entity_description.func(self.api, value)
+        with handle_command():
+            await self.wake_up_if_asleep()
+            await self.entity_description.func(self.api, value)
         self.set((self.key, value))
 
 
@@ -208,5 +210,6 @@ class TeslemetryEnergyInfoNumberSensorEntity(
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
-        await self.entity_description.func(self.api, value)
+        with handle_command():
+            await self.entity_description.func(self.api, value)
         self.set((self.key, value))

@@ -26,6 +26,7 @@ from .models import (
     TeslemetryVehicleData,
     TeslemetryEnergyData,
 )
+from .context import handle_command
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -160,13 +161,15 @@ class TeslemetrySwitchEntity(SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
         self.raise_for_scope()
-        await self.entity_description.on_func(self.api)
+        with handle_command():
+            await self.entity_description.on_func(self.api)
         self.set((self.entity_description.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
-        await self.entity_description.off_func(self.api)
+        with handle_command():
+            await self.entity_description.off_func(self.api)
         self.set((self.entity_description.key, False))
 
 
@@ -187,15 +190,17 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
-        await self.entity_description.on_func(self.api)
+        with handle_command():
+            await self.wake_up_if_asleep()
+            await self.entity_description.on_func(self.api)
         self.set((self.entity_description.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
-        await self.entity_description.off_func(self.api)
+        with handle_command():
+            await self.wake_up_if_asleep()
+            await self.entity_description.off_func(self.api)
         self.set((self.entity_description.key, False))
 
 

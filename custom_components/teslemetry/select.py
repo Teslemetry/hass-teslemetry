@@ -16,6 +16,7 @@ from .entity import (
     TeslemetryEnergyInfoEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .context import handle_command
 
 SEAT_HEATERS = {
     "climate_state_seat_heater_left": "front_left",
@@ -137,9 +138,10 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        await self.wake_up_if_asleep()
         level = self._attr_options.index(option)
-        await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)
+        with handle_command():
+            await self.wake_up_if_asleep()
+            await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)
         self.set((self.key, level))
 
 
@@ -165,5 +167,6 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        await self.entity_description.func(self.api, option)
+        with handle_command():
+            await self.entity_description.func(self.api, option)
         self.set((self.key, option))
