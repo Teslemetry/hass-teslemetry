@@ -95,7 +95,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
         self.raise_for_scope()
-        with handle_command:
+        with handle_command():
             await self.wake_up_if_asleep()
             await self.api.auto_conditioning_start()
         self.set(("climate_state_is_climate_on", True))
@@ -114,7 +114,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         """Set the climate temperature."""
         temp = kwargs[ATTR_TEMPERATURE]
         self.raise_for_scope()
-        with handle_command:
+        with handle_command():
             await self.wake_up_if_asleep()
             await self.api.set_temps(
                 driver_temp=temp,
@@ -132,7 +132,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
         self.raise_for_scope()
-        with handle_command:
+        with handle_command():
             await self.wake_up_if_asleep()
             await self.api.set_climate_keeper_mode(
                 climate_keeper_mode=self._attr_preset_modes.index(preset_mode)
