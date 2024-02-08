@@ -142,9 +142,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         level = self._attr_options.index(option)
         with handle_command():
             await self.wake_up_if_asleep()
-            await self.api.remote_seat_heater_request(
-                self.position, level
-            )
+            await self.api.remote_seat_heater_request(self.position, level)
         self.set((self.key, level))
 
 

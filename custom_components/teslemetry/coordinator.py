@@ -59,9 +59,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
         try:
-            data = await self.api.vehicle_data(
-                endpoints=ENDPOINTS
-            )
+            data = await self.api.vehicle_data(endpoints=ENDPOINTS)
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data

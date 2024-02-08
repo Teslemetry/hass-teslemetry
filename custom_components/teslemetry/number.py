@@ -104,7 +104,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scope.ENERGY_CMDS],
-        func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value))
+        func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
     ),
 )
 
@@ -220,6 +220,4 @@ class TeslemetryEnergyInfoNumberSensorEntity(
     @property
     def icon(self) -> str | None:
         """Return the icon to use in the frontend."""
-        return icon_for_battery_level(
-            self.native_value
-        )
+        return icon_for_battery_level(self.native_value)
