@@ -413,7 +413,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and self.entity_description.available_fn(self.get())
+        return super().available and (not self.has() or self.entity_description.available_fn(self.get()))
 
 
     @property
