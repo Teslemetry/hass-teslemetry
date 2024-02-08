@@ -84,10 +84,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
 ENERGY_INFO_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="components_disallow_charge_from_grid_with_solar_installed",
     on_func=lambda api: api.grid_import_export(
-        disallow_charge_from_grid_with_solar_installed=True
+        disallow_charge_from_grid_with_solar_installed=False
     ),
     off_func=lambda api: api.grid_import_export(
-        disallow_charge_from_grid_with_solar_installed=False
+        disallow_charge_from_grid_with_solar_installed=True
     ),
     scopes=[Scopes.ENERGY_CMDS],
 )
