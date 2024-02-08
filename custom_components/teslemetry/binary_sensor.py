@@ -75,7 +75,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_dashcam_state",
         device_class=BinarySensorDeviceClass.RUNNING,
-        is_on="Recording",
+        is_on=lambda x: x == "Recording",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
