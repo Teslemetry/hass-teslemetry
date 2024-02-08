@@ -29,14 +29,14 @@ from .models import TeslemetryVehicleData, TeslemetryEnergyData
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
-    is_on: StateType = None
+    is_on: Callable[[StateType], bool] = lambda x: bool(x)
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="state",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        is_on=TeslemetryState.ONLINE,
+        is_on=lambda x: x == TeslemetryState.ONLINE,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_battery_heater_on",
@@ -57,14 +57,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_conn_charge_cable",
-        is_on="<invalid>",
+        is_on=lambda x: x != "<invalid>",
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_cabin_overheat_protection",
         device_class=BinarySensorDeviceClass.RUNNING,
-        is_on="On",
+        is_on=lambda x: x == "On",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -201,9 +201,10 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        if self.entity_description.is_on is not None:
-            return self.exactly(self.entity_description.is_on)
-        return self.get()
+        value = self.get()
+        if value is None:
+            return None
+        return self.entity_description.is_on(value)
 
     @property
     def available(self) -> bool:
