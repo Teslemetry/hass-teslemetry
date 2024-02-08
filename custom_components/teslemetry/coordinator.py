@@ -13,7 +13,7 @@ from .const import LOGGER, TeslemetryState
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
-ENERGY_INFO_INTERVAL = timedelta(seconds=300)
+ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 
 ENDPOINTS = [
     VehicleDataEndpoints.CHARGE_STATE,
@@ -25,7 +25,6 @@ ENDPOINTS = [
     # VehicleDataEndpoints.VEHICLE_CONFIG,
     VehicleDataEndpoints.VEHICLE_STATE,
 ]
-#
 
 
 def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
@@ -61,7 +60,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update vehicle data using Teslemetry API."""
         try:
             data = await self.api.vehicle_data(
-                endpoints="charge_state;climate_state;drive_state;vehicle_state;location_data"
+                endpoints=ENDPOINTS
             )
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
