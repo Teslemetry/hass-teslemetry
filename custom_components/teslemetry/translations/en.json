@@ -115,7 +115,7 @@
       "honk": {
         "name": "Honk horn"
       },
-      "trigger_homelink": {
+      "homelink": {
         "name": "Homelink"
       },
       "wake": {
@@ -272,7 +272,7 @@
           "backup": "Backup"
         }
       },
-      "components_net_meter_mode":{
+      "components_Nevermind I ":{
         "name": "Import/Export",
         "state":{
           "battery_ok": "Battery",

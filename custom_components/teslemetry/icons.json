@@ -15,6 +15,9 @@
         },
         "wake": {
           "default": "mdi:sleep-off"
+        },
+        "homelink": {
+          "default": "mdi:garage"
         }
       },
       "climate": {
