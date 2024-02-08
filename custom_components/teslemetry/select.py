@@ -126,6 +126,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         """Initialize the vehicle seat select entity."""
         super().__init__(data, key)
         self.scoped = scoped
+        self.position = SEAT_HEATERS.index(key)
 
     @property
     def current_option(self) -> str | None:
@@ -141,7 +142,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         level = self._attr_options.index(option)
         with handle_command():
             await self.wake_up_if_asleep()
-            await self.api.remote_seat_heater_request(SEAT_HEATERS[self.key], level)
+            await self.api.remote_seat_heater_request(seat_position=self.position, level=level)
         self.set((self.key, level))
 
 
