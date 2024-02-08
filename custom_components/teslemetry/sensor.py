@@ -59,7 +59,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    available_fn: Callable[[StateType], bool] = lambda _: False
+    available_fn: Callable[[StateType], bool] = lambda x: x is not None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
@@ -115,7 +115,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
-        available_fn=lambda value: value is not None and value > 0,
+        available_fn=lambda x: bool(x),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
@@ -413,9 +413,8 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and (
-            self.is_not_none() or self.entity_description.available_fn(self.get())
-        )
+        return super().available and self.entity_description.available_fn(self.get())
+
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -442,7 +441,7 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and self.is_not_none()
+        return super().available and not self.exactly(None)
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -472,7 +471,7 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and self.is_not_none()
+        return super().available and not self.exactly(None)
 
     @property
     def native_value(self) -> StateType:
@@ -502,7 +501,7 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and self.is_not_none()
+        return super().available and not self.exactly(None)
 
     @property
     def native_value(self) -> StateType | datetime:
