@@ -272,7 +272,7 @@
           "backup": "Backup"
         }
       },
-      "components_Nevermind I ":{
+      "components_net_meter_mode":{
         "name": "Import/Export",
         "state":{
           "battery_ok": "Battery",

@@ -22,6 +22,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.icon import icon_for_battery_level
 
 from .const import DOMAIN
 from .entity import (
@@ -89,6 +90,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_step=PRECISION_WHOLE,
         native_min_value=0,
         native_max_value=100,
+        device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scopes.ENERGY_CMDS],
         func=lambda api, value: api.backup(int(value)),
@@ -99,9 +101,10 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_step=PRECISION_WHOLE,
         native_min_value=0,
         native_max_value=100,
+        device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scopes.ENERGY_CMDS],
-        func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
+        func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value))
     ),
 )
 
@@ -213,3 +216,10 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         with handle_command():
             await self.entity_description.func(self.api, value)
         self.set((self.key, value))
+
+    @property
+    def icon(self) -> str | None:
+        """Return the icon to use in the frontend."""
+        return icon_for_battery_level(
+            self.native_value
+        )

@@ -121,17 +121,6 @@ async def async_setup_entry(
             (
                 TeslemetryEnergyLiveSwitchEntity(
                     energysite,
-                    ENERGY_INFO_DESCRIPTION,
-                    any(
-                        scope in data.scopes for scope in ENERGY_INFO_DESCRIPTION.scopes
-                    ),
-                )
-                for energysite in data.energysites
-                if ENERGY_INFO_DESCRIPTION.key in energysite.info_coordinator.data
-            ),
-            (
-                TeslemetryEnergyInfoSwitchEntity(
-                    energysite,
                     ENERGY_LIVE_DESCRIPTION,
                     any(
                         scope in data.scopes for scope in ENERGY_LIVE_DESCRIPTION.scopes
@@ -139,6 +128,17 @@ async def async_setup_entry(
                 )
                 for energysite in data.energysites
                 if ENERGY_LIVE_DESCRIPTION.key in energysite.live_coordinator.data
+            ),
+            (
+                TeslemetryEnergyInfoSwitchEntity(
+                    energysite,
+                    ENERGY_INFO_DESCRIPTION,
+                    any(
+                        scope in data.scopes for scope in ENERGY_INFO_DESCRIPTION.scopes
+                    ),
+                )
+                for energysite in data.energysites
+                if ENERGY_INFO_DESCRIPTION.key in energysite.info_coordinator.data
             ),
         )
     )

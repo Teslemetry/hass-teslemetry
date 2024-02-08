@@ -34,6 +34,11 @@
           }
         }
       },
+      "number": {
+        "vehicle_state_speed_limit_mode_current_limit_mph": {
+          "default":"mdi:car-speed-limiter"
+        }
+      },
       "select":{
         "climate_state_seat_heater_left": {
           "default": "mdi:car-seat-heater",
@@ -78,6 +83,7 @@
           }
         },
         "default_real_mode": {
+          "default": "mdi:home-battery",
           "state": {
             "autonomous": "mdi:auto-fix",
             "self_consumption": "mdi:home-battery",
@@ -85,6 +91,7 @@
           }
         },
         "components_net_meter_mode": {
+          "default": "mdi:transmission-tower",
           "state": {
             "battery_ok": "mdi:battery-negative",
             "pv_only": "mdi:solar-panel",
@@ -174,7 +181,14 @@
         },
         "vehicle_state_valet_mode": {
           "default": "mdi:car-key"
+        },
+        "components_disallow_charge_from_grid_with_solar_installed": {
+          "state": {
+            "false": "mdi:transmission-tower",
+            "true": "mdi:solar-power"
+          }
         }
       }
     }
   }
+}
