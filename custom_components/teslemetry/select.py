@@ -19,13 +19,13 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .context import handle_command
 
 SEAT_HEATERS = {
-    "climate_state_seat_heater_left": "front_left",
-    "climate_state_seat_heater_right": "front_right",
-    "climate_state_seat_heater_rear_left": "rear_left",
-    "climate_state_seat_heater_rear_center": "rear_center",
-    "climate_state_seat_heater_rear_right": "rear_right",
-    "climate_state_seat_heater_third_row_left": "third_row_left",
-    "climate_state_seat_heater_third_row_right": "third_row_right",
+    "climate_state_seat_heater_left": 0,
+    "climate_state_seat_heater_right": 1,
+    "climate_state_seat_heater_rear_left": 2,
+    "climate_state_seat_heater_rear_center": 4,
+    "climate_state_seat_heater_rear_right": 5,
+    "climate_state_seat_heater_third_row_left": 6,
+    "climate_state_seat_heater_third_row_right": 7,
 }
 
 
@@ -126,7 +126,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         """Initialize the vehicle seat select entity."""
         super().__init__(data, key)
         self.scoped = scoped
-        self.position = SEAT_HEATERS.index(key)
+        self.position = SEAT_HEATERS[key]
 
     @property
     def current_option(self) -> str | None:
@@ -142,7 +142,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         level = self._attr_options.index(option)
         with handle_command():
             await self.wake_up_if_asleep()
-            await self.api.remote_seat_heater_request(seat_position=self.position, level=level)
+            await self.api.remote_seat_heater_request(
+                self.position, level
+            )
         self.set((self.key, level))
 
 
