@@ -209,7 +209,7 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     @property
     def available(self) -> bool:
         """Return if sensor entity is available."""
-        return super().available and self.is_not_none()
+        return super().available and not self.exactly(None)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
