@@ -273,7 +273,7 @@
         }
       },
       "components_net_meter_mode":{
-        "name": "Import/Export",
+        "name": "Allow export",
         "state":{
           "battery_ok": "Battery",
           "pv_only": "Solar only",
