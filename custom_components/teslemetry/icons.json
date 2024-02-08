@@ -31,6 +31,63 @@
           }
         }
       },
+      "select":{
+        "climate_state_seat_heater_left": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_right": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_rear_left": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_rear_center": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_rear_right": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_third_row_left": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "climate_state_seat_heater_third_row_right": {
+          "default": "mdi:car-seat-heater",
+          "state": {
+            "off": "mdi:car-seat"
+          }
+        },
+        "default_real_mode": {
+          "state": {
+            "autonomous": "mdi:auto-fix",
+            "self_consumption": "mdi:home-battery",
+            "backup": "mdi:battery-charging-100"
+          }
+        },
+        "components_net_meter_mode": {
+          "state": {
+            "battery_ok": "mdi:battery-negative",
+            "pv_only": "mdi:solar-panel",
+            "never": "mdi:transmission-tower-off"
+          }
+      },
       "sensor": {
         "battery_power": {
           "default": "mdi:home-battery"
