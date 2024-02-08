@@ -37,6 +37,13 @@ DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
     TeslemetryButtonEntityDescription(
         key="boombox", func=lambda api: api.remote_boombox(0)
     ),
+    TeslemetryButtonEntityDescription(
+        key="homelink",
+        func=lambda api: api.trigger_homelink(
+            lat=api.coordinator.data["drive_state_latitude"],
+            lon=api.coordinator.data["drive_state_longitude"],
+        ),
+    ),
 )
 
 
