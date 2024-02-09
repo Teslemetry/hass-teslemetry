@@ -47,11 +47,11 @@ class TeslemetryEntity(
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(key or self.key, default)
 
-    def exactly(self, value: Any) -> bool | None:
-        """Return if a specific value is None, or matching in coordinator data."""
+    def exactly(self, value: Any, key: str | None = None) -> bool | None:
+        """Return if a key exactly matches the value, but retain None."""
         if value is None:
-            return self.get(self.key, False) is None
-        current = self.get()
+            return self.get(key, False) is None
+        current = self.get(key)
         if current is None:
             return None
         return current == value

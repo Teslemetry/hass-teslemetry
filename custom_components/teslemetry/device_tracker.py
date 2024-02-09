@@ -47,15 +47,6 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
         """Return the source type of the device tracker."""
         return SourceType.GPS
 
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return (
-            super().available
-            and self.longitude is not None
-            and self.latitude is not None
-        )
-
 
 class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
     """Vehicle Location Device Tracker Class."""
@@ -71,6 +62,14 @@ class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
     def latitude(self) -> float | None:
         """Return the latitude of the device tracker."""
         return self.get("drive_state_latitude")
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and not (
+            self.exactly(None, "drive_state_longitude")
+            or self.exactly(None, "drive_state_latitude")
+        )
 
 
 class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
@@ -92,3 +91,11 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
     def location_name(self) -> str | None:
         """Return the location of the device tracker."""
         return self.get("drive_state_active_route_destination")
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return super().available and not (
+            self.exactly(None, "drive_state_active_route_longitude")
+            or self.exactly(None, "drive_state_active_route_latitude")
+        )
