@@ -427,7 +427,7 @@
       }
     },
     "switch": {
-      "charge_state_charge_enable_request": {
+      "charge_state_user_charge_enable_request": {
         "name": "Charge"
       },
       "climate_state_auto_seat_climate_left": {

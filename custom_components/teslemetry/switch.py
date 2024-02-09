@@ -40,7 +40,7 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
-        key="charge_state_charge_enable_request",
+        key="charge_state_user_charge_enable_request",
         on_func=lambda api: api.charge_start(),
         off_func=lambda api: api.charge_stop(),
         scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],

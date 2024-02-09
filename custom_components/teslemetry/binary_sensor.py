@@ -44,6 +44,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
+        key="charge_state_charge_state_enabled",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
         key="charge_state_preconditioning_enabled",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
