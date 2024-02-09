@@ -132,36 +132,31 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.adjust_volume(int(volume * self.max_volume))
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.adjust_volume(int(volume * self.max_volume)))
 
     async def async_media_play(self) -> None:
         """Send play command."""
         if self.state != MediaPlayerState.PLAYING:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                await self.api.media_toggle_playback()
+            await self.wake_up_if_asleep()
+            await self.handle_command(await self.api.media_toggle_playback())
 
     async def async_media_pause(self) -> None:
         """Send pause command."""
         if self.state == MediaPlayerState.PLAYING:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                await self.api.media_toggle_playback()
+            await self.wake_up_if_asleep()
+            await self.handle_command(await self.api.media_toggle_playback())
 
     async def async_media_next_track(self) -> None:
         """Send next track command."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.media_next_track()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.media_next_track())
 
     async def async_media_previous_track(self) -> None:
         """Send previous track command."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.media_previous_track()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.media_previous_track())

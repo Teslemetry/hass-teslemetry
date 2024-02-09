@@ -140,9 +140,8 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         """Change the selected option."""
         self.raise_for_scope()
         level = self._attr_options.index(option)
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.remote_seat_heater_request(self.position, level)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.remote_seat_heater_request(self.position, level))
         self.set((self.key, level))
 
 
@@ -168,6 +167,5 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        with handle_command():
-            await self.entity_description.func(self.api, option)
+        await self.handle_command(self.entity_description.func(self.api, option))
         self.set((self.key, option))

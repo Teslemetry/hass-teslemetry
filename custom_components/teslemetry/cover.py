@@ -71,9 +71,8 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Vent windows."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.window_control(command=WindowCommand.VENT)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.window_control(command=WindowCommand.VENT))
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.OPEN),
             ("vehicle_state_fp_window", TeslemetryCoverStates.OPEN),
@@ -84,9 +83,8 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.window_control(command=WindowCommand.CLOSE)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.window_control(command=WindowCommand.CLOSE))
         self.set(
             ("vehicle_state_fd_window", TeslemetryCoverStates.CLOSED),
             ("vehicle_state_fp_window", TeslemetryCoverStates.CLOSED),
@@ -116,17 +114,15 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.charge_port_door_open()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.charge_port_door_open())
         self.set((self.key, True))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.charge_port_door_close()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.charge_port_door_close())
         self.set((self.key, False))
 
 
@@ -152,9 +148,8 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.actuate_trunk("front")
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.actuate_trunk("front"))
         self.set((self.key, TeslemetryCoverStates.OPEN))
 
 
@@ -185,16 +180,14 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
         """Open rear trunk."""
         if self.get() == TeslemetryCoverStates.CLOSED:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                self.api.actuate_trunk("rear")
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.actuate_trunk("rear"))
             self.set((self.key, TeslemetryCoverStates.OPEN))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
         if self.get() == TeslemetryCoverStates.OPEN:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                self.api.actuate_trunk("rear")
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.actuate_trunk("rear"))
             self.set((self.key, TeslemetryCoverStates.CLOSED))

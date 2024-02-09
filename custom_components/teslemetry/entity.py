@@ -73,6 +73,15 @@ class TeslemetryEntity(
                 f"Missing required scope: {' or '.join(self.entity_description.scopes)}"
             )
 
+    async def handle_command(self, command) -> None:
+        """Handle a command."""
+        try:
+            result = await command
+        except TeslaFleetError as e:
+            raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
+        if not result["response"]["result"]:
+            raise ServiceValidationError(result["response"].get("reason","command failed"))
+
 
 class TeslemetryVehicleEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle entities."""
@@ -113,12 +122,12 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 try:
                     state = (await self.api.wake_up())["response"]["state"]
                 except TeslaFleetError as err:
-                    raise HomeAssistantError(str(err)) from err
+                    raise ServiceValidationError(str(err)) from err
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     wait += 5
                     if wait >= 15:  # Give up after 30 seconds total
-                        raise HomeAssistantError("Could not wake up vehicle")
+                        raise ServiceValidationError("Could not wake up vehicle")
                     await asyncio.sleep(wait)
 
 

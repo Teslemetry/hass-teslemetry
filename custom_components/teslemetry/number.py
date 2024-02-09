@@ -188,9 +188,8 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.entity_description.func(self.api, value)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.entity_description.func(self.api, value))
         self.set((self.key, value))
 
 
@@ -213,8 +212,7 @@ class TeslemetryEnergyInfoNumberSensorEntity(
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
-        with handle_command():
-            await self.entity_description.func(self.api, value)
+        await self.handle_command(self.entity_description.func(self.api, value))
         self.set((self.key, value))
 
     @property

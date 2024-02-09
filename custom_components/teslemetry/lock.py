@@ -51,17 +51,15 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.door_lock()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.door_lock())
         self.set((self.key, True))
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock the doors."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.door_unlock()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.door_unlock())
         self.set((self.key, False))
 
 
@@ -96,9 +94,8 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock charge cable lock."""
         self.raise_for_scope()
-        with handle_command():
-            await self.wake_up_if_asleep()
-            await self.api.charge_port_door_open()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.charge_port_door_open())
         self.set((self.key, TeslemetryChargeCableLockStates.DISENGAGED))
 
 
@@ -126,9 +123,8 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
         code: str | None = kwargs.get(ATTR_CODE)
         if code:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                await self.api.speed_limit_activate(code)
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.speed_limit_activate(code))
             self.set((self.key, True))
 
     async def async_unlock(self, **kwargs: Any) -> None:
@@ -136,7 +132,6 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
         code: str | None = kwargs.get(ATTR_CODE)
         if code:
             self.raise_for_scope()
-            with handle_command():
-                await self.wake_up_if_asleep()
-                await self.api.speed_limit_deactivate(code)
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.speed_limit_deactivate(code))
             self.set((self.key, False))

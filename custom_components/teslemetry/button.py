@@ -79,4 +79,4 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
         """Press the button."""
         await self.wake_up_if_asleep()
         if self.entity_description.func:
-            await self.entity_description.func(self.api)
+            await self.handle_command(self.entity_description.func(self.api))
