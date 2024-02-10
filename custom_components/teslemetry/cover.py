@@ -17,7 +17,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetryCoverStates
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
-from .context import handle_command
 
 
 async def async_setup_entry(
@@ -178,7 +177,7 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
-        if self.get() == TeslemetryCoverStates.CLOSED:
+        if self.is_closed is not False:
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.actuate_trunk("rear"))
@@ -186,7 +185,7 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
-        if self.get() == TeslemetryCoverStates.OPEN:
+        if self.is_closed is not True:
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.actuate_trunk("rear"))

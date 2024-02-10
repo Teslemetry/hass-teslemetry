@@ -78,9 +78,13 @@ class TeslemetryEntity(
         try:
             result = await command
         except TeslaFleetError as e:
-            raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
+            raise ServiceValidationError(
+                f"Teslemetry command failed, {e.message}"
+            ) from e
         if not result["response"]["result"]:
-            raise ServiceValidationError(result["response"].get("reason","command failed"))
+            raise ServiceValidationError(
+                result["response"].get("reason", "command failed")
+            )
 
 
 class TeslemetryVehicleEntity(TeslemetryEntity):

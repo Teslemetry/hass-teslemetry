@@ -17,7 +17,7 @@ from .entity import (
     TeslemetryVehicleEntity,
 )
 from .models import TeslemetryVehicleData
-from .context import handle_command
+
 
 STATES = {
     "Playing": MediaPlayerState.PLAYING,

@@ -16,7 +16,7 @@ from .entity import (
     TeslemetryEnergyInfoEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .context import handle_command
+
 
 SEAT_HEATERS = {
     "climate_state_seat_heater_left": 0,
@@ -141,7 +141,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.raise_for_scope()
         level = self._attr_options.index(option)
         await self.wake_up_if_asleep()
-        await self.handle_command(self.api.remote_seat_heater_request(self.position, level))
+        await self.handle_command(
+            self.api.remote_seat_heater_request(self.position, level)
+        )
         self.set((self.key, level))
 
 

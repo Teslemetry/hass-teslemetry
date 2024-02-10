@@ -26,7 +26,6 @@ from .models import (
     TeslemetryVehicleData,
     TeslemetryEnergyData,
 )
-from .context import handle_command
 
 
 @dataclass(frozen=True, kw_only=True)
