@@ -72,7 +72,7 @@ async def async_setup_entry(
                 vehicle, "climate_state_seat_heater_right", scoped
             )
         )
-        if vehicle.coordinator.data.get("vehicle_config_rear_seat_heaters"):
+        if vehicle.rear_seat_heaters:
             entities.append(
                 TeslemetrySeatHeaterSelectEntity(
                     vehicle, "climate_state_seat_heater_rear_left", scoped
@@ -88,7 +88,7 @@ async def async_setup_entry(
                     vehicle, "climate_state_seat_heater_rear_right", scoped
                 )
             )
-            if vehicle.coordinator.data.get("vehicle_config_third_row_seats") != "None":
+            if vehicle.third_row_seats:
                 entities.append(
                     TeslemetrySeatHeaterSelectEntity(
                         vehicle, "climate_state_seat_heater_third_row_left", scoped
@@ -141,6 +141,11 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.raise_for_scope()
         level = self._attr_options.index(option)
         await self.wake_up_if_asleep()
+        # AC must be on to turn on seat heater
+        if not self.get("climate_state_is_climate_on"):
+            await self.handle_command(
+                self.api.auto_conditioning_start()
+            )
         await self.handle_command(
             self.api.remote_seat_heater_request(self.position, level)
         )

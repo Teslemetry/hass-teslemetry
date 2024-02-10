@@ -73,7 +73,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 TeslemetryVehicleData(
                     api=api,
                     coordinator=coordinator,
+                    display_name=product["display_name"],
                     vin=vin,
+                    car_type=product["vehicle_config"]["car_type"],
+                    driver_assist=product["vehicle_config"]["driver_assist"],
+                    third_row_seats=product["vehicle_config"]["third_row_seats"]
+                    != "None",
+                    rear_seat_heaters=product["vehicle_config"]["rear_seat_heaters"],
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:

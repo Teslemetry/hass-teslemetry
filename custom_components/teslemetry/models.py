@@ -29,7 +29,12 @@ class TeslemetryVehicleData:
 
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
+    display_name: str
     vin: str
+    car_type: str
+    driver_assist: str
+    third_row_seats: bool
+    rear_seat_heaters: bool
     wakelock = asyncio.Lock()
 
 
