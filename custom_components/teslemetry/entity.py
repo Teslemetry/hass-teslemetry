@@ -73,7 +73,7 @@ class TeslemetryEntity(
                 f"Missing required scope: {' or '.join(self.entity_description.scopes)}"
             )
 
-    async def handle_command(self, command) -> None:
+    async def handle_command(self, command) -> dict[str, Any]:
         """Handle a command."""
         try:
             result = await command
@@ -83,10 +83,7 @@ class TeslemetryEntity(
             raise ServiceValidationError(
                 f"Teslemetry command failed, {e.message}"
             ) from e
-        if not result["response"]["result"]:
-            message = result["response"].get("reason", "command failed")
-            LOGGER.debug("Command failure: %s", message)
-            raise ServiceValidationError(message)
+        return result
 
 
 class TeslemetryVehicleEntity(TeslemetryEntity):
@@ -132,6 +129,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                     if wait >= 15:  # Give up after 30 seconds total
                         raise ServiceValidationError("Could not wake up vehicle")
                     await asyncio.sleep(wait)
+
+    async def handle_command(self, command) -> None:
+        """Handle a vehicle command."""
+        result = await super().handle_command(command)
+        if not result["response"]["result"]:
+            message = result["response"].get("reason", "command failed")
+            LOGGER.debug("Command failure: %s", message)
+            raise ServiceValidationError(message)
 
 
 class TeslemetryEnergyLiveEntity(TeslemetryEntity):
