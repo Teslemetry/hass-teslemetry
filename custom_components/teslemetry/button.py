@@ -28,20 +28,20 @@ class TeslemetryButtonEntityDescription(ButtonEntityDescription):
 DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
     TeslemetryButtonEntityDescription(key="wake"),  # Every button runs wakeup
     TeslemetryButtonEntityDescription(
-        key="flash_lights", func=lambda api: api.flash_lights()
+        key="flash_lights", func=lambda self: self.api.flash_lights()
     ),
-    TeslemetryButtonEntityDescription(key="honk", func=lambda api: api.honk_horn()),
+    TeslemetryButtonEntityDescription(key="honk", func=lambda self: self.api.honk_horn()),
     TeslemetryButtonEntityDescription(
-        key="enable_keyless_driving", func=lambda api: api.remote_start_drive()
+        key="enable_keyless_driving", func=lambda self: self.api.remote_start_drive()
     ),
     TeslemetryButtonEntityDescription(
-        key="boombox", func=lambda api: api.remote_boombox(0)
+        key="boombox", func=lambda self: self.api.remote_boombox(0)
     ),
     TeslemetryButtonEntityDescription(
         key="homelink",
-        func=lambda api: api.trigger_homelink(
-            lat=api.coordinator.data["drive_state_latitude"],
-            lon=api.coordinator.data["drive_state_longitude"],
+        func=lambda self: self.api.trigger_homelink(
+            lat=self.coordinator.data["drive_state_latitude"],
+            lon=self.coordinator.data["drive_state_longitude"],
         ),
     ),
 )
@@ -79,4 +79,4 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
         """Press the button."""
         await self.wake_up_if_asleep()
         if self.entity_description.func:
-            await self.handle_command(self.entity_description.func(self.api))
+            await self.handle_command(self.entity_description.func(self))
