@@ -69,10 +69,17 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         value_fn=lambda value: ChargeStates[cast(str, value)],
     ),
     TeslemetrySensorEntityDescription(
+        key="charge_state_battery_level",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+    ),
+    TeslemetrySensorEntityDescription(
         key="charge_state_usable_battery_level",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charge_energy_added",
@@ -115,6 +122,22 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
         suggested_display_precision=1,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_est_battery_range",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.MILES,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_ideal_battery_range",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.MILES,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_speed",
@@ -440,7 +463,10 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.timestamp = ignore_variance(lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),timedelta(seconds=description.variance)),
+        self._get_timestamp = ignore_variance(
+            func=lambda value: dt_util.now() + timedelta(minutes=value),
+            ignored_variance=timedelta(seconds=description.variance)
+        ),
 
     @property
     def available(self) -> bool:
@@ -454,7 +480,8 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             return
         self._raw_value = value
         if isinstance(value, (int, float)):
-            value = self.timestamp(value)
+            #value = self._get_timestamp(value)
+            value = dt_util.now() + timedelta(minutes=value)
         self.native_value = value
         self.async_write_ha_state()
 

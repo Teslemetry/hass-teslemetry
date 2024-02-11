@@ -92,13 +92,13 @@
       "vehicle_state_tpms_soft_warning_rr": {
         "name": "Tire pressure warning rear right"
       },
-      "backup_capable":{
+      "backup_capable": {
         "name": "Backup capable"
       },
-      "grid_services_active":{
+      "grid_services_active": {
         "name": "Grid services active"
       },
-      "components_grid_services_enabled":{
+      "components_grid_services_enabled": {
         "name": "Grid services enabled"
       }
     },
@@ -264,17 +264,17 @@
           "off": "Off"
         }
       },
-      "default_real_mode":{
+      "default_real_mode": {
         "name": "Operation mode",
-        "state":{
+        "state": {
           "autonomous": "Autonomous",
           "self_consumption": "Self consumption",
           "backup": "Backup"
         }
       },
-      "components_net_meter_mode":{
+      "components_net_meter_mode": {
         "name": "Allow export",
-        "state":{
+        "state": {
           "battery_ok": "Battery",
           "pv_only": "Solar only",
           "never": "Never"
@@ -287,6 +287,12 @@
       },
       "charge_state_battery_range": {
         "name": "Battery range"
+      },
+      "charge_state_est_battery_range": {
+        "name": "Estimate battery range"
+      },
+      "charge_state_ideal_battery_range": {
+        "name": "Ideal battery range"
       },
       "charge_state_charge_energy_added": {
         "name": "Charge energy added"
@@ -317,8 +323,11 @@
       "charge_state_minutes_to_full_charge": {
         "name": "Time to full charge"
       },
-      "charge_state_usable_battery_level": {
+      "charge_state_battery_level": {
         "name": "Battery level"
+      },
+      "charge_state_usable_battery_level": {
+        "name": "Usable Battery level"
       },
       "climate_state_driver_temp_setting": {
         "name": "Driver temperature setting"
@@ -413,16 +422,16 @@
       "wall_connector_state": {
         "name": "State"
       },
-      "island_status":{
+      "island_status": {
         "name": "Island status",
-        "state":{
+        "state": {
           "on_grid": "On grid"
         }
       },
-      "vpp_backup_reserve_percent":{
+      "vpp_backup_reserve_percent": {
         "name": "VPP backup reserve"
       },
-      "version":{
+      "version": {
         "name": "Version"
       }
     },
@@ -451,10 +460,10 @@
       "vehicle_state_valet_mode": {
         "name": "Valet mode"
       },
-      "components_disallow_charge_from_grid_with_solar_installed":{
+      "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Allow charging from grid"
       },
-      "storm_mode_enabled":{
+      "storm_mode_enabled": {
         "name": "Storm mode"
       }
     },
