@@ -59,7 +59,6 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    available_fn: Callable[[StateType], bool] = lambda x: x is not None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
@@ -111,13 +110,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
-        key="charge_state_minutes_to_full_charge",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
-        available_fn=lambda x: bool(x),
-    ),
-    TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
@@ -129,6 +121,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         device_class=SensorDeviceClass.SPEED,
+        value_fn=lambda value: value or 0
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_power",
@@ -136,13 +129,13 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda value: value or 0
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_shift_state",
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda x: ShiftStates.get(x, "p"),
-        available_fn=lambda _: True,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -237,13 +230,24 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
     ),
-    TeslemetrySensorEntityDescription(
+
+)
+
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryTimeEntityDescription(SensorEntityDescription):
+    """Describes Teslemetry Sensor entity."""
+
+    variance: int = 0
+
+VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
+    TeslemetryTimeEntityDescription(
+        key="charge_state_minutes_to_full_charge",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryTimeEntityDescription(
         key="drive_state_active_route_minutes_to_arrival",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=ignore_variance(
-            lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),
-            timedelta(seconds=30),
-        ),
     ),
 )
 
@@ -374,6 +378,11 @@ async def async_setup_entry(
                 for vehicle in data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
             ),
+            (  # Add vehicles time sensors
+                TeslemetryVehicleTimeSensorEntity(vehicle, description)
+                for vehicle in data.vehicles
+                for description in VEHICLE_TIME_DESCRIPTIONS
+            ),
             (  # Add energy site live
                 TeslemetryEnergyLiveSensorEntity(energysite, description)
                 for energysite in data.energysites
@@ -411,18 +420,44 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         self.entity_description = description
 
     @property
-    def available(self) -> bool:
-        """Return if sensor entity is available."""
-        return super().available and (
-            not self.has() or self.entity_description.available_fn(self.get())
-        )
-
-    @property
     def native_value(self) -> StateType | datetime:
         """Return the state of the sensor."""
         if self.has():
             return self.entity_description.value_fn(self.get())
         return None
+
+class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
+    """Base class for Teslemetry vehicle metric sensors."""
+
+    entity_description: TeslemetrySensorEntityDescription
+    _raw_value: int | None = None
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+        self.timestamp = ignore_variance(lambda value: dt_util.now() + timedelta(minutes=cast(float, value)),timedelta(seconds=description.variance)),
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor entity is available."""
+        return super().available and self._raw_value is not None and self._raw_value > 0
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if (value := self.get()) == self._raw_value:
+            # No change
+            return
+        self._raw_value = value
+        if isinstance(value, (int, float)):
+            value = self.timestamp(value)
+        self.native_value = value
+        self.async_write_ha_state()
+
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
