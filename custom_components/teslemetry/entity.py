@@ -9,7 +9,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
-from .const import DOMAIN, MODELS, TeslemetryState
+from .const import DOMAIN, LOGGER, MODELS, TeslemetryState
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
@@ -77,14 +77,16 @@ class TeslemetryEntity(
         """Handle a command."""
         try:
             result = await command
+            LOGGER.debug("Command result: %s", result)
         except TeslaFleetError as e:
+            LOGGER.debug("Command error: %s", e.message)
             raise ServiceValidationError(
                 f"Teslemetry command failed, {e.message}"
             ) from e
         if not result["response"]["result"]:
-            raise ServiceValidationError(
-                result["response"].get("reason", "command failed")
-            )
+            message = result["response"].get("reason", "command failed")
+            LOGGER.debug("Command failure: %s", message)
+            raise ServiceValidationError(message)
 
 
 class TeslemetryVehicleEntity(TeslemetryEntity):

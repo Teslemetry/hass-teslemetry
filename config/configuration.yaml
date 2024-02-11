@@ -5,4 +5,5 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.hacs-teslemetry: debug
+    custom_components.teslemetry: debug
+    tesla_fleet_api: debug
