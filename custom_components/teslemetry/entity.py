@@ -7,7 +7,7 @@ from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 
 from .const import DOMAIN, LOGGER, MODELS, TeslemetryState
 from .coordinator import (

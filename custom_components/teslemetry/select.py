@@ -143,9 +143,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         await self.wake_up_if_asleep()
         # AC must be on to turn on seat heater
         if not self.get("climate_state_is_climate_on"):
-            await self.handle_command(
-                self.api.auto_conditioning_start()
-            )
+            await self.handle_command(self.api.auto_conditioning_start())
         await self.handle_command(
             self.api.remote_seat_heater_request(self.position, level)
         )
