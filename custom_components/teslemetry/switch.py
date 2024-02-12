@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from tesla_fleet_api.const import Scope
+from tesla_fleet_api.const import Scope, Seat
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -52,14 +52,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
-        on_func=lambda api: api.remote_auto_seat_climate_request(0, True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(0, False),
+        on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
+        off_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, False),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
-        on_func=lambda api: api.remote_auto_seat_climate_request(1, True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(1, False),
+        on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_RIGHT, True),
+        off_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_RIGHT, False),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(

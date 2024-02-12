@@ -1,7 +1,7 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 
-from tesla_fleet_api.const import Scope
+from tesla_fleet_api.const import Scope, Seat
 from dataclasses import dataclass
 from collections.abc import Callable
 
@@ -19,11 +19,11 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 
 SEAT_HEATERS = {
-    "climate_state_seat_heater_left": 0,
-    "climate_state_seat_heater_right": 1,
-    "climate_state_seat_heater_rear_left": 2,
-    "climate_state_seat_heater_rear_center": 4,
-    "climate_state_seat_heater_rear_right": 5,
+    "climate_state_seat_heater_left": Seat.FRONT_LEFT,
+    "climate_state_seat_heater_right": Seat.FRONT_RIGHT,
+    "climate_state_seat_heater_rear_left": Seat.REAR_LEFT,
+    "climate_state_seat_heater_rear_center": Seat.REAR_CENTER,
+    "climate_state_seat_heater_rear_right": Seat.REAR_RIGHT,
     "climate_state_seat_heater_third_row_left": 6,
     "climate_state_seat_heater_third_row_right": 7,
 }
@@ -139,8 +139,8 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        level = self._attr_options.index(option)
         await self.wake_up_if_asleep()
+        level = self._attr_options.index(option)
         # AC must be on to turn on seat heater
         if not self.get("climate_state_is_climate_on"):
             await self.handle_command(self.api.auto_conditioning_start())
