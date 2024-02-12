@@ -184,7 +184,7 @@
     },
     "select": {
       "climate_state_seat_heater_left": {
-        "name": "Seat heater left",
+        "name": "Seat heater front left",
         "state": {
           "high": "High",
           "low": "Low",
@@ -220,7 +220,7 @@
         }
       },
       "climate_state_seat_heater_right": {
-        "name": "Seat heater right",
+        "name": "Seat heater front right",
         "state": {
           "high": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::high%]",
           "low": "[%key:component::tessie::entity::select::climate_state_seat_heater_left::state::low%]",
