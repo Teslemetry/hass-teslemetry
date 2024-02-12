@@ -154,17 +154,6 @@ class TeslemetrySwitchEntity(SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
 
-    def __init__(
-        self,
-        data: TeslemetryVehicleData | TeslemetryEnergyData,
-        description: TeslemetrySwitchEntityDescription,
-        scopes: list[Scope]
-    ) -> None:
-        """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes),
-
     @property
     def is_on(self) -> bool:
         """Return the state of the Switch."""
@@ -188,6 +177,17 @@ class TeslemetrySwitchEntity(SwitchEntity):
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope]
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes),
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -223,11 +223,33 @@ class TeslemetryEnergyLiveSwitchEntity(
 ):
     """Base class for Teslemetry Switch."""
 
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope]
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes),
+
 
 class TeslemetryEnergyInfoSwitchEntity(
     TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
 ):
     """Base class for Teslemetry Switch."""
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope]
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes),
 
     @property
     def is_on(self) -> bool:

@@ -24,8 +24,8 @@ SEAT_HEATERS = {
     "climate_state_seat_heater_rear_left": Seat.REAR_LEFT,
     "climate_state_seat_heater_rear_center": Seat.REAR_CENTER,
     "climate_state_seat_heater_rear_right": Seat.REAR_RIGHT,
-    "climate_state_seat_heater_third_row_left": 6,
-    "climate_state_seat_heater_third_row_right": 7,
+    "climate_state_seat_heater_third_row_left": Seat.THIRD_ROW_LEFT,
+    "climate_state_seat_heater_third_row_right": Seat.THIRD_ROW_RIGHT,
 }
 
 
