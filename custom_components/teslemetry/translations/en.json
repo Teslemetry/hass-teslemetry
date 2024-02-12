@@ -17,6 +17,9 @@
   },
   "entity": {
     "binary_sensor": {
+      "backup_capable": {
+        "name": "Backup capable"
+      },
       "charge_state_battery_heater_on": {
         "name": "Battery heater"
       },
@@ -46,6 +49,12 @@
       },
       "climate_state_cabin_overheat_protection_actively_cooling": {
         "name": "Cabin overheat protection actively cooling"
+      },
+      "components_grid_services_enabled": {
+        "name": "Grid services enabled"
+      },
+      "grid_services_active": {
+        "name": "Grid services active"
       },
       "state": {
         "name": "Status"
@@ -91,15 +100,6 @@
       },
       "vehicle_state_tpms_soft_warning_rr": {
         "name": "Tire pressure warning rear right"
-      },
-      "backup_capable": {
-        "name": "Backup capable"
-      },
-      "grid_services_active": {
-        "name": "Grid services active"
-      },
-      "components_grid_services_enabled": {
-        "name": "Grid services enabled"
       }
     },
     "button": {
@@ -112,11 +112,11 @@
       "flash_lights": {
         "name": "Flash lights"
       },
-      "honk": {
-        "name": "Honk horn"
-      },
       "homelink": {
         "name": "Homelink"
+      },
+      "honk": {
+        "name": "Honk horn"
       },
       "wake": {
         "name": "Wake"
@@ -184,20 +184,20 @@
       }
     },
     "number": {
+      "backup_reserve_percent": {
+        "name": "Backup reserve"
+      },
       "charge_state_charge_current_request": {
         "name": "Charge current"
       },
       "charge_state_charge_limit_soc": {
         "name": "Charge limit"
       },
-      "vehicle_state_speed_limit_mode_current_limit_mph": {
-        "name": "Speed limit"
-      },
-      "backup_reserve_percent": {
-        "name": "Backup reserve"
-      },
       "off_grid_vehicle_charging_reserve": {
         "name": "Off grid reserve"
+      },
+      "vehicle_state_speed_limit_mode_current_limit_mph": {
+        "name": "Speed limit"
       }
     },
     "select": {
@@ -264,20 +264,20 @@
           "off": "Off"
         }
       },
-      "default_real_mode": {
-        "name": "Operation mode",
-        "state": {
-          "autonomous": "Autonomous",
-          "self_consumption": "Self consumption",
-          "backup": "Backup"
-        }
-      },
       "components_net_meter_mode": {
         "name": "Allow export",
         "state": {
           "battery_ok": "Battery",
-          "pv_only": "Solar only",
-          "never": "Never"
+          "never": "Never",
+          "pv_only": "Solar only"
+        }
+      },
+      "default_real_mode": {
+        "name": "Operation mode",
+        "state": {
+          "autonomous": "Autonomous",
+          "backup": "Backup",
+          "self_consumption": "Self consumption"
         }
       }
     },
@@ -285,14 +285,11 @@
       "battery_power": {
         "name": "Battery power"
       },
+      "charge_state_battery_level": {
+        "name": "Battery level"
+      },
       "charge_state_battery_range": {
         "name": "Battery range"
-      },
-      "charge_state_est_battery_range": {
-        "name": "Estimate battery range"
-      },
-      "charge_state_ideal_battery_range": {
-        "name": "Ideal battery range"
       },
       "charge_state_charge_energy_added": {
         "name": "Charge energy added"
@@ -312,19 +309,22 @@
       "charge_state_charging_state": {
         "name": "Charging",
         "state": {
-          "starting": "Starting",
           "charging": "Charging",
-          "disconnected": "Disconnected",
-          "stopped": "Stopped",
           "complete": "Complete",
-          "no_power": "No power"
+          "disconnected": "Disconnected",
+          "no_power": "No power",
+          "starting": "Starting",
+          "stopped": "Stopped"
         }
+      },
+      "charge_state_est_battery_range": {
+        "name": "Estimate battery range"
+      },
+      "charge_state_ideal_battery_range": {
+        "name": "Ideal battery range"
       },
       "charge_state_minutes_to_full_charge": {
         "name": "Time to full charge"
-      },
-      "charge_state_battery_level": {
-        "name": "Battery level"
       },
       "charge_state_usable_battery_level": {
         "name": "Usable Battery level"
@@ -383,6 +383,12 @@
       "grid_services_power": {
         "name": "Grid services power"
       },
+      "island_status": {
+        "name": "Island status",
+        "state": {
+          "on_grid": "On grid"
+        }
+      },
       "load_power": {
         "name": "Load power"
       },
@@ -410,8 +416,14 @@
       "vehicle_state_tpms_pressure_rr": {
         "name": "Tire pressure rear right"
       },
+      "version": {
+        "name": "Version"
+      },
       "vin": {
         "name": "Vehicle"
+      },
+      "vpp_backup_reserve_percent": {
+        "name": "VPP backup reserve"
       },
       "wall_connector_fault_state": {
         "name": "Fault state"
@@ -421,18 +433,6 @@
       },
       "wall_connector_state": {
         "name": "State"
-      },
-      "island_status": {
-        "name": "Island status",
-        "state": {
-          "on_grid": "On grid"
-        }
-      },
-      "vpp_backup_reserve_percent": {
-        "name": "VPP backup reserve"
-      },
-      "version": {
-        "name": "Version"
       }
     },
     "switch": {
@@ -454,17 +454,17 @@
       "climate_state_steering_wheel_heater": {
         "name": "Steering wheel heater"
       },
-      "vehicle_state_sentry_mode": {
-        "name": "Sentry mode"
-      },
-      "vehicle_state_valet_mode": {
-        "name": "Valet mode"
-      },
       "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Allow charging from grid"
       },
       "storm_mode_enabled": {
         "name": "Storm mode"
+      },
+      "vehicle_state_sentry_mode": {
+        "name": "Sentry mode"
+      },
+      "vehicle_state_valet_mode": {
+        "name": "Valet mode"
       }
     },
     "update": {
