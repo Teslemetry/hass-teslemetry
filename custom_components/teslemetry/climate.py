@@ -106,7 +106,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         """Set the climate state to off."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.api.auto_conditioning_stop()
+        await self.handle_command(self.api.auto_conditioning_stop())
         self.set(
             ("climate_state_is_climate_on", False),
             ("climate_state_climate_keeper_mode", "off"),
