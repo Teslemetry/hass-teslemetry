@@ -113,7 +113,7 @@ async def async_setup_entry(
                 TeslemetryVehicleSwitchEntity(
                     vehicle,
                     description,
-                    any(scope in data.scopes for scope in description.scopes),
+                    data.scopes
                 )
                 for vehicle in data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
@@ -122,7 +122,7 @@ async def async_setup_entry(
                 TeslemetryChargeSwitchEntity(
                     vehicle,
                     VEHICLE_CHARGE_DESCRIPTIONS,
-                    any(scope in data.scopes for scope in VEHICLE_CHARGE_DESCRIPTIONS.scopes),
+                    data.scopes
                 )
                 for vehicle in data.vehicles
             ),
@@ -130,9 +130,7 @@ async def async_setup_entry(
                 TeslemetryEnergyLiveSwitchEntity(
                     energysite,
                     ENERGY_LIVE_DESCRIPTION,
-                    any(
-                        scope in data.scopes for scope in ENERGY_LIVE_DESCRIPTION.scopes
-                    ),
+                    data.scopes
                 )
                 for energysite in data.energysites
                 if ENERGY_LIVE_DESCRIPTION.key in energysite.live_coordinator.data
@@ -141,9 +139,7 @@ async def async_setup_entry(
                 TeslemetryEnergyInfoSwitchEntity(
                     energysite,
                     ENERGY_INFO_DESCRIPTION,
-                    any(
-                        scope in data.scopes for scope in ENERGY_INFO_DESCRIPTION.scopes
-                    ),
+                    data.scopes,
                 )
                 for energysite in data.energysites
                 if ENERGY_INFO_DESCRIPTION.key in energysite.info_coordinator.data
@@ -157,6 +153,17 @@ class TeslemetrySwitchEntity(SwitchEntity):
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData | TeslemetryEnergyData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope]
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(data, description.key)
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes),
 
     @property
     def is_on(self) -> bool:
@@ -181,17 +188,6 @@ class TeslemetrySwitchEntity(SwitchEntity):
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
-
-    def __init__(
-        self,
-        data: TeslemetryVehicleData,
-        description: TeslemetrySwitchEntityDescription,
-        scoped: bool,
-    ) -> None:
-        """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = scoped
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -227,33 +223,11 @@ class TeslemetryEnergyLiveSwitchEntity(
 ):
     """Base class for Teslemetry Switch."""
 
-    def __init__(
-        self,
-        data: TeslemetryEnergyData,
-        description: TeslemetrySwitchEntityDescription,
-        scoped: bool,
-    ) -> None:
-        """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = scoped
-
 
 class TeslemetryEnergyInfoSwitchEntity(
     TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
 ):
     """Base class for Teslemetry Switch."""
-
-    def __init__(
-        self,
-        data: TeslemetryEnergyData,
-        description: TeslemetrySwitchEntityDescription,
-        scoped: bool,
-    ) -> None:
-        """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = scoped
 
     @property
     def is_on(self) -> bool:
