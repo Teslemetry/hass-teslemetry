@@ -39,12 +39,6 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
-        key="charge_state_user_charge_enable_request",
-        on_func=lambda api: api.charge_start(),
-        off_func=lambda api: api.charge_stop(),
-        scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
-    ),
-    TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
@@ -79,6 +73,13 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scope.VEHICLE_CMDS],
     ),
 )
+
+VEHICLE_CHARGE_DESCRIPTIONS = TeslemetrySwitchEntityDescription(
+        key="charge_state_user_charge_enable_request",
+        on_func=lambda api: api.charge_start(),
+        off_func=lambda api: api.charge_stop(),
+        scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
+    )
 
 ENERGY_INFO_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="components_disallow_charge_from_grid_with_solar_installed",
@@ -116,6 +117,14 @@ async def async_setup_entry(
                 )
                 for vehicle in data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
+            ),
+            (
+                TeslemetryChargeSwitchEntity(
+                    vehicle,
+                    VEHICLE_CHARGE_DESCRIPTIONS,
+                    any(scope in data.scopes for scope in VEHICLE_CHARGE_DESCRIPTIONS.scopes),
+                )
+                for vehicle in data.vehicles
             ),
             (
                 TeslemetryEnergyLiveSwitchEntity(
@@ -198,6 +207,20 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         await self.handle_command(self.entity_description.off_func(self.api))
         self.set((self.entity_description.key, False))
 
+class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
+    """Entity class for Teslemetry Charge Switch."""
+
+    @property
+    def is_on(self) -> bool:
+        """Return the state of the Switch."""
+        # First check the user request value,
+        value = self.get()
+        if value is None:
+            # if its None get the base request value
+            value = self.get("charge_state_charge_enable_request")
+        if value is None:
+            return None
+        return value
 
 class TeslemetryEnergyLiveSwitchEntity(
     TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
