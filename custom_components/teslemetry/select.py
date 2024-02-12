@@ -44,7 +44,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple(TeslemetrySelectEntityDescription, ...) = (
         options=["autonomous", "self_consumption", "backup"],
     ),
     TeslemetrySelectEntityDescription(
-        key="components_net_meter_mode",
+        key="components_customer_preferred_export_rule",
         func=lambda api, value: api.grid_import_export(
             customer_preferred_export_rule=value
         ),

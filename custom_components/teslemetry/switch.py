@@ -254,3 +254,9 @@ class TeslemetryEnergyInfoSwitchEntity(
         super().__init__(data, description.key)
         self.entity_description = description
         self.scoped = scoped
+
+    @property
+    def is_on(self) -> bool:
+        """Return the state of the Switch."""
+        # When disallow_charge_from_grid_with_solar_installed is missing, its Off.
+        return self.get(self.key,False)
