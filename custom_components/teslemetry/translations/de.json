@@ -100,11 +100,11 @@
       "flash_lights": {
         "name": "Licht"
       },
+      "homelink": {
+        "name": "Homelink"
+      },
       "honk": {
         "name": "Hupe"
-      },
-      "trigger_homelink": {
-        "name": "Homelink"
       },
       "wake": {
         "name": "Aufwecken"
@@ -157,13 +157,13 @@
     },
     "lock": {
       "charge_state_charge_port_latch": {
-        "name": "Ladekabel verriegelt"
+        "name": "Ladekabelverriegelung"
       },
       "vehicle_state_locked": {
         "name": "Zentralverriegelung"
       },
       "vehicle_state_speed_limit_mode_active": {
-        "name": "H\u00f6chstgeschwindigkeit begrenzt"
+        "name": "Tempobegrenzung"
       }
     },
     "media_player": {
@@ -179,7 +179,7 @@
         "name": "Ladelimit"
       },
       "vehicle_state_speed_limit_mode_current_limit_mph": {
-        "name": "Tempobegrenzung"
+        "name": "Geschwindigkeitslimit"
       }
     },
     "select": {
@@ -248,6 +248,9 @@
       }
     },
     "sensor": {
+      "charge_state_battery_level": {
+        "name": "Batterie"
+      },
       "charge_state_battery_range": {
         "name": "Reichweite"
       },
@@ -277,11 +280,17 @@
           "stopped": "Gestoppt"
         }
       },
+      "charge_state_est_battery_range": {
+        "name": "Reichweite (Vorhersage)"
+      },
+      "charge_state_ideal_battery_range": {
+        "name": "Reichweite (ideal)"
+      },
       "charge_state_minutes_to_full_charge": {
         "name": "Ladeende"
       },
       "charge_state_usable_battery_level": {
-        "name": "Batterie"
+        "name": "Batterie (verf\u00fcgbar)"
       },
       "climate_state_driver_temp_setting": {
         "name": "Zieltemperatur Fahrerseite"
@@ -311,7 +320,7 @@
         "name": "Verkehrsbedingte Verz\u00f6gerung"
       },
       "drive_state_power": {
-        "name": "Antriebsleistung"
+        "name": "Momentanverbrauch"
       },
       "drive_state_shift_state": {
         "name": "Gangschaltung",
@@ -339,6 +348,9 @@
       },
       "vehicle_state_tpms_pressure_rr": {
         "name": "Reifendruck hinten rechts"
+      },
+      "version": {
+        "name": "Version"
       }
     },
     "switch": {
