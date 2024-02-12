@@ -541,11 +541,6 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
         """Return the state of the sensor."""
         return self._value
 
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return self.coordinator.last_update_success
-
 
 class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
