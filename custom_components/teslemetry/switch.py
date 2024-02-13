@@ -140,7 +140,7 @@ async def async_setup_entry(
                     data.scopes,
                 )
                 for energysite in data.energysites
-                #if "components_net_meter_mode" in energysite.info_coordinator.data
+                # if "components_net_meter_mode" in energysite.info_coordinator.data
             ),
         )
     )
@@ -185,7 +185,7 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = (any(scope in scopes for scope in description.scopes),)
+        self.scoped = any(scope in scopes for scope in description.scopes)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -232,7 +232,7 @@ class TeslemetryEnergyLiveSwitchEntity(
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = (any(scope in scopes for scope in description.scopes),)
+        self.scoped = any(scope in scopes for scope in description.scopes)
 
 
 class TeslemetryEnergyInfoSwitchEntity(
@@ -249,7 +249,7 @@ class TeslemetryEnergyInfoSwitchEntity(
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = (any(scope in scopes for scope in description.scopes),)
+        self.scoped = any(scope in scopes for scope in description.scopes)
 
     @property
     def is_on(self) -> bool:
