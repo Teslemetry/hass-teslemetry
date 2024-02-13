@@ -140,7 +140,7 @@ async def async_setup_entry(
                     data.scopes,
                 )
                 for energysite in data.energysites
-                if ENERGY_INFO_DESCRIPTION.key in energysite.info_coordinator.data
+                #if "components_net_meter_mode" in energysite.info_coordinator.data
             ),
         )
     )
