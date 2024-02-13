@@ -30,7 +30,9 @@ DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
     TeslemetryButtonEntityDescription(
         key="flash_lights", func=lambda self: self.api.flash_lights()
     ),
-    TeslemetryButtonEntityDescription(key="honk", func=lambda self: self.api.honk_horn()),
+    TeslemetryButtonEntityDescription(
+        key="honk", func=lambda self: self.api.honk_horn()
+    ),
     TeslemetryButtonEntityDescription(
         key="enable_keyless_driving", func=lambda self: self.api.remote_start_drive()
     ),

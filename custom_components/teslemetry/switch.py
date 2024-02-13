@@ -53,13 +53,19 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
         on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, False),
+        off_func=lambda api: api.remote_auto_seat_climate_request(
+            Seat.FRONT_LEFT, False
+        ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
-        on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_RIGHT, True),
-        off_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_RIGHT, False),
+        on_func=lambda api: api.remote_auto_seat_climate_request(
+            Seat.FRONT_RIGHT, True
+        ),
+        off_func=lambda api: api.remote_auto_seat_climate_request(
+            Seat.FRONT_RIGHT, False
+        ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
@@ -75,11 +81,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
 )
 
 VEHICLE_CHARGE_DESCRIPTIONS = TeslemetrySwitchEntityDescription(
-        key="charge_state_user_charge_enable_request",
-        on_func=lambda api: api.charge_start(),
-        off_func=lambda api: api.charge_stop(),
-        scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
-    )
+    key="charge_state_user_charge_enable_request",
+    on_func=lambda api: api.charge_start(),
+    off_func=lambda api: api.charge_stop(),
+    scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
+)
 
 ENERGY_INFO_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="components_disallow_charge_from_grid_with_solar_installed",
@@ -110,27 +116,19 @@ async def async_setup_entry(
     async_add_entities(
         chain(
             (
-                TeslemetryVehicleSwitchEntity(
-                    vehicle,
-                    description,
-                    data.scopes
-                )
+                TeslemetryVehicleSwitchEntity(vehicle, description, data.scopes)
                 for vehicle in data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
             ),
             (
                 TeslemetryChargeSwitchEntity(
-                    vehicle,
-                    VEHICLE_CHARGE_DESCRIPTIONS,
-                    data.scopes
+                    vehicle, VEHICLE_CHARGE_DESCRIPTIONS, data.scopes
                 )
                 for vehicle in data.vehicles
             ),
             (
                 TeslemetryEnergyLiveSwitchEntity(
-                    energysite,
-                    ENERGY_LIVE_DESCRIPTION,
-                    data.scopes
+                    energysite, ENERGY_LIVE_DESCRIPTION, data.scopes
                 )
                 for energysite in data.energysites
                 if ENERGY_LIVE_DESCRIPTION.key in energysite.live_coordinator.data
@@ -182,12 +180,12 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         self,
         data: TeslemetryVehicleData,
         description: TeslemetrySwitchEntityDescription,
-        scopes: list[Scope]
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes),
+        self.scoped = (any(scope in scopes for scope in description.scopes),)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -202,6 +200,7 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.off_func(self.api))
         self.set((self.entity_description.key, False))
+
 
 class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
     """Entity class for Teslemetry Charge Switch."""
@@ -218,6 +217,7 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
             return None
         return value
 
+
 class TeslemetryEnergyLiveSwitchEntity(
     TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
 ):
@@ -227,12 +227,12 @@ class TeslemetryEnergyLiveSwitchEntity(
         self,
         data: TeslemetryEnergyData,
         description: TeslemetrySwitchEntityDescription,
-        scopes: list[Scope]
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes),
+        self.scoped = (any(scope in scopes for scope in description.scopes),)
 
 
 class TeslemetryEnergyInfoSwitchEntity(
@@ -244,15 +244,15 @@ class TeslemetryEnergyInfoSwitchEntity(
         self,
         data: TeslemetryEnergyData,
         description: TeslemetrySwitchEntityDescription,
-        scopes: list[Scope]
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes),
+        self.scoped = (any(scope in scopes for scope in description.scopes),)
 
     @property
     def is_on(self) -> bool:
         """Return the state of the Switch."""
         # When disallow_charge_from_grid_with_solar_installed is missing, its Off.
-        return self.get(self.key,False)
+        return self.get(self.key, False)
