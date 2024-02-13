@@ -99,7 +99,9 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
 
-        car_type = MODELS.get(data.car_type, data.car_type)
+        car_type = self.coordinator.data.get("vehicle_config_car_type")
+        car_type = MODELS.get(car_type, car_type)
+
         if sw_version := self.coordinator.data.get("vehicle_state_car_version"):
             sw_version = sw_version.split(" ")[0]
 
@@ -110,7 +112,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             name=data.display_name,
             model=car_type,
             sw_version=sw_version,
-            hw_version=data.driver_assist,
+            hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
             serial_number=data.vin,
         )
 
@@ -126,7 +128,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     wait += 5
-                    if wait >= 15:  # Give up after 30 seconds total
+                    if wait >= 20:  # Give up after 45 seconds total
                         raise ServiceValidationError("Could not wake up vehicle")
                     await asyncio.sleep(wait)
 

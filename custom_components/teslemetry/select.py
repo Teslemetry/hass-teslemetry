@@ -46,7 +46,7 @@ async def async_setup_entry(
                 vehicle, "climate_state_seat_heater_right", scoped
             )
         )
-        if vehicle.rear_seat_heaters:
+        if vehicle.coordinator.data.get("vehicle_config_rear_seat_heaters"):
             entities.append(
                 TeslemetrySeatHeaterSelectEntity(
                     vehicle, "climate_state_seat_heater_rear_left", scoped
@@ -62,7 +62,7 @@ async def async_setup_entry(
                     vehicle, "climate_state_seat_heater_rear_right", scoped
                 )
             )
-            if vehicle.third_row_seats:
+            if vehicle.coordinator.data.get("vehicle_config_third_row_seats") != "None":
                 entities.append(
                     TeslemetrySeatHeaterSelectEntity(
                         vehicle, "climate_state_seat_heater_third_row_left", scoped
