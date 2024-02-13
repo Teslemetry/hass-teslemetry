@@ -1,11 +1,9 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 
-from tesla_fleet_api.const import Scope, Seat
-from dataclasses import dataclass
-from collections.abc import Callable
+from tesla_fleet_api.const import Scope, Seat, EnergyExportMode, EnergyOperationMode
 
-from homeassistant.components.select import SelectEntity, SelectEntityDescription
+from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -27,30 +25,6 @@ SEAT_HEATERS = {
     "climate_state_seat_heater_third_row_left": Seat.THIRD_LEFT,
     "climate_state_seat_heater_third_row_right": Seat.THIRD_RIGHT,
 }
-
-
-@dataclass(frozen=True, kw_only=True)
-class TeslemetrySelectEntityDescription(SelectEntityDescription):
-    """Describes a Teslemetry Select entity."""
-
-    key: str
-    func: Callable
-
-
-ENERGY_INFO_DESCRIPTIONS: tuple(TeslemetrySelectEntityDescription, ...) = (
-    TeslemetrySelectEntityDescription(
-        key="default_real_mode",
-        func=lambda api, value: api.operation(value),
-        options=["autonomous", "self_consumption", "backup"],
-    ),
-    TeslemetrySelectEntityDescription(
-        key="components_customer_preferred_export_rule",
-        func=lambda api, value: api.grid_import_export(
-            customer_preferred_export_rule=value
-        ),
-        options=["battery_ok", "pv_only", "never"],
-    ),
-)
 
 
 async def async_setup_entry(
@@ -101,13 +75,14 @@ async def async_setup_entry(
                 )
 
     for energysite in data.energysites:
-        for description in ENERGY_INFO_DESCRIPTIONS:
-            # if description.key in energysite.info_coordinator.data:
-            entities.append(
-                TeslemetryEnergySiteSelectEntity(
-                    energysite, description, Scope.ENERGY_CMDS in data.scopes
+        if energysite.info_coordinator.data.get("components_battery"):
+            # Requires battery
+            entities.append(TeslemetryOperationSelectEntity(energysite, data.scopes))
+            if energysite.info_coordinator.data.get("components_solar"):
+                # Requires battery and solar
+                entities.append(
+                    TeslemetryExportRuleSelectEntity(energysite, data.scopes)
                 )
-            )
 
     async_add_entities(entities)
 
@@ -150,19 +125,23 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.set((self.key, level))
 
 
-class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
-    """Select entity for energy sites."""
+class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
+    """Select entity for operation mode select entities."""
+
+    _attr_options: list[str] = [
+        EnergyOperationMode.AUTONOMOUS,
+        EnergyOperationMode.BACKUP,
+        EnergyOperationMode.SELF_CONSUMPTION,
+    ]
 
     def __init__(
         self,
         data: TeslemetryEnergyData,
-        description: TeslemetrySelectEntityDescription,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the operation mode select entity."""
-        super().__init__(data, description.key)
-        self.scoped = scoped
-        self.entity_description = description
+        super().__init__(data, "default_real_mode")
+        self.scoped = Scope.ENERGY_CMDS in scopes
 
     @property
     def current_option(self) -> str | None:
@@ -172,5 +151,37 @@ class TeslemetryEnergySiteSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
-        await self.handle_command(self.entity_description.func(self.api, option))
+        await self.handle_command(self.api.operation(option))
+        self.set((self.key, option))
+
+
+class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
+    """Select entity for export rules select entities."""
+
+    _attr_options: list[str] = [
+        EnergyExportMode.NEVER,
+        EnergyExportMode.BATTERY_OK,
+        EnergyExportMode.PV_ONLY,
+    ]
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the operation mode select entity."""
+        super().__init__(data, "components_customer_preferred_export_rule")
+        self.scoped = Scope.ENERGY_CMDS in scopes
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.get(self.key, EnergyExportMode.NEVER)
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        self.raise_for_scope()
+        await self.handle_command(
+            self.api.grid_import_export(customer_preferred_export_rule=option)
+        )
         self.set((self.key, option))

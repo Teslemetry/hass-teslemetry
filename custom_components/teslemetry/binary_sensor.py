@@ -178,11 +178,13 @@ async def async_setup_entry(
                 TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
                 for energysite in data.energysites
                 for description in ENERGY_LIVE_DESCRIPTIONS
+                if energysite.info_coordinator.data.get("components_battery")
             ),
             (  # Energy Site Info
                 TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
                 for energysite in data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
+                if energysite.info_coordinator.data.get("components_battery")
             ),
         )
     )

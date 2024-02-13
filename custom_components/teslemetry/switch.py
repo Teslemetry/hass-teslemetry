@@ -87,25 +87,6 @@ VEHICLE_CHARGE_DESCRIPTIONS = TeslemetrySwitchEntityDescription(
     scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
 )
 
-ENERGY_INFO_DESCRIPTION = TeslemetrySwitchEntityDescription(
-    key="components_disallow_charge_from_grid_with_solar_installed",
-    on_func=lambda api: api.grid_import_export(
-        disallow_charge_from_grid_with_solar_installed=False
-    ),
-    off_func=lambda api: api.grid_import_export(
-        disallow_charge_from_grid_with_solar_installed=True
-    ),
-    scopes=[Scope.ENERGY_CMDS],
-)
-
-
-ENERGY_LIVE_DESCRIPTION = TeslemetrySwitchEntityDescription(
-    key="storm_mode_enabled",
-    on_func=lambda api: api.storm_mode(enabled=True),
-    off_func=lambda api: api.storm_mode(enabled=False),
-    scopes=[Scope.ENERGY_CMDS],
-)
-
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -127,20 +108,18 @@ async def async_setup_entry(
                 for vehicle in data.vehicles
             ),
             (
-                TeslemetryEnergyLiveSwitchEntity(
-                    energysite, ENERGY_LIVE_DESCRIPTION, data.scopes
-                )
+                TeslemetryStormModeSwitchEntity(energysite, data.scopes)
                 for energysite in data.energysites
-                if ENERGY_LIVE_DESCRIPTION.key in energysite.live_coordinator.data
+                if energysite.info_coordinator.data.get("components_battery")
             ),
             (
-                TeslemetryEnergyInfoSwitchEntity(
+                TeslemetryChargeFromGridSwitchEntity(
                     energysite,
-                    ENERGY_INFO_DESCRIPTION,
                     data.scopes,
                 )
                 for energysite in data.energysites
-                # if "components_net_meter_mode" in energysite.info_coordinator.data
+                if energysite.info_coordinator.data.get("components_battery")
+                and energysite.info_coordinator.data.get("components_solar")
             ),
         )
     )
@@ -159,18 +138,6 @@ class TeslemetrySwitchEntity(SwitchEntity):
         if value is None:
             return None
         return value
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the Switch."""
-        self.raise_for_scope()
-        await self.handle_command(self.entity_description.on_func(self.api))
-        self.set((self.entity_description.key, True))
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the Switch."""
-        self.raise_for_scope()
-        await self.handle_command(self.entity_description.off_func(self.api))
-        self.set((self.entity_description.key, False))
 
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
@@ -218,41 +185,72 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
         return value
 
 
-class TeslemetryEnergyLiveSwitchEntity(
+class TeslemetryStormModeSwitchEntity(
     TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
 ):
-    """Base class for Teslemetry Switch."""
+    """Entity class for Storm Mode switch."""
 
     def __init__(
         self,
         data: TeslemetryEnergyData,
-        description: TeslemetrySwitchEntityDescription,
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes)
+        super().__init__(data, "storm_mode_enabled")
+        self.scoped = Scope.ENERGY_CMDS in scopes
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the Switch."""
+        self.raise_for_scope()
+        await self.handle_command(self.api.storm_mode(enabled=True))
+        self.set((self.entity_description.key, True))
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the Switch."""
+        self.raise_for_scope()
+        await self.handle_command(self.api.storm_mode(enabled=False))
+        self.set((self.entity_description.key, False))
 
 
-class TeslemetryEnergyInfoSwitchEntity(
+class TeslemetryChargeFromGridSwitchEntity(
     TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
 ):
-    """Base class for Teslemetry Switch."""
+    """Entity class for Charge From Grid switch."""
 
     def __init__(
         self,
         data: TeslemetryEnergyData,
-        description: TeslemetrySwitchEntityDescription,
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(data, description.key)
-        self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes)
+        super().__init__(
+            data, "components_disallow_charge_from_grid_with_solar_installed"
+        )
+        self.scoped = Scope.ENERGY_CMDS in scopes
 
     @property
     def is_on(self) -> bool:
         """Return the state of the Switch."""
         # When disallow_charge_from_grid_with_solar_installed is missing, its Off.
-        return self.get(self.key, False)
+        # But this sensor is flipped to match how the Tesla app works.
+        return not self.get(self.key, False)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the Switch."""
+        self.raise_for_scope()
+        await self.handle_command(
+            self.api.grid_import_export(
+                disallow_charge_from_grid_with_solar_installed=False
+            )
+        )
+        self.set((self.entity_description.key, True))
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the Switch."""
+        self.raise_for_scope()
+        await self.handle_command(
+            self.api.grid_import_export(
+                disallow_charge_from_grid_with_solar_installed=True
+            )
+        )
+        self.set((self.entity_description.key, False))
