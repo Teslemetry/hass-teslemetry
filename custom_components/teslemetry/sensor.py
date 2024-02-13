@@ -260,7 +260,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
 class TeslemetryTimeEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
-    variance: int = 0
+    variance: int = 60
 
 
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
@@ -465,10 +465,11 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(data, description.key)
         self.entity_description = description
-        self._get_timestamp = (
+
+        self._get_timestamp: Callable = (
             ignore_variance(
                 func=lambda value: dt_util.now() + timedelta(minutes=value),
-                ignored_variance=timedelta(seconds=description.variance),
+                ignored_variance=timedelta(minutes=1),
             ),
         )
 
@@ -484,7 +485,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             return
         self._raw_value = value
         if isinstance(value, (int, float)):
-            # value = self._get_timestamp(value)
+            #value = self._get_timestamp(value)
             value = dt_util.now() + timedelta(minutes=value)
         self.native_value = value
         self.async_write_ha_state()

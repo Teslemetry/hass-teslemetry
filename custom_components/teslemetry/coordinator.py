@@ -20,9 +20,9 @@ ENDPOINTS = [
     VehicleDataEndpoint.CLIMATE_STATE,
     # VehicleDataEndpoint.CLOSURES_STATE,
     VehicleDataEndpoint.DRIVE_STATE,
-    # VehicleDataEndpoint.GUI_SETTINGS,
+    #VehicleDataEndpoint.GUI_SETTINGS,
     VehicleDataEndpoint.LOCATION_DATA,
-    # VehicleDataEndpoint.VEHICLE_CONFIG,
+    VehicleDataEndpoint.VEHICLE_CONFIG,
     VehicleDataEndpoint.VEHICLE_STATE,
 ]
 

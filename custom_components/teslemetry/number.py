@@ -122,7 +122,7 @@ async def async_setup_entry(
                 TeslemetryVehicleNumberEntity(
                     vehicle,
                     description,
-                    any(scope in data.scopes for scope in description.scopes),
+                    data.scopes,
                 )
                 for vehicle in data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
@@ -131,11 +131,11 @@ async def async_setup_entry(
                 TeslemetryEnergyInfoNumberSensorEntity(
                     energysite,
                     description,
-                    any(scope in data.scopes for scope in description.scopes),
+                    data.scopes,
                 )
                 for energysite in data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
-                if description.key in energysite.info_coordinator.data
+                if energysite.info_coordinator.data.get("components_battery")
             ),
         )
     )
@@ -179,11 +179,11 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         self,
         data: TeslemetryVehicleData,
         description: TeslemetryNumberEntityDescription,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Number entity."""
         super().__init__(data, description.key)
-        self.scoped = scoped
+        self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
 
     async def async_set_native_value(self, value: float) -> None:
@@ -203,11 +203,11 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         self,
         data: TeslemetryEnergyData,
         description: TeslemetryNumberEntityDescription,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Number entity."""
         super().__init__(data, description.key)
-        self.scoped = scoped
+        self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
 
     async def async_set_native_value(self, value: float) -> None:
