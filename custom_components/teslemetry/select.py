@@ -102,12 +102,12 @@ async def async_setup_entry(
 
     for energysite in data.energysites:
         for description in ENERGY_INFO_DESCRIPTIONS:
-            #if description.key in energysite.info_coordinator.data:
-                entities.append(
-                    TeslemetryEnergySiteSelectEntity(
-                        energysite, description, Scope.ENERGY_CMDS in data.scopes
-                    )
+            # if description.key in energysite.info_coordinator.data:
+            entities.append(
+                TeslemetryEnergySiteSelectEntity(
+                    energysite, description, Scope.ENERGY_CMDS in data.scopes
                 )
+            )
 
     async_add_entities(entities)
 
