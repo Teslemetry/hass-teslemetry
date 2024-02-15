@@ -300,6 +300,9 @@
       "charge_state_charger_actual_current": {
         "name": "Charger current"
       },
+      "charge_state_charger_phases": {
+        "name": "Charger phases"
+      },
       "charge_state_charger_power": {
         "name": "Charger power"
       },

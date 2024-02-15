@@ -110,6 +110,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
+        key="charge_state_charger_phases",
+        device_class=SensorDeviceClass.ENUM,
+        options=[1,2,3]
+    ),
+    TeslemetrySensorEntityDescription(
         key="charge_state_charge_rate",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
