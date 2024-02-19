@@ -59,14 +59,16 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
         try:
-            data = await self.api.vehicle_data(endpoints=ENDPOINTS)
+            data = await (self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
+        except TypeError as e:
+            raise UpdateFailed("Invalid response from Teslemetry") from e
 
-        return flatten(data["response"])
+        return flatten(data)
 
 
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -86,16 +88,18 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         """Update energy site data using Teslemetry API."""
 
         try:
-            data = await self.api.live_status()
+            data = (await self.api.live_status())['response']
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
+        except TypeError as e:
+            raise UpdateFailed("Invalid response from Teslemetry") from e
 
         # Convert Wall Connectors from array to dict
-        data["response"]["wall_connectors"] = {
-            wc["din"]: wc for wc in data["response"].get("wall_connectors", [])
+        data["wall_connectors"] = {
+            wc["din"]: wc for wc in data.get("wall_connectors", [])
         }
 
-        return data["response"]
+        return data
 
 
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -116,8 +120,10 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         """Update energy site data using Teslemetry API."""
 
         try:
-            data = await self.api.site_info()
+            data = (await self.api.site_info())["response"]
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
+        except TypeError as e:
+            raise UpdateFailed("Invalid response from Teslemetry") from e
 
-        return flatten(data["response"])
+        return flatten(data)

@@ -58,6 +58,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
+    except TypeError as e:
+        LOGGER.error("Invalid response from Teslemetry", e)
+        raise ConfigEntryNotReady from e
 
     # Create array of classes
     vehicles: list[TeslemetryVehicleData] = []

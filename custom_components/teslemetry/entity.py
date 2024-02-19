@@ -123,8 +123,10 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             while self.coordinator.data["state"] != TeslemetryState.ONLINE:
                 try:
                     state = (await self.api.wake_up())["response"]["state"]
-                except TeslaFleetError as err:
-                    raise ServiceValidationError(str(err)) from err
+                except TeslaFleetError as e:
+                    raise ServiceValidationError(str(e)) from e
+                except TypeError as e:
+                    raise ServiceValidationError("Invalid response from Teslemetry") from e
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     wait += 5
