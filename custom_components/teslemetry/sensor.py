@@ -122,6 +122,16 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
+        key="charge_state_conn_charge_cable",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_fast_charger_type",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
