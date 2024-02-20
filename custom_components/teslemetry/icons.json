@@ -97,7 +97,7 @@
           "pv_only": "mdi:solar-panel",
           "never": "mdi:transmission-tower-off"
         }
-      },
+      }
     },
     "sensor": {
       "battery_power": {
