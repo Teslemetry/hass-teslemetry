@@ -1,5 +1,37 @@
 {
   "entity": {
+    "binary_sensor": {
+      "vehicle_state_is_user_present": {
+        "state": {
+          "on": "mdi:account",
+          "off": "mdi:account-remove-outline"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_fl": {
+        "state": {
+          "on": "mdi:car-tire-alert",
+          "off": "mdi:tire"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_fr": {
+        "state": {
+          "on": "mdi:car-tire-alert",
+          "off": "mdi:tire"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_rl": {
+        "state": {
+          "on": "mdi:car-tire-alert",
+          "off": "mdi:tire"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_rr": {
+        "state": {
+          "on": "mdi:car-tire-alert",
+          "off": "mdi:tire"
+        }
+      }
+    },
     "button": {
       "boombox": {
         "default": "mdi:volume-high"
@@ -20,6 +52,11 @@
         "default": "mdi:garage"
       }
     },
+    "cover": {
+      "charge_state_charge_port_door_open": {
+        "default": "mdi:ev-plug-tesla"
+      }
+    },
     "climate": {
       "driver_temp": {
         "state_attributes": {
@@ -32,6 +69,14 @@
             }
           }
         }
+      }
+    },
+    "device_tracker": {
+      "route": {
+        "default": "mdi:routes"
+      },
+      "location": {
+        "default": "mdi:map-marker"
       }
     },
     "number": {
@@ -112,8 +157,18 @@
           "stopped": "mdi:stop-circle"
         }
       },
+      "charge_state_charge_phases": {
+        "state": {
+          "1": "mdi:numeric-1-box",
+          "2": "mdi:numeric-2-box",
+          "3": "mdi:numeric-3-box"
+        }
+      },
       "drive_state_active_route_destination": {
-        "default": "mdi:map-marker"
+        "default": "mdi:routes"
+      },
+      "drive_state_active_route_minutes_to_arrival": {
+        "default": "mdi:routes-clock"
       },
       "drive_state_shift_state": {
         "default": "mdi:car-shift-pattern",
@@ -181,7 +236,7 @@
         "default": "mdi:shield-car"
       },
       "vehicle_state_valet_mode": {
-        "default": "mdi:car-key"
+        "default": "mdi:speedometer-slow"
       },
       "components_disallow_charge_from_grid_with_solar_installed": {
         "state": {
@@ -191,6 +246,12 @@
       }
     },
     "lock": {
+      "vehicle_state_locked": {
+        "state": {
+          "locked": "mdi:car-door-lock",
+          "unlocked": "mdi:car-door-lock-open"
+        }
+      },
       "charge_state_charge_port_latch": {
         "default": "mdi:ev-plug-tesla"
       },
