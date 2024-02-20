@@ -1,18 +1,18 @@
 {
-  "domain": "teslemetry",
-  "name": "Teslemetry",
   "codeowners": [
     "@Bre77"
   ],
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/teslemetry",
+  "domain": "teslemetry",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Teslemetry/hacs-teslemetry/issues",
   "loggers": [
     "tesla_fleet_api"
   ],
+  "name": "Teslemetry",
   "requirements": [
     "tesla-fleet-api==0.4.4"
   ],
-  "version": "1.5.6",
-  "issue_tracker": "https://github.com/Teslemetry/hacs-teslemetry/issues"
+  "version": "1.5.6"
 }
