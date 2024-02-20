@@ -499,7 +499,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             # No change
             return
         self._raw_value = value
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             #value = self._get_timestamp(value)
             value = dt_util.now() + timedelta(minutes=value)
         self.native_value = value

@@ -126,7 +126,7 @@ async def async_setup_entry(
 
 
 class TeslemetrySwitchEntity(SwitchEntity):
-    """Base class for all Teslemetry switch entities"""
+    """Base class for all Teslemetry switch entities."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription

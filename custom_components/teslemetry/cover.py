@@ -146,7 +146,6 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
-        print(Trunk.FRONT, Trunk.REAR)
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.actuate_trunk(Trunk.FRONT))
