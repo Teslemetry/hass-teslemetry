@@ -42,6 +42,7 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     min_key: str | None = None
     max_key: str | None = None
     scopes: list[Scope] | None = None
+    requires: str | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
@@ -94,9 +95,9 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.backup(int(value)),
+        requires="components_battery"
     ),
     TeslemetryNumberEntityDescription(
-        # I have no examples of this
         key="off_grid_vehicle_charging_reserve",
         native_step=PRECISION_WHOLE,
         native_min_value=0,
@@ -105,6 +106,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
+        requires="components_off_grid_vehicle_charging_reserve_supported"
     ),
 )
 
@@ -134,7 +136,7 @@ async def async_setup_entry(
                 )
                 for energysite in data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
-                if energysite.info_coordinator.data.get("components_battery")
+                if description.requires is None or energysite.info_coordinator.data.get(description.requires)
             ),
         )
     )

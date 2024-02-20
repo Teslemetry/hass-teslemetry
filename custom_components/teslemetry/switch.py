@@ -110,7 +110,7 @@ async def async_setup_entry(
             (
                 TeslemetryStormModeSwitchEntity(energysite, data.scopes)
                 for energysite in data.energysites
-                if energysite.info_coordinator.data.get("components_battery")
+                if energysite.info_coordinator.data.get("storm_mode_capable")
             ),
             (
                 TeslemetryChargeFromGridSwitchEntity(
