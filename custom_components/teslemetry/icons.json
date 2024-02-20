@@ -189,6 +189,14 @@
           "true": "mdi:solar-power"
         }
       }
+    },
+    "lock": {
+      "charge_state_charge_port_latch": {
+        "default": "mdi:ev-plug-tesla"
+      },
+      "vehicle_state_speed_limit_mode_active": {
+        "default": "mdi:car-speed-limiter"
+      }
     }
   }
 }
