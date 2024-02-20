@@ -99,20 +99,12 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
 
-        car_type = self.coordinator.data.get("vehicle_config_car_type")
-        car_type = MODELS.get(car_type, car_type)
-
-        if sw_version := self.coordinator.data.get("vehicle_state_car_version"):
-            sw_version = sw_version.split(" ")[0]
-
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, data.vin)},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=data.display_name,
-            model=car_type,
-            sw_version=sw_version,
-            hw_version=self.coordinator.data.get("vehicle_config_driver_assist"),
+            model=MODELS.get(data.vin[3]),
             serial_number=data.vin,
         )
 
