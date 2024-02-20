@@ -111,20 +111,24 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
         async with self._wakelock:
-            wait = 0
+            times = 0
             while self.coordinator.data["state"] != TeslemetryState.ONLINE:
                 try:
-                    state = (await self.api.wake_up())["response"]["state"]
+                    if times == 0:
+                        cmd = await self.api.wake_up()
+                    else:
+                        cmd = await self.api.vehicle()
+                    state = cmd["response"]["state"]
                 except TeslaFleetError as e:
                     raise ServiceValidationError(str(e)) from e
                 except TypeError as e:
                     raise ServiceValidationError("Invalid response from Teslemetry") from e
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
-                    wait += 5
-                    if wait >= 20:  # Give up after 45 seconds total
+                    times += 1
+                    if times >= 4:  # Give up after 30 seconds total
                         raise ServiceValidationError("Could not wake up vehicle")
-                    await asyncio.sleep(wait)
+                    await asyncio.sleep(times*5)
 
     async def handle_command(self, command) -> None:
         """Handle a vehicle command."""
