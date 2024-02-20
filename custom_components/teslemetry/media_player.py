@@ -140,14 +140,14 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         if self.state != MediaPlayerState.PLAYING:
             self.raise_for_scope()
             await self.wake_up_if_asleep()
-            await self.handle_command(await self.api.media_toggle_playback())
+            await self.handle_command(self.api.media_toggle_playback())
 
     async def async_media_pause(self) -> None:
         """Send pause command."""
         if self.state == MediaPlayerState.PLAYING:
             self.raise_for_scope()
             await self.wake_up_if_asleep()
-            await self.handle_command(await self.api.media_toggle_playback())
+            await self.handle_command(self.api.media_toggle_playback())
 
     async def async_media_next_track(self) -> None:
         """Send next track command."""
