@@ -72,7 +72,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
     TeslemetryNumberEntityDescription(
         key="vehicle_state_speed_limit_mode_current_limit_mph",
-        native_step=PRECISION_WHOLE,
         native_min_value=50,
         native_max_value=120,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
