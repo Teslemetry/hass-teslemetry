@@ -189,7 +189,7 @@
         "default": "mdi:transmission-tower"
       },
       "grid_services_power": {
-        "default": "transmission-tower"
+        "default": "mdi:transmission-tower"
       },
       "load_power": {
         "default": "mdi:power-plug"
