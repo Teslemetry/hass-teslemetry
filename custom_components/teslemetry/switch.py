@@ -159,14 +159,14 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.on_func(self.api))
-        self.set((self.entity_description.key, True))
+        self.set((self.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.off_func(self.api))
-        self.set((self.entity_description.key, False))
+        self.set((self.key, False))
 
 
 class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
@@ -203,13 +203,13 @@ class TeslemetryStormModeSwitchEntity(
         """Turn on the Switch."""
         self.raise_for_scope()
         await self.handle_command(self.api.storm_mode(enabled=True))
-        self.set((self.entity_description.key, True))
+        self.set((self.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
         await self.handle_command(self.api.storm_mode(enabled=False))
-        self.set((self.entity_description.key, False))
+        self.set((self.key, False))
 
 
 class TeslemetryChargeFromGridSwitchEntity(
@@ -243,7 +243,7 @@ class TeslemetryChargeFromGridSwitchEntity(
                 disallow_charge_from_grid_with_solar_installed=False
             )
         )
-        self.set((self.entity_description.key, True))
+        self.set((self.key, True))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
@@ -253,4 +253,4 @@ class TeslemetryChargeFromGridSwitchEntity(
                 disallow_charge_from_grid_with_solar_installed=True
             )
         )
-        self.set((self.entity_description.key, False))
+        self.set((self.key, False))
