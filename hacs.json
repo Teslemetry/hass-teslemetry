@@ -4,5 +4,6 @@
     "hide_default_branch": true,
     "homeassistant": "2024.2.0",
     "render_readme": true,
-    "zip_release": true
+    "zip_release": true,
+    "issue_tracker": "https://github.com/Teslemetry/hacs-teslemetry/issues"
 }
