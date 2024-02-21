@@ -85,6 +85,15 @@ class TeslemetryEntity(
             ) from e
         return result
 
+    def _update(self) -> None:
+        """Update attributes with coordinator data."""
+        pass
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._update()
+        super()._handle_coordinator_update()
+
 
 class TeslemetryVehicleEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle entities."""
@@ -122,18 +131,20 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 except TeslaFleetError as e:
                     raise ServiceValidationError(str(e)) from e
                 except TypeError as e:
-                    raise ServiceValidationError("Invalid response from Teslemetry") from e
+                    raise ServiceValidationError(
+                        "Invalid response from Teslemetry"
+                    ) from e
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     times += 1
                     if times >= 4:  # Give up after 30 seconds total
                         raise ServiceValidationError("Could not wake up vehicle")
-                    await asyncio.sleep(times*5)
+                    await asyncio.sleep(times * 5)
 
     async def handle_command(self, command) -> None:
         """Handle a vehicle command."""
         result = await super().handle_command(command)
-        if not (message := result.get("response",{}).get("result")):
+        if not (message := result.get("response", {}).get("result")):
             message = message or "Bad response from Tesla"
             LOGGER.debug("Command failure: %s", message)
             raise ServiceValidationError(message)

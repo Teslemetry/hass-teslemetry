@@ -130,11 +130,20 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         super().__init__(data, description.key)
         self.entity_description = description
         self.scoped = scoped
+        self._update()
+
+    def _update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_available = self.entity_description.avaliable_fn(self)
+        value = self.get()
+        if value is None:
+            self._attr_current_option = None
+        else:
+            self._attr_current_option = self._attr_options[value]
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self._attr_available = self.entity_description.avaliable_fn(self)
-        self._attr_current_option = self._attr_options.get(self.get())
+        self._update()
         super()._handle_coordinator_update()
 
     async def async_select_option(self, option: str) -> None:
