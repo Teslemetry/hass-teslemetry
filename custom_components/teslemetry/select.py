@@ -1,9 +1,11 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
-
+from itertools import chain
 from tesla_fleet_api.const import Scope, Seat, EnergyExportMode, EnergyOperationMode
 
-from homeassistant.components.select import SelectEntity
+from dataclasses import dataclass
+
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -16,15 +18,64 @@ from .entity import (
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 
-SEAT_HEATERS = {
-    "climate_state_seat_heater_left": Seat.FRONT_LEFT,
-    "climate_state_seat_heater_right": Seat.FRONT_RIGHT,
-    "climate_state_seat_heater_rear_left": Seat.REAR_LEFT,
-    "climate_state_seat_heater_rear_center": Seat.REAR_CENTER,
-    "climate_state_seat_heater_rear_right": Seat.REAR_RIGHT,
-    "climate_state_seat_heater_third_row_left": Seat.THIRD_LEFT,
-    "climate_state_seat_heater_third_row_right": Seat.THIRD_RIGHT,
-}
+@dataclass(frozen=True, kw_only=True)
+class SeatHeaterDescription(SelectEntityDescription):
+    position: Seat
+    avaliable_fn: callable
+
+
+SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_left",
+        position=Seat.FRONT_LEFT,
+        avaliable_fn=lambda _: True,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_right",
+        position=Seat.FRONT_RIGHT,
+        avaliable_fn=lambda _: True,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_rear_left",
+        position=Seat.REAR_LEFT,
+        avaliable_fn=lambda self: not self.exactly(
+            "vehicle_config_rear_seat_heaters", 0
+        ),
+        entity_registry_enabled_default=False,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_rear_center",
+        position=Seat.REAR_CENTER,
+        avaliable_fn=lambda self: not self.exactly(
+            "vehicle_config_rear_seat_heaters", 0
+        ),
+        entity_registry_enabled_default=False,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_rear_right",
+        position=Seat.REAR_RIGHT,
+        avaliable_fn=lambda self: not self.exactly(
+            "vehicle_config_rear_seat_heaters", 0
+        ),
+        entity_registry_enabled_default=False,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_third_row_left",
+        position=Seat.THIRD_LEFT,
+        avaliable_fn=lambda self: not self.exactly(
+            "vehicle_config_third_row_seats", "None"
+        ),
+        entity_registry_enabled_default=False,
+    ),
+    SeatHeaterDescription(
+        key="climate_state_seat_heater_third_row_right",
+        position=Seat.THIRD_RIGHT,
+        avaliable_fn=lambda self: not self.exactly(
+            "vehicle_config_third_row_seats", "None"
+        ),
+        entity_registry_enabled_default=False,
+    ),
+)
 
 
 async def async_setup_entry(
@@ -33,62 +84,34 @@ async def async_setup_entry(
     """Set up the Teslemetry select platform from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
 
-    entities = []
-    for vehicle in data.vehicles:
-        scoped = Scope.VEHICLE_CMDS in data.scopes
-        entities.append(
-            TeslemetrySeatHeaterSelectEntity(
-                vehicle, "climate_state_seat_heater_left", scoped
-            )
-        )
-        entities.append(
-            TeslemetrySeatHeaterSelectEntity(
-                vehicle, "climate_state_seat_heater_right", scoped
-            )
-        )
-        if vehicle.coordinator.data.get("vehicle_config_rear_seat_heaters"):
-            entities.append(
-                TeslemetrySeatHeaterSelectEntity(
-                    vehicle, "climate_state_seat_heater_rear_left", scoped
-                )
-            )
-            entities.append(
-                TeslemetrySeatHeaterSelectEntity(
-                    vehicle, "climate_state_seat_heater_rear_center", scoped
-                )
-            )
-            entities.append(
-                TeslemetrySeatHeaterSelectEntity(
-                    vehicle, "climate_state_seat_heater_rear_right", scoped
-                )
-            )
-            if vehicle.coordinator.data.get("vehicle_config_third_row_seats") != "None":
-                entities.append(
-                    TeslemetrySeatHeaterSelectEntity(
-                        vehicle, "climate_state_seat_heater_third_row_left", scoped
-                    )
-                )
-                entities.append(
-                    TeslemetrySeatHeaterSelectEntity(
-                        vehicle, "climate_state_seat_heater_third_row_right", scoped
-                    )
-                )
+    scoped = Scope.VEHICLE_CMDS in data.scopes
 
-    for energysite in data.energysites:
-        if energysite.info_coordinator.data.get("components_battery"):
-            # Requires battery
-            entities.append(TeslemetryOperationSelectEntity(energysite, data.scopes))
-            if energysite.info_coordinator.data.get("components_solar"):
-                # Requires battery and solar
-                entities.append(
-                    TeslemetryExportRuleSelectEntity(energysite, data.scopes)
-                )
-
-    async_add_entities(entities)
+    async_add_entities(
+        chain(
+            (
+                TeslemetrySeatHeaterSelectEntity(vehicle, description, scoped)
+                for description in SEAT_HEATER_DESCRIPTIONS
+                for vehicle in data.vehicles
+            ),
+            (
+                TeslemetryOperationSelectEntity(energysite, data.scopes)
+                for energysite in data.energysites
+                if energysite.info_coordinator.data.get("components_battery")
+            ),
+            (
+                TeslemetryExportRuleSelectEntity(energysite, data.scopes)
+                for energysite in data.energysites
+                if energysite.info_coordinator.data.get("components_battery")
+                and energysite.info_coordinator.data.get("components_solar")
+            ),
+        )
+    )
 
 
 class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     """Select entity for vehicle seat heater."""
+
+    entity_description: SeatHeaterDescription
 
     _attr_options = [
         TeslemetrySeatHeaterOptions.OFF,
@@ -97,19 +120,22 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         TeslemetrySeatHeaterOptions.HIGH,
     ]
 
-    def __init__(self, data: TeslemetryVehicleData, key: str, scoped: bool) -> None:
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: SeatHeaterDescription,
+        scoped: bool,
+    ) -> None:
         """Initialize the vehicle seat select entity."""
-        super().__init__(data, key)
+        super().__init__(data, description.key)
+        self.entity_description = description
         self.scoped = scoped
-        self.position = SEAT_HEATERS[key]
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        value = self.get()
-        if value is None:
-            return None
-        return self._attr_options[value]
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_available = self.entity_description.avaliable_fn(self)
+        self._attr_current_option = self._attr_options.get(self.get())
+        super()._handle_coordinator_update()
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
@@ -120,7 +146,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         if not self.get("climate_state_is_climate_on"):
             await self.handle_command(self.api.auto_conditioning_start())
         await self.handle_command(
-            self.api.remote_seat_heater_request(self.position, level)
+            self.api.remote_seat_heater_request(self.description.position, level)
         )
         self.set((self.key, level))
 
