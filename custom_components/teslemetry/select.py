@@ -47,7 +47,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         key="climate_state_seat_heater_rear_center",
         position=Seat.REAR_CENTER,
         avaliable_fn=lambda self: not self.exactly(
-            "vehicle_config_rear_seat_heaters", 0
+            0, "vehicle_config_rear_seat_heaters"
         ),
         entity_registry_enabled_default=False,
     ),
@@ -55,7 +55,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         key="climate_state_seat_heater_rear_right",
         position=Seat.REAR_RIGHT,
         avaliable_fn=lambda self: not self.exactly(
-            "vehicle_config_rear_seat_heaters", 0
+            0, "vehicle_config_rear_seat_heaters"
         ),
         entity_registry_enabled_default=False,
     ),
@@ -63,7 +63,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         key="climate_state_seat_heater_third_row_left",
         position=Seat.THIRD_LEFT,
         avaliable_fn=lambda self: not self.exactly(
-            "vehicle_config_third_row_seats", "None"
+            "None", "vehicle_config_third_row_seats"
         ),
         entity_registry_enabled_default=False,
     ),
@@ -71,7 +71,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         key="climate_state_seat_heater_third_row_right",
         position=Seat.THIRD_RIGHT,
         avaliable_fn=lambda self: not self.exactly(
-            "vehicle_config_third_row_seats", "None"
+            "None", "vehicle_config_third_row_seats"
         ),
         entity_registry_enabled_default=False,
     ),
@@ -140,11 +140,6 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
             self._attr_current_option = None
         else:
             self._attr_current_option = self._attr_options[value]
-
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._update()
-        super()._handle_coordinator_update()
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
