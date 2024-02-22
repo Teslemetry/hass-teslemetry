@@ -9,8 +9,8 @@ from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
+    ATTR_HVAC_MODE,
 )
-from homeassistant.components.climate.const import ATTR_HVAC_MODE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemperature
 from homeassistant.core import HomeAssistant

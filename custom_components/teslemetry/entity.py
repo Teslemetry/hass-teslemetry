@@ -88,7 +88,6 @@ class TeslemetryEntity(
 
     def _update(self) -> None:
         """Update attributes with coordinator data."""
-        pass
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
