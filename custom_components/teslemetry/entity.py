@@ -140,13 +140,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                         raise HomeAssistantError("Could not wake up vehicle")
                     await asyncio.sleep(times * 5)
 
-    async def handle_command(self, command) -> None:
+    async def handle_command(self, command) -> dict[str, Any]:
         """Handle a vehicle command."""
         result = await super().handle_command(command)
         if not (message := result.get("response", {}).get("result")):
             message = message or "Bad response from Tesla"
             LOGGER.debug("Command failure: %s", message)
             raise ServiceValidationError(message)
+        return result
 
 
 class TeslemetryEnergyLiveEntity(TeslemetryEntity):

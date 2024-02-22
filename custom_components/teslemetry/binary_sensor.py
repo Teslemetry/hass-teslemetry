@@ -234,7 +234,7 @@ class TeslemetryEnergyLiveBinarySensorEntity(
     def __init__(
         self,
         data: TeslemetryEnergyData,
-        description: TeslemetryBinarySensorEntityDescription,
+        description: BinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary sensor."""
         self.entity_description = description
@@ -255,7 +255,7 @@ class TeslemetryEnergyInfoBinarySensorEntity(
     def __init__(
         self,
         data: TeslemetryEnergyData,
-        description: TeslemetryBinarySensorEntityDescription,
+        description: BinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary sensor."""
         self.entity_description = description
