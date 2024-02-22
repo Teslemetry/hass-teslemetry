@@ -127,10 +127,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         scoped: bool,
     ) -> None:
         """Initialize the vehicle seat select entity."""
-        super().__init__(data, description.key)
         self.entity_description = description
         self.scoped = scoped
-        self._update()
+        super().__init__(data, description.key)
 
     def _update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -170,8 +169,8 @@ class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
         scopes: list[Scope],
     ) -> None:
         """Initialize the operation mode select entity."""
-        super().__init__(data, "default_real_mode")
         self.scoped = Scope.ENERGY_CMDS in scopes
+        super().__init__(data, "default_real_mode")
 
     @property
     def current_option(self) -> str | None:
@@ -200,8 +199,8 @@ class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
         scopes: list[Scope],
     ) -> None:
         """Initialize the operation mode select entity."""
-        super().__init__(data, "components_customer_preferred_export_rule")
         self.scoped = Scope.ENERGY_CMDS in scopes
+        super().__init__(data, "components_customer_preferred_export_rule")
 
     @property
     def current_option(self) -> str | None:
