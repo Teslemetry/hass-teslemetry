@@ -42,22 +42,27 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_battery_heater_on",
         device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_charge_state_enabled",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_preconditioning_enabled",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_scheduled_charging_pending",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_trip_charging",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_conn_charge_cable",
@@ -70,17 +75,20 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.RUNNING,
         is_on=lambda x: x == "On",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_cabin_overheat_protection_actively_cooling",
         device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_dashcam_state",
         device_class=BinarySensorDeviceClass.RUNNING,
         is_on=lambda x: x == "Recording",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_is_user_present",
@@ -90,21 +98,25 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="vehicle_state_tpms_soft_warning_fl",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_fr",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_rl",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_rr",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_fd_window",
@@ -201,16 +213,15 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         description: TeslemetryBinarySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, description.key)
         self.entity_description = description
+        super().__init__(data, description.key)
 
-    @property
-    def is_on(self) -> bool | None:
-        """Return the state of the binary sensor."""
+    def _update(self) -> None:
+        """Update the attributes of the binary sensor."""
         value = self.get()
         if value is None:
-            return None
-        return self.entity_description.is_on(value)
+            self._attr_is_on = None
+        self._attr_is_on = self.entity_description.is_on(value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
@@ -225,14 +236,13 @@ class TeslemetryEnergyLiveBinarySensorEntity(
         data: TeslemetryEnergyData,
         description: TeslemetryBinarySensorEntityDescription,
     ) -> None:
-        """Initialize the sensor."""
-        super().__init__(data, description.key)
+        """Initialize the binary sensor."""
         self.entity_description = description
+        super().__init__(data, description.key)
 
-    @property
-    def is_on(self) -> bool | None:
-        """Return the state of the binary sensor."""
-        return self.get()
+    def _update(self) -> None:
+        """Update the attributes of the binary sensor."""
+        self._attr_is_on = self.get()
 
 
 class TeslemetryEnergyInfoBinarySensorEntity(
@@ -247,11 +257,10 @@ class TeslemetryEnergyInfoBinarySensorEntity(
         data: TeslemetryEnergyData,
         description: TeslemetryBinarySensorEntityDescription,
     ) -> None:
-        """Initialize the sensor."""
-        super().__init__(data, description.key)
+        """Initialize the binary sensor."""
         self.entity_description = description
+        super().__init__(data, description.key)
 
-    @property
-    def is_on(self) -> bool | None:
-        """Return the state of the binary sensor."""
-        return self.get()
+    def _update(self) -> None:
+        """Update the attributes of the binary sensor."""
+        self._attr_is_on = self.get()

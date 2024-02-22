@@ -7,7 +7,7 @@ from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError, HomeAssistantError
 
 from .const import DOMAIN, LOGGER, MODELS, TeslemetryState
 from .coordinator import (
@@ -42,6 +42,7 @@ class TeslemetryEntity(
         self.api = api
         self.key = key
         self._attr_translation_key = key
+        self._update()
 
     def get(self, key: str | None = None, default: Any | None = None) -> Any:
         """Return a specific value from coordinator data."""
@@ -129,16 +130,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                         cmd = await self.api.vehicle()
                     state = cmd["response"]["state"]
                 except TeslaFleetError as e:
-                    raise ServiceValidationError(str(e)) from e
+                    raise HomeAssistantError(str(e)) from e
                 except TypeError as e:
-                    raise ServiceValidationError(
-                        "Invalid response from Teslemetry"
-                    ) from e
+                    raise HomeAssistantError("Invalid response from Teslemetry") from e
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     times += 1
                     if times >= 4:  # Give up after 30 seconds total
-                        raise ServiceValidationError("Could not wake up vehicle")
+                        raise HomeAssistantError("Could not wake up vehicle")
                     await asyncio.sleep(times * 5)
 
     async def handle_command(self, command) -> None:
