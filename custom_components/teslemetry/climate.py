@@ -2,22 +2,23 @@
 from __future__ import annotations
 
 from typing import Any
-from tesla_fleet_api.const import Scope,
+
+from tesla_fleet_api.const import Scope
+
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.components.climate.const import ATTR_HVAC_MODE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemperature
-from homeassistant.components.climate.const import ATTR_HVAC_MODE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, TeslemetryClimateSide
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
-
 
 DEFAULT_MIN_TEMP = 15
 DEFAULT_MAX_TEMP = 28
@@ -58,7 +59,8 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         scopes: Scope,
     ) -> None:
         """Initialize the climate."""
-        if Scope.VEHICLE_CMDS in scopes:
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
             self._attr_supported_features = ClimateEntityFeature(0)
 
         super().__init__(data, side)
@@ -114,7 +116,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
         if mode := kwargs[ATTR_HVAC_MODE]:
             # Set HVAC mode will call write_ha_state
-            self.async_set_hvac_mode(mode)
+            await self.async_set_hvac_mode(mode)
         else:
             self.async_write_ha_state()
 
@@ -134,10 +136,9 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
                 climate_keeper_mode=self._attr_preset_modes.index(preset_mode)
             )
         )
-        self._attr_preset_mode = self._attr_preset_modes[preset_mode]
+        self._attr_preset_mode = preset_mode
         if preset_mode == self._attr_preset_modes[0]:
             self._attr_hvac_mode = HVACMode.OFF
         else:
             self._attr_hvac_mode = HVACMode.HEAT_COOL
         self.async_write_ha_state()
-
