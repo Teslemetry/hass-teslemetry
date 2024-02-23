@@ -20,6 +20,8 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 @dataclass(frozen=True, kw_only=True)
 class SeatHeaterDescription(SelectEntityDescription):
+    """Seat Header entity description."""
+
     position: Seat
     avaliable_fn: callable
 
