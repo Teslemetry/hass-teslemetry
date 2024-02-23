@@ -14,9 +14,11 @@ _Integration to integrate with [Teslemetry]("https://teslemetry.com")._
 
 ## HACS
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Teslemetry&repository=hass-teslemetry&category=integration)
+
 1. Install and setup HACS. https://hacs.xyz/docs/user
-2. [![Click Here.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Teslemetry&repository=hass-teslemetry&category=integration)
-3. Install.
+2. Add https://github.com/Teslemetry/hass-teslemetry as a repo (or click the link above).
+3. Search for Teslemetry and install.
 4. Restart Home Assistant
 
 ## Manual Installation
