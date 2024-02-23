@@ -10,7 +10,7 @@
 
 _Integration to integrate with [Teslemetry]("https://teslemetry.com")._
 
-**This integration will set up the following platforms.**
+**This integration requires a subscription and access token from Teslemetry.com**
 
 ## HACS
 
