@@ -78,9 +78,9 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def in_progress(self) -> bool | int | None:
         """Update installation progress."""
-        if (
-            self.get("vehicle_state_software_update_status")
-            == TeslemetryUpdateStatus.INSTALLING
+        if self.get() in (
+            TeslemetryUpdateStatus.SCHEDULED,
+            TeslemetryUpdateStatus.INSTALLING,
         ):
             return self.get("vehicle_state_software_update_install_perc")
         return False
@@ -91,7 +91,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         """Install an update."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.handle_command(self.api.schedule_software_update(0))
+        await self.handle_command(self.api.schedule_software_update(offset_sec=60))
         self.set(
             ("vehicle_state_software_update_status", TeslemetryUpdateStatus.INSTALLING)
         )
