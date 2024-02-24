@@ -66,7 +66,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_charging_state",
         options=list(ChargeStates.values()),
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda value: ChargeStates[cast(str, value)],
+        value_fn=lambda value: ChargeStates.get(cast(str, value)),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_level",
@@ -112,7 +112,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_phases",
         device_class=SensorDeviceClass.ENUM,
-        options=[1,2,3]
+        options=[1, 2, 3],
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charge_rate",
@@ -500,7 +500,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             return
         self._raw_value = value
         if isinstance(value, int | float):
-            #value = self._get_timestamp(value)
+            # value = self._get_timestamp(value)
             value = dt_util.now() + timedelta(minutes=value)
         self.native_value = value
         self.async_write_ha_state()
