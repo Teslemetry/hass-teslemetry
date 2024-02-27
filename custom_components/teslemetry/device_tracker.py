@@ -8,9 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .entity import (
-    TeslemetryVehicleEntity,
-)
+from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
 
@@ -34,13 +32,15 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
     """Base class for Teslemetry Tracker Entities."""
 
     _attr_entity_category = None
+    timestamp_key = "drive_state_timestamp"
+    streaming_key = None
 
     def __init__(
         self,
         vehicle: TeslemetryVehicleData,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(vehicle, self.key)
+        super().__init__(vehicle, self.key, self.timestamp_key, self.streaming_key)
 
     @property
     def source_type(self) -> SourceType | str:
@@ -52,16 +52,14 @@ class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
     """Vehicle Location Device Tracker Class."""
 
     key = "location"
+    streaming_key = "Location"
 
-    @property
-    def longitude(self) -> float | None:
-        """Return the longitude of the device tracker."""
-        return self.get("drive_state_longitude")
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the device tracker."""
 
-    @property
-    def latitude(self) -> float | None:
-        """Return the latitude of the device tracker."""
-        return self.get("drive_state_latitude")
+        self._attr_latitude = self.get("drive_state_latitude")
+        self._attr_longitude = self.get("drive_state_longitude")
+        self._last_update = self.get("drive_state_timestamp")
 
     @property
     def available(self) -> bool:
@@ -77,20 +75,11 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
 
     key = "route"
 
-    @property
-    def longitude(self) -> float | None:
-        """Return the longitude of the device tracker."""
-        return self.get("drive_state_active_route_longitude")
-
-    @property
-    def latitude(self) -> float | None:
-        """Return the latitude of the device tracker."""
-        return self.get("drive_state_active_route_latitude")
-
-    @property
-    def location_name(self) -> str | None:
-        """Return the location of the device tracker."""
-        return self.get("drive_state_active_route_destination")
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the device tracker."""
+        self._attr_latitude = self.get("drive_state_active_route_latitude")
+        self._attr_longitude = self.get("drive_state_active_route_longitude")
+        self._attr_location_name = self.get("drive_state_active_route_destination")
 
     @property
     def available(self) -> bool:

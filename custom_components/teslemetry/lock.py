@@ -45,7 +45,7 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
     @property
     def is_locked(self) -> bool | None:
         """Return the state of the Lock."""
-        return self.get()
+        return self._value
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""
@@ -77,7 +77,7 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
     @property
     def is_locked(self) -> bool | None:
         """Return the state of the Lock."""
-        value = self.get()
+        value = self._value
         if value is None:
             return None
         return value == TeslemetryChargeCableLockStates.ENGAGED
@@ -115,7 +115,7 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
     @property
     def is_locked(self) -> bool | None:
         """Return the state of the Lock."""
-        return self.get()
+        return self._value
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Enable speed limit with pin."""

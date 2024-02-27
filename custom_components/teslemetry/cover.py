@@ -108,7 +108,7 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        return not self.get()
+        return not self._value
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
@@ -169,7 +169,7 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        value = self.get()
+        value = self._value
         if value == TeslemetryCoverStates.CLOSED:
             return True
         if value == TeslemetryCoverStates.OPEN:

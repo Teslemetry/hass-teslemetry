@@ -95,7 +95,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.backup(int(value)),
-        requires="components_battery"
+        requires="components_battery",
     ),
     TeslemetryNumberEntityDescription(
         key="off_grid_vehicle_charging_reserve",
@@ -106,7 +106,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         scopes=[Scope.ENERGY_CMDS],
         func=lambda api, value: api.off_grid_vehicle_charging_reserve(int(value)),
-        requires="components_off_grid_vehicle_charging_reserve_supported"
+        requires="components_off_grid_vehicle_charging_reserve_supported",
     ),
 )
 
@@ -136,7 +136,8 @@ async def async_setup_entry(
                 )
                 for energysite in data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
-                if description.requires is None or energysite.info_coordinator.data.get(description.requires)
+                if description.requires is None
+                or energysite.info_coordinator.data.get(description.requires)
             ),
         )
     )
@@ -150,7 +151,7 @@ class TeslemetryNumberEntity(NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the value reported by the number."""
-        return self.get()
+        return self._value
 
     @property
     def native_min_value(self) -> float:

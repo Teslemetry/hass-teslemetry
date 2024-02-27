@@ -134,7 +134,7 @@ class TeslemetrySwitchEntity(SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return the state of the Switch."""
-        value = self.get()
+        value = self._value
         if value is None:
             return None
         return value
@@ -176,7 +176,7 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
     def is_on(self) -> bool:
         """Return the state of the Switch."""
         # First check the user request value,
-        value = self.get()
+        value = self._value
         if value is None:
             # if its None get the base request value
             value = self.get("charge_state_charge_enable_request")

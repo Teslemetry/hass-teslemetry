@@ -49,7 +49,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def supported_features(self) -> UpdateEntityFeature:
         """Flag supported features."""
-        if self.scoped and self.get() in (
+        if self.scoped and self._value in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
         ):
@@ -65,7 +65,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def latest_version(self) -> str | None:
         """Return the latest version."""
-        if self.get() in (
+        if self._value in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
             TeslemetryUpdateStatus.INSTALLING,
@@ -78,7 +78,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     @property
     def in_progress(self) -> bool | int | None:
         """Update installation progress."""
-        if self.get() in (
+        if self._value in (
             TeslemetryUpdateStatus.SCHEDULED,
             TeslemetryUpdateStatus.INSTALLING,
         ):

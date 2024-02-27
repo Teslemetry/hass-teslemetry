@@ -30,6 +30,8 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
     is_on: Callable[[StateType], bool] = lambda x: bool(x)
+    streaming_key: str | None = None
+    timestamp_key: str | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
@@ -214,11 +216,13 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
-        super().__init__(data, description.key)
+        super().__init__(
+            data, description.key, description.timestamp_key, description.streaming_key
+        )
 
-    def _update(self) -> None:
+    def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        value = self.get()
+        value = self._value
         if value is None:
             self._attr_is_on = None
         self._attr_is_on = self.entity_description.is_on(value)
@@ -240,9 +244,9 @@ class TeslemetryEnergyLiveBinarySensorEntity(
         self.entity_description = description
         super().__init__(data, description.key)
 
-    def _update(self) -> None:
+    def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        self._attr_is_on = self.get()
+        self._attr_is_on = self._value
 
 
 class TeslemetryEnergyInfoBinarySensorEntity(
@@ -261,6 +265,6 @@ class TeslemetryEnergyInfoBinarySensorEntity(
         self.entity_description = description
         super().__init__(data, description.key)
 
-    def _update(self) -> None:
+    def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        self._attr_is_on = self.get()
+        self._attr_is_on = self._value

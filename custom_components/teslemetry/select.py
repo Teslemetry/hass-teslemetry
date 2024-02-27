@@ -133,10 +133,10 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.scoped = scoped
         super().__init__(data, description.key)
 
-    def _update(self) -> None:
+    def _async_update_attrs(self) -> None:
         """Handle updated data from the coordinator."""
         self._attr_available = self.entity_description.avaliable_fn(self)
-        value = self.get()
+        value = self._value
         if value is None:
             self._attr_current_option = None
         else:
@@ -177,7 +177,7 @@ class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
-        return self.get()
+        return self._value
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""

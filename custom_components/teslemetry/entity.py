@@ -17,6 +17,8 @@ from .coordinator import (
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
+FUTURE = 32503680000000
+
 
 class TeslemetryEntity(
     CoordinatorEntity[
@@ -41,15 +43,21 @@ class TeslemetryEntity(
         super().__init__(coordinator)
         self.api = api
         self.key = key
-        self._attr_translation_key = key
-        self._update()
+        self._attr_translation_key = self.key
+        self._async_update_attrs()
 
-    def get(self, key: str | None = None, default: Any | None = None) -> Any:
+    @property
+    def _value(self) -> int:
         """Return a specific value from coordinator data."""
-        return self.coordinator.data.get(key or self.key, default)
+        return self.coordinator.data.get(self.key)
+
+    def get(self, key: str, default: Any | None = None) -> Any:
+        """Return a specific value from coordinator data."""
+        return self.coordinator.data.get(key, default)
 
     def exactly(self, value: Any, key: str | None = None) -> bool | None:
         """Return if a key exactly matches the value, but retain None."""
+        key = key or self.key
         if value is None:
             return self.get(key, False) is None
         current = self.get(key)
@@ -86,25 +94,32 @@ class TeslemetryEntity(
             ) from e
         return result
 
-    def _update(self) -> None:
+    def _async_update_attrs(self) -> None:
         """Update attributes with coordinator data."""
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self._update()
-        super()._handle_coordinator_update()
+        self._async_update_attrs()
+        self.async_write_ha_state()
 
 
 class TeslemetryVehicleEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle entities."""
 
+    _last_update: int = 0
+
     def __init__(
         self,
         data: TeslemetryVehicleData,
         key: str,
+        timestamp_key: str | None = None,
+        streaming_key: str | None = None,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(data.coordinator, data.api, key)
+        self.timestamp_key = timestamp_key
+        self.streaming_key = streaming_key
+
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
 
@@ -116,6 +131,25 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             model=MODELS.get(data.vin[3]),
             serial_number=data.vin,
         )
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.timestamp_key is None:
+            self._async_update_attrs()
+            self.async_write_ha_state()
+            return
+
+        timestamp = self.get(self.timestamp_key)
+        if timestamp is None:
+            self._async_update_attrs()
+            self.async_write_ha_state()
+            return
+        if timestamp > self._last_update:
+            self._last_update = timestamp
+            self._async_update_attrs()
+            self.async_write_ha_state()
+            return
+        LOGGER.debug("Skipping update of %s, timestamp is not newer", self.name)
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
