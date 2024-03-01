@@ -174,16 +174,16 @@ class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
         self.scoped = Scope.ENERGY_CMDS in scopes
         super().__init__(data, "default_real_mode")
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        return self._value
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_current_option = self._value
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.raise_for_scope()
         await self.handle_command(self.api.operation(option))
-        self.set((self.key, option))
+        self._attr_current_option = option
+        self.async_write_ha_state()
 
 
 class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
@@ -204,10 +204,9 @@ class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
         self.scoped = Scope.ENERGY_CMDS in scopes
         super().__init__(data, "components_customer_preferred_export_rule")
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        return self.get(self.key, EnergyExportMode.NEVER)
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_current_option = self.get(self.key, EnergyExportMode.NEVER)
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
@@ -215,4 +214,5 @@ class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
         await self.handle_command(
             self.api.grid_import_export(customer_preferred_export_rule=option)
         )
-        self.set((self.key, option))
+        self._attr_current_option = option
+        self.async_write_ha_state()
