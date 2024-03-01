@@ -62,78 +62,53 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         if not scoped:
             self._attr_supported_features = MediaPlayerEntityFeature(0)
 
-    @property
-    def max_volume(self) -> float:
-        """Return the maximum volume level."""
-        return self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
-
-    @property
-    def state(self) -> MediaPlayerState:
-        """State of the player."""
-        return STATES.get(
+    def _async_update_attrs(self) -> None:
+        """Update entity attributes."""
+        max_volume = self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
+        self._attr_state = STATES.get(
             self.get("vehicle_state_media_info_media_playback_status"),
             MediaPlayerState.OFF,
         )
-
-    @property
-    def volume_step(self) -> float:
-        """Volume step size."""
-        return (
+        self._attr_volume_step = (
             1.0
-            / self.max_volume
+            / max_volume
             / self.get("vehicle_state_media_info_audio_volume_increment", 1.0 / 3)
         )
+        self._attr_volume_level = (
+            self.get("vehicle_state_media_info_audio_volume", 0) / max_volume
+        )
 
-    @property
-    def volume_level(self) -> float:
-        """Volume level of the media player (0..1)."""
-        return self.get("vehicle_state_media_info_audio_volume", 0) / self.max_volume
-
-    @property
-    def media_duration(self) -> int | None:
-        """Duration of current playing media in seconds."""
         if duration := self.get("vehicle_state_media_info_now_playing_duration"):
-            return duration / 1000
-        return None
+            self._attr_media_duration = duration / 1000
+        else:
+            self._attr_media_duration = None
 
-    @property
-    def media_position(self) -> int | None:
-        """Position of current playing media in seconds."""
-        # Return media position only when a media duration is > 0
-        if self.get("vehicle_state_media_info_now_playing_duration"):
-            return self.get("vehicle_state_media_info_now_playing_elapsed") / 1000
-        return None
+        if duration:  # Return media position only when a media duration is > 0
+            self._attr_media_position = (
+                self.get("vehicle_state_media_info_now_playing_elapsed") / 1000
+            )
+        else:
+            self._attr_media_position = None
 
-    @property
-    def media_title(self) -> str | None:
-        """Title of current playing media."""
-        return self.get("vehicle_state_media_info_now_playing_title")
-
-    @property
-    def media_artist(self) -> str | None:
-        """Artist of current playing media, music track only."""
-        return self.get("vehicle_state_media_info_now_playing_artist")
-
-    @property
-    def media_album_name(self) -> str | None:
-        """Album name of current playing media, music track only."""
-        return self.get("vehicle_state_media_info_now_playing_album")
-
-    @property
-    def media_playlist(self) -> str | None:
-        """Title of Playlist currently playing."""
-        return self.get("vehicle_state_media_info_now_playing_station")
-
-    @property
-    def source(self) -> str | None:
-        """Name of the current input source."""
-        return self.get("vehicle_state_media_info_now_playing_source")
+        self._attr_media_title = self.get("vehicle_state_media_info_now_playing_title")
+        self._attr_media_artist = self.get(
+            "vehicle_state_media_info_now_playing_artist"
+        )
+        self._attr_media_album_name = self.get(
+            "vehicle_state_media_info_now_playing_album"
+        )
+        self._attr_media_playlist = self.get(
+            "vehicle_state_media_info_now_playing_station"
+        )
+        self._attr_source = self.get("vehicle_state_media_info_now_playing_source")
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.adjust_volume(int(volume * self.max_volume)))
+        self._attr_volume_level = volume
+        self.async_write_ha_state()
 
     async def async_media_play(self) -> None:
         """Send play command."""
@@ -141,6 +116,8 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.media_toggle_playback())
+            self._attr_state = MediaPlayerState.PLAYING
+            self.async_write_ha_state()
 
     async def async_media_pause(self) -> None:
         """Send pause command."""
@@ -148,6 +125,8 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.media_toggle_playback())
+            self._attr_state = MediaPlayerState.PAUSED
+            self.async_write_ha_state()
 
     async def async_media_next_track(self) -> None:
         """Send next track command."""
