@@ -149,7 +149,7 @@ class TeslemetryNumberEntity(NumberEntity):
     entity_description: TeslemetryNumberEntityDescription
 
     def _async_update_attrs(self) -> None:
-        """Update the attributes of the climate entity."""
+        """Update the attributes of the entity."""
         self._attr_native_value = self._value
         self._attr_native_min_value = self.get(
             self.entity_description.min_key,
@@ -208,6 +208,6 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         self.async_write_ha_state()
 
     def _async_update_attrs(self) -> None:
-        """Update the attributes of the climate entity."""
+        """Update the attributes of the entity."""
         super()._async_update_attrs()
         self._attr_icon = icon_for_battery_level(self.native_value)

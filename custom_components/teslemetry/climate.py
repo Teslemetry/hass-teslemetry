@@ -66,7 +66,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         super().__init__(data, side)
 
     def _async_update_attrs(self) -> None:
-        """Update the attributes of the climate entity."""
+        """Update the attributes of the entity."""
         value = self.get("climate_state_is_climate_on")
         if value is None:
             self._attr_hvac_mode = None
