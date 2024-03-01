@@ -42,24 +42,25 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
         super().__init__(data, "vehicle_state_locked")
         self.scoped = scoped
 
-    @property
-    def is_locked(self) -> bool | None:
-        """Return the state of the Lock."""
-        return self._value
+    def _async_update_attrs(self) -> None:
+        """Update entity attributes."""
+        self._attr_is_locked = self._value
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.door_lock())
-        self.set((self.key, True))
+        self._attr_is_locked = True
+        self.async_write_ha_state()
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock the doors."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.door_unlock())
-        self.set((self.key, False))
+        self._attr_is_locked = False
+        self.async_write_ha_state()
 
 
 class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
@@ -74,13 +75,11 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
         super().__init__(data, "charge_state_charge_port_latch")
         self.scoped = scoped
 
-    @property
-    def is_locked(self) -> bool | None:
-        """Return the state of the Lock."""
-        value = self._value
-        if value is None:
-            return None
-        return value == TeslemetryChargeCableLockStates.ENGAGED
+    def _async_update_attrs(self) -> None:
+        """Update entity attributes."""
+        if self._value is None:
+            self._attr_is_locked = None
+        self._attr_is_locked = self._value == TeslemetryChargeCableLockStates.ENGAGED
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Charge cable Lock cannot be manually locked."""
@@ -95,7 +94,8 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.charge_port_door_open())
-        self.set((self.key, TeslemetryChargeCableLockStates.DISENGAGED))
+        self._attr_is_locked = False
+        self.async_write_ha_state()
 
 
 class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
@@ -112,10 +112,9 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
         super().__init__(data, "vehicle_state_speed_limit_mode_active")
         self.scoped = scoped
 
-    @property
-    def is_locked(self) -> bool | None:
-        """Return the state of the Lock."""
-        return self._value
+    def _async_update_attrs(self) -> None:
+        """Update entity attributes."""
+        self._attr_is_locked = self._value
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Enable speed limit with pin."""
@@ -124,7 +123,8 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.speed_limit_activate(code))
-            self.set((self.key, True))
+            self._attr_is_locked = True
+            self.async_write_ha_state()
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Disable speed limit with pin."""
@@ -133,4 +133,6 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.speed_limit_deactivate(code))
-            self.set((self.key, False))
+
+            self._attr_is_locked = False
+            self.async_write_ha_state()
