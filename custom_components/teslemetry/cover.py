@@ -50,43 +50,34 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
-    @property
-    def is_closed(self) -> bool | None:
-        """Return if the cover is closed or not."""
+    def _async_update_attrs(self) -> None:
+        """Update the entity attributes."""
         fd = self.get("vehicle_state_fd_window")
         fp = self.get("vehicle_state_fp_window")
         rd = self.get("vehicle_state_rd_window")
         rp = self.get("vehicle_state_rp_window")
 
         if fd or fp or rd or rp == TeslemetryCoverStates.OPEN:
-            return False
+            self._attr_is_closed = False
         if fd and fp and rd and rp == TeslemetryCoverStates.CLOSED:
-            return True
-        return None
+            self._attr_is_closed = True
+        self._attr_is_closed = None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Vent windows."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.window_control(command=WindowCommand.VENT))
-        self.set(
-            ("vehicle_state_fd_window", TeslemetryCoverStates.OPEN),
-            ("vehicle_state_fp_window", TeslemetryCoverStates.OPEN),
-            ("vehicle_state_rd_window", TeslemetryCoverStates.OPEN),
-            ("vehicle_state_rp_window", TeslemetryCoverStates.OPEN),
-        )
+        self._attr_is_closed = False
+        self.async_write_ha_state()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.window_control(command=WindowCommand.CLOSE))
-        self.set(
-            ("vehicle_state_fd_window", TeslemetryCoverStates.CLOSED),
-            ("vehicle_state_fp_window", TeslemetryCoverStates.CLOSED),
-            ("vehicle_state_rd_window", TeslemetryCoverStates.CLOSED),
-            ("vehicle_state_rp_window", TeslemetryCoverStates.CLOSED),
-        )
+        self._attr_is_closed = True
+        self.async_write_ha_state()
 
 
 class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
@@ -105,24 +96,25 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
-    @property
-    def is_closed(self) -> bool | None:
-        """Return if the cover is closed or not."""
-        return not self._value
+    def _async_update_attrs(self) -> None:
+        """Update the entity attributes."""
+        self._attr_is_closed = self._value
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.charge_port_door_open())
-        self.set((self.key, True))
+        self._attr_is_closed = False
+        self.async_write_ha_state()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.charge_port_door_close())
-        self.set((self.key, False))
+        self._attr_is_closed = True
+        self.async_write_ha_state()
 
 
 class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
@@ -139,17 +131,19 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
-    @property
-    def is_closed(self) -> bool | None:
-        """Return if the cover is closed or not."""
-        return self.exactly(TeslemetryCoverStates.CLOSED)
+    def _async_update_attrs(self) -> None:
+        """Update the entity attributes."""
+        self._attr_is_closed = self.exactly(TeslemetryCoverStates.CLOSED)
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.actuate_trunk(Trunk.FRONT))
-        self.set((self.key, TeslemetryCoverStates.OPEN))
+        self._attr_is_closed = False
+        self.async_write_ha_state()
+
+    # In the future this could be extended to add aftermarket close support through a option flow
 
 
 class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
@@ -166,15 +160,14 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
 
-    @property
-    def is_closed(self) -> bool | None:
-        """Return if the cover is closed or not."""
+    def _async_update_attrs(self) -> None:
+        """Update the entity attributes."""
         value = self._value
         if value == TeslemetryCoverStates.CLOSED:
-            return True
+            self._attr_is_closed = True
         if value == TeslemetryCoverStates.OPEN:
-            return False
-        return None
+            self._attr_is_closed = False
+        self._attr_is_closed = None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
@@ -182,7 +175,8 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.actuate_trunk(Trunk.REAR))
-            self.set((self.key, TeslemetryCoverStates.OPEN))
+            self._attr_is_closed = False
+            self.async_write_ha_state()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
@@ -190,4 +184,5 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.actuate_trunk(Trunk.REAR))
-            self.set((self.key, TeslemetryCoverStates.CLOSED))
+            self._attr_is_closed = True
+            self.async_write_ha_state()
