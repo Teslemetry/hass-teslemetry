@@ -60,11 +60,7 @@ class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
         self._attr_latitude = self.get("drive_state_latitude")
         self._attr_longitude = self.get("drive_state_longitude")
         self._last_update = self.get("drive_state_timestamp")
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and not (
+        self._attr_available = not (
             self.exactly(None, "drive_state_longitude")
             or self.exactly(None, "drive_state_latitude")
         )
@@ -80,11 +76,7 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
         self._attr_latitude = self.get("drive_state_active_route_latitude")
         self._attr_longitude = self.get("drive_state_active_route_longitude")
         self._attr_location_name = self.get("drive_state_active_route_destination")
-
-    @property
-    def available(self) -> bool:
-        """Return if sensor is available."""
-        return super().available and not (
+        self._attr_available = not (
             self.exactly(None, "drive_state_active_route_longitude")
             or self.exactly(None, "drive_state_active_route_latitude")
         )

@@ -47,6 +47,11 @@ class TeslemetryEntity(
         self._async_update_attrs()
 
     @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return self.coordinator.last_update_success and self._attr_available
+
+    @property
     def _value(self) -> int:
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(self.key)
