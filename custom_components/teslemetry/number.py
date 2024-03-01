@@ -148,30 +148,17 @@ class TeslemetryNumberEntity(NumberEntity):
 
     entity_description: TeslemetryNumberEntityDescription
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the value reported by the number."""
-        return self._value
-
-    @property
-    def native_min_value(self) -> float:
-        """Return the minimum value."""
-        if self.entity_description.min_key:
-            return self.get(
-                self.entity_description.min_key,
-                self.entity_description.native_min_value,
-            )
-        return self.entity_description.native_min_value
-
-    @property
-    def native_max_value(self) -> float:
-        """Return the maximum value."""
-        if self.entity_description.max_key:
-            return self.get(
-                self.entity_description.max_key,
-                self.entity_description.native_max_value,
-            )
-        return self.entity_description.native_max_value
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the climate entity."""
+        self._attr_native_value = self._value
+        self._attr_native_min_value = self.get(
+            self.entity_description.min_key,
+            self.entity_description.native_min_value,
+        )
+        self._attr_native_max_value = self.get(
+            self.entity_description.max_key,
+            self.entity_description.native_max_value,
+        )
 
 
 class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEntity):
@@ -193,7 +180,8 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.func(self.api, value))
-        self.set((self.key, value))
+        self._attr_native_value = value
+        self.async_write_ha_state()
 
 
 class TeslemetryEnergyInfoNumberSensorEntity(
@@ -216,9 +204,10 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         """Set new value."""
         self.raise_for_scope()
         await self.handle_command(self.entity_description.func(self.api, value))
-        self.set((self.key, value))
+        self._attr_native_value = value
+        self.async_write_ha_state()
 
-    @property
-    def icon(self) -> str | None:
-        """Return the icon to use in the frontend."""
-        return icon_for_battery_level(self.native_value)
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the climate entity."""
+        super()._async_update_attrs()
+        self._attr_icon = icon_for_battery_level(self.native_value)
