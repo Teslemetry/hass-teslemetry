@@ -56,7 +56,7 @@ class TeslemetryEntity(
         return self.coordinator.data.get(key, default)
 
     def exactly(self, value: Any, key: str | None = None) -> bool | None:
-        """Return if a key exactly matches the value, but retain None."""
+        """Return if a key exactly matches the valug but retain None."""
         key = key or self.key
         if value is None:
             return self.get(key, False) is None
