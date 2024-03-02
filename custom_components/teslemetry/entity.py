@@ -144,6 +144,8 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             or (value := data["data"].get(self.streaming_key)) is None
         ):
             return
+        if data["timestamp"] < self._last_update:
+            LOGGER.warning("A streaming update was older than a polled update")
         self._last_update = data["timestamp"]
         self._async_value_from_stream(value)
         self.async_write_ha_state()

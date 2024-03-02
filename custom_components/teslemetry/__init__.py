@@ -75,7 +75,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
-            stream = TeslemetryStream(session, access_token, vin=vin)
+            stream = TeslemetryStream(
+                session, access_token, vin=vin, parse_timestamp=True
+            )
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
