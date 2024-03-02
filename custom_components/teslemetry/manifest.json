@@ -10,11 +10,11 @@
   "issue_tracker": "https://github.com/Teslemetry/hacs-teslemetry/issues",
   "loggers": [
     "tesla_fleet_api",
-    "teslemetry-stream"
+    "teslemetry_stream"
   ],
   "requirements": [
     "tesla-fleet-api==0.4.5",
-    "teslemetry-stream==0.1.1"
+    "teslemetry-stream==0.1.2"
   ],
   "version": "1.5.6"
 }

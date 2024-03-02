@@ -1,6 +1,8 @@
 """Sensor platform for Teslemetry integration."""
 from __future__ import annotations
 
+from tesla_fleet_api.const import TelemetryField
+
 from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -33,7 +35,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DOMAIN, TeslemetryTimestamp
 from .entity import (
     TeslemetryEnergyLiveEntity,
     TeslemetryVehicleEntity,
@@ -59,28 +61,30 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    streaming_key: str | None = None
-    timestamp_key: str | None = None
+    streaming_key: TelemetryField | None = None
+    timestamp_key: TeslemetryTimestamp | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_state_charging_state",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.CHARGE_STATE,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         options=list(ChargeStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda value: ChargeStates.get(cast(str, value)),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_level",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.BATTERY_LEVEL,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_usable_battery_level",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -88,7 +92,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charge_energy_added",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.AC_CHARGING_ENERGY_IN,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
@@ -97,14 +102,15 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_power",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.AC_CHARGING_POWER,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_voltage",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
@@ -112,7 +118,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_actual_current",
-        timestamp_key="charge_state_timestamp",
+        stream_key=TelemetryField.CHARGE_AMPS,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
@@ -120,7 +127,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charge_rate",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         device_class=SensorDeviceClass.SPEED,
@@ -128,19 +135,19 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_conn_charge_cable",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_fast_charger_type",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_range",
-        timestamp_key="charge_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
@@ -148,7 +155,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_est_battery_range",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.EST_BATTERY_RANGE,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
@@ -157,7 +165,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_ideal_battery_range",
-        timestamp_key="charge_state_timestamp",
+        streaming_key=TelemetryField.IDEAL_BATTERY_RANGE,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
@@ -166,7 +175,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_speed",
-        timestamp_key="drive_state_timestamp",
+        streaming_key=TelemetryField.VEHICLE_SPEED,
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         device_class=SensorDeviceClass.SPEED,
@@ -174,7 +184,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_power",
-        timestamp_key="drive_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
@@ -183,14 +193,16 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_shift_state",
-        timestamp_key="drive_state_timestamp",
+        streaming_key=TelemetryField.GEAR,
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda x: ShiftStates.get(x, "p"),
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
-        timestamp_key="vehicle_state_timestamp",
+        streaming_key=TelemetryField.ODOMETER,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
@@ -199,7 +211,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_fl",
-        timestamp_key="vehicle_state_timestamp",
+        streaming_key=TelemetryField.TPMS_PRESSURE_FL,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
         # suggested_unit_of_measurement=UnitOfPressure.PSI,
@@ -209,7 +222,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_fr",
-        timestamp_key="vehicle_state_timestamp",
+        streaming_key=TelemetryField.TPMS_PRESSURE_FR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
         # suggested_unit_of_measurement=UnitOfPressure.PSI,
@@ -219,7 +233,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_rl",
-        timestamp_key="vehicle_state_timestamp",
+        streaming_key=TelemetryField.TPMS_PRESSURE_RL,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
         # suggested_unit_of_measurement=UnitOfPressure.PSI,
@@ -229,7 +244,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_rr",
-        timestamp_key="vehicle_state_timestamp",
+        streaming_key=TelemetryField.TPMS_PRESSURE_RR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
         # suggested_unit_of_measurement=UnitOfPressure.PSI,
@@ -239,6 +255,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="climate_state_inside_temp",
+        streaming_key=TelemetryField.INSIDE_TEMP,
         timestamp_key="climate_state_timestamp",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -247,6 +264,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="climate_state_outside_temp",
+        streaming_key=TelemetryField.OUTSIDE_TEMP,
         timestamp_key="climate_state_timestamp",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -273,14 +291,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_traffic_minutes_delay",
-        timestamp_key="drive_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_energy_at_arrival",
-        timestamp_key="drive_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -288,7 +306,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_miles_to_arrival",
-        timestamp_key="drive_state_timestamp",
+        streaming_key=TelemetryField.MILES_TO_ARRIVAL,
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
@@ -306,11 +325,14 @@ class TeslemetryTimeEntityDescription(SensorEntityDescription):
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
     TeslemetryTimeEntityDescription(
         key="charge_state_minutes_to_full_charge",
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryTimeEntityDescription(
         key="drive_state_active_route_minutes_to_arrival",
+        streaming_key=TelemetryField.MINUTES_TO_ARRIVAL,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
     ),
 )
@@ -494,7 +516,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the sensor."""
-        self._attr_native_value = value
+        self._attr_native_value = self.entity_description.value_fn(value)
 
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
@@ -532,6 +554,10 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             # value = self._get_timestamp(value)
             value = dt_util.now() + timedelta(minutes=value)
         self.native_value = value
+
+    def _async_value_from_stream(self, value) -> None:
+        self._attr_available = True
+        self._attr_native_value = dt_util.now() + timedelta(minutes=int(value))
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

@@ -129,7 +129,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         )
         super().__init__(data.coordinator, data.api, key)
 
-    async def async_added_to_hass(self) -> asyncio.Coroutine[Any, Any, None]:
+    async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         if self.streaming_key:
@@ -137,7 +137,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 self.stream.async_add_listener(self._handle_stream_update)
             )
 
-    async def _handle_stream_update(self, data: dict[str, Any]) -> None:
+    def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
         if (
             data["vin"] != self.api.vin
@@ -153,24 +153,27 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.timestamp_key is None:
-            LOGGER.debug("Updating %s, there is no timestamp key", self.name)
+            # LOGGER.debug("Updating %s, there is no timestamp key", self.name)
             self._async_update_attrs()
             self.async_write_ha_state()
             return
 
         timestamp = self.get(self.timestamp_key)
         if timestamp is None:
-            LOGGER.debug("Updating %s, there is no timestamp value", self.name)
+            # LOGGER.debug("Updating %s, there is no timestamp value", self.name)
             self._async_update_attrs()
             self.async_write_ha_state()
             return
         if timestamp > self._last_update:
-            LOGGER.debug("Updating %s, timestamp is newer", self.name)
+            # LOGGER.debug("Updating %s, timestamp is newer", self.name)
             self._last_update = timestamp
             self._async_update_attrs()
             self.async_write_ha_state()
             return
-        LOGGER.debug("Skipping update of %s, timestamp is not newer", self.name)
+        if timestamp == self._last_update:
+            LOGGER.debug("Skipping update of %s, timestamps are the same", self.name)
+        else:
+            LOGGER.debug("Skipping update of %s, new timestamp is older", self.name)
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""

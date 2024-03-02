@@ -7,3 +7,4 @@ logger:
   logs:
     custom_components.teslemetry: debug
     tesla_fleet_api: debug
+    teslemetry_stream: debug
