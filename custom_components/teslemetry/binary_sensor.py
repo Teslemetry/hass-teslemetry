@@ -55,6 +55,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_charger_phases",
         timestamp_key="charge_state_timestamp",
         is_on=lambda x: x > 1,
+        entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_preconditioning_enabled",
