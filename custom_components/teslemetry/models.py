@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import Scope
 
+from teslemetry_stream import TeslemetryStream
+
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
@@ -29,6 +31,7 @@ class TeslemetryVehicleData:
 
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
+    stream: TeslemetryStream
     display_name: str
     vin: str
     wakelock = asyncio.Lock()

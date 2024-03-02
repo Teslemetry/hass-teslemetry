@@ -6,6 +6,8 @@ from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
 
+from teslemetry_stream import TeslemetryStream
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
@@ -40,10 +42,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
     access_token = entry.data[CONF_ACCESS_TOKEN]
+    session = async_get_clientsession(hass)
 
     # Create API connection
     teslemetry = Teslemetry(
-        session=async_get_clientsession(hass),
+        session=session,
         access_token=access_token,
     )
     try:
@@ -72,10 +75,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            stream = TeslemetryStream(session, access_token, vin=vin)
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
                     coordinator=coordinator,
+                    stream=stream,
                     display_name=product["display_name"],
                     vin=vin,
                 )

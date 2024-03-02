@@ -114,6 +114,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         """Initialize common aspects of a Teslemetry entity."""
         self.timestamp_key = timestamp_key
         self.streaming_key = streaming_key
+        self.stream = data.stream
 
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
@@ -127,6 +128,25 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             serial_number=data.vin,
         )
         super().__init__(data.coordinator, data.api, key)
+
+    async def async_added_to_hass(self) -> asyncio.Coroutine[Any, Any, None]:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        if self.streaming_key:
+            self.async_on_remove(
+                self.stream.async_add_listener(self._handle_stream_update)
+            )
+
+    async def _handle_stream_update(self, data: dict[str, Any]) -> None:
+        """Handle updated data from the stream."""
+        if (
+            data["vin"] != self.api.vin
+            or (value := data["data"].get(self.streaming_key)) is None
+        ):
+            return
+        self._last_update = data["timestamp"]
+        self._async_value_from_stream(value)
+        self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
