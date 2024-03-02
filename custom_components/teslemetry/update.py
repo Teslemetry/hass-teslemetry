@@ -38,33 +38,32 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         scoped: bool,
     ) -> None:
         """Initialize the Update."""
-        super().__init__(data, "vehicle_state_software_update_status")
         self.scoped = scoped
+        super().__init__(data, "vehicle_state_software_update_status")
 
-    @property
-    def available(self) -> bool:
-        """Return if update entity is available."""
-        return super().available and self.has()
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        # Avaliable
+        self._attr_available = self.has()
 
-    @property
-    def supported_features(self) -> UpdateEntityFeature:
-        """Flag supported features."""
+        # Supported Features
         if self.scoped and self._value in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
         ):
-            return self._attr_supported_features | UpdateEntityFeature.INSTALL
-        return self._attr_supported_features
+            self._attr_supported_features = (
+                UpdateEntityFeature.PROGRESS | UpdateEntityFeature.INSTALL
+            )
+        else:
+            self._attr_supported_features = UpdateEntityFeature.PROGRESS
 
-    @property
-    def installed_version(self) -> str:
-        """Return the current app version."""
-        # Discard build from version number
-        return self.coordinator.data["vehicle_state_car_version"].split(" ")[0]
+        # Installed Version
+        self._attr_installed_version = self.get("vehicle_state_car_version")
+        if self._attr_installed_version is not None:
+            # Remove build from version
+            self._attr_installed_version = self._attr_installed_version.split(" ")[0]
 
-    @property
-    def latest_version(self) -> str | None:
-        """Return the latest version."""
+        # Latest Version
         if self._value in (
             TeslemetryUpdateStatus.AVAILABLE,
             TeslemetryUpdateStatus.SCHEDULED,
@@ -72,18 +71,21 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
             TeslemetryUpdateStatus.DOWNLOADING,
             TeslemetryUpdateStatus.WIFI_WAIT,
         ):
-            return self.get("vehicle_state_software_update_version")
-        return self.installed_version
+            self._attr_latest_version = self.coordinator.data[
+                "vehicle_state_software_update_version"
+            ]
+        else:
+            self._attr_latest_version = self._attr_installed_version
 
-    @property
-    def in_progress(self) -> bool | int | None:
-        """Update installation progress."""
+        # In Progress
         if self._value in (
             TeslemetryUpdateStatus.SCHEDULED,
             TeslemetryUpdateStatus.INSTALLING,
         ):
-            return self.get("vehicle_state_software_update_install_perc")
-        return False
+            self._attr_in_progress = self.get(
+                "vehicle_state_software_update_install_perc"
+            )
+        self._attr_in_progress = False
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
@@ -92,6 +94,5 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.api.schedule_software_update(offset_sec=60))
-        self.set(
-            ("vehicle_state_software_update_status", TeslemetryUpdateStatus.INSTALLING)
-        )
+        self._attr_state = TeslemetryUpdateStatus.INSTALLING
+        self.async_write_ha_state()

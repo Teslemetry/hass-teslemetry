@@ -52,6 +52,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
+        key="charge_state_charger_phases",
+        timestamp_key="charge_state_timestamp",
+        is_on=lambda x: x > 1,
+    ),
+    TeslemetryBinarySensorEntityDescription(
         key="charge_state_preconditioning_enabled",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
@@ -222,10 +227,10 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        value = self._value
-        if value is None:
+        if self._value is None:
             self._attr_is_on = None
-        self._attr_is_on = self.entity_description.is_on(value)
+        else:
+            self._attr_is_on = self.entity_description.is_on(self._value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

@@ -171,9 +171,9 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         scopes: list[Scope],
     ) -> None:
         """Initialize the Number entity."""
-        super().__init__(data, description.key)
         self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
+        super().__init__(data, description.key)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
@@ -196,9 +196,9 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         scopes: list[Scope],
     ) -> None:
         """Initialize the Number entity."""
-        super().__init__(data, description.key)
         self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
+        super().__init__(data, description.key)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""

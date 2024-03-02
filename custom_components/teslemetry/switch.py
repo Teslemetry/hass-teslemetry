@@ -131,13 +131,9 @@ class TeslemetrySwitchEntity(SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
 
-    @property
-    def is_on(self) -> bool:
-        """Return the state of the Switch."""
-        value = self._value
-        if value is None:
-            return None
-        return value
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+        self._attr_is_on = self._value
 
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
@@ -159,30 +155,27 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.on_func(self.api))
-        self.set((self.key, True))
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.off_func(self.api))
-        self.set((self.key, False))
+        self._attr_is_on = False
+        self.async_write_ha_state()
 
 
 class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
     """Entity class for Teslemetry Charge Switch."""
 
-    @property
-    def is_on(self) -> bool:
-        """Return the state of the Switch."""
-        # First check the user request value,
-        value = self._value
-        if value is None:
-            # if its None get the base request value
-            value = self.get("charge_state_charge_enable_request")
-        if value is None:
-            return None
-        return value
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        if self._value is None:
+            self._attr_is_on = self.get("charge_state_charge_enable_request")
+        else:
+            self._attr_is_on = self._value
 
 
 class TeslemetryStormModeSwitchEntity(
@@ -203,13 +196,15 @@ class TeslemetryStormModeSwitchEntity(
         """Turn on the Switch."""
         self.raise_for_scope()
         await self.handle_command(self.api.storm_mode(enabled=True))
-        self.set((self.key, True))
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope()
         await self.handle_command(self.api.storm_mode(enabled=False))
-        self.set((self.key, False))
+        self._attr_is_on = False
+        self.async_write_ha_state()
 
 
 class TeslemetryChargeFromGridSwitchEntity(
@@ -223,17 +218,16 @@ class TeslemetryChargeFromGridSwitchEntity(
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
+        self.scoped = Scope.ENERGY_CMDS in scopes
         super().__init__(
             data, "components_disallow_charge_from_grid_with_solar_installed"
         )
-        self.scoped = Scope.ENERGY_CMDS in scopes
 
-    @property
-    def is_on(self) -> bool:
-        """Return the state of the Switch."""
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
         # When disallow_charge_from_grid_with_solar_installed is missing, its Off.
         # But this sensor is flipped to match how the Tesla app works.
-        return not self.get(self.key, False)
+        self._attr_is_on = not self.get(self.key, False)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -243,7 +237,8 @@ class TeslemetryChargeFromGridSwitchEntity(
                 disallow_charge_from_grid_with_solar_installed=False
             )
         )
-        self.set((self.key, True))
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
@@ -253,4 +248,5 @@ class TeslemetryChargeFromGridSwitchEntity(
                 disallow_charge_from_grid_with_solar_installed=True
             )
         )
-        self.set((self.key, False))
+        self._attr_is_on = False
+        self.async_write_ha_state()

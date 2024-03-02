@@ -119,12 +119,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
-        key="charge_state_charger_phases",
-        timestamp_key="charge_state_timestamp",
-        device_class=SensorDeviceClass.ENUM,
-        options=[1, 2, 3],
-    ),
-    TeslemetrySensorEntityDescription(
         key="charge_state_charge_rate",
         timestamp_key="charge_state_timestamp",
         state_class=SensorStateClass.MEASUREMENT,
@@ -495,7 +489,8 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Update the attributes of the sensor."""
         if self.has():
             self._attr_native_value = self.entity_description.value_fn(self._value)
-        self._attr_native_value = None
+        else:
+            self._attr_native_value = None
 
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
@@ -510,10 +505,11 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         description: TeslemetrySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, description.key)
         self.entity_description = description
+        super().__init__(data, description.key)
 
-        self._get_timestamp: Callable = (
+    def _get_timestamp(value):
+        return (
             ignore_variance(
                 func=lambda value: dt_util.now() + timedelta(minutes=value),
                 ignored_variance=timedelta(minutes=1),
@@ -545,8 +541,8 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, description.key)
         self.entity_description = description
+        super().__init__(data, description.key)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
@@ -566,12 +562,12 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
+        self.entity_description = description
         super().__init__(
             data,
             din,
             description.key,
         )
-        self.entity_description = description
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
@@ -590,8 +586,8 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, description.key)
         self.entity_description = description
+        super().__init__(data, description.key)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""

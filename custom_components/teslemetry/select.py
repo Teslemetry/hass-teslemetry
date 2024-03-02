@@ -153,7 +153,8 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         await self.handle_command(
             self.api.remote_seat_heater_request(self.description.position, level)
         )
-        self.set((self.key, level))
+        self._attr_current_option = option
+        self.async_write_ha_state()
 
 
 class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):

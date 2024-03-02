@@ -59,7 +59,6 @@ class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
 
         self._attr_latitude = self.get("drive_state_latitude")
         self._attr_longitude = self.get("drive_state_longitude")
-        self._last_update = self.get("drive_state_timestamp")
         self._attr_available = not (
             self.exactly(None, "drive_state_longitude")
             or self.exactly(None, "drive_state_latitude")

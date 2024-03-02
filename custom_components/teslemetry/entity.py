@@ -70,12 +70,6 @@ class TeslemetryEntity(
             return None
         return current == value
 
-    def set(self, *args: Any) -> None:
-        """Set a value in coordinator data."""
-        for key, value in args:
-            self.coordinator.data[key] = value
-        self.async_write_ha_state()
-
     def has(self, key: str | None = None) -> bool:
         """Return True if a specific value is in coordinator data."""
         return (key or self.key) in self.coordinator.data
@@ -99,9 +93,6 @@ class TeslemetryEntity(
             ) from e
         return result
 
-    def _async_update_attrs(self) -> None:
-        """Update attributes with coordinator data."""
-
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self._async_update_attrs()
@@ -121,7 +112,6 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         streaming_key: str | None = None,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.coordinator, data.api, key)
         self.timestamp_key = timestamp_key
         self.streaming_key = streaming_key
 
@@ -136,20 +126,24 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             model=MODELS.get(data.vin[3]),
             serial_number=data.vin,
         )
+        super().__init__(data.coordinator, data.api, key)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.timestamp_key is None:
+            LOGGER.debug("Updating %s, there is no timestamp key", self.name)
             self._async_update_attrs()
             self.async_write_ha_state()
             return
 
         timestamp = self.get(self.timestamp_key)
         if timestamp is None:
+            LOGGER.debug("Updating %s, there is no timestamp value", self.name)
             self._async_update_attrs()
             self.async_write_ha_state()
             return
         if timestamp > self._last_update:
+            LOGGER.debug("Updating %s, timestamp is newer", self.name)
             self._last_update = timestamp
             self._async_update_attrs()
             self.async_write_ha_state()
@@ -197,15 +191,15 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.live_coordinator, data.api, key)
         self._attr_unique_id = f"{data.id}-{key}"
-
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(data.id))},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=self.coordinator.data.get("site_name", "Energy Site"),
         )
+
+        super().__init__(data.live_coordinator, data.api, key)
 
 
 class TeslemetryEnergyInfoEntity(TeslemetryEntity):
@@ -217,15 +211,15 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.info_coordinator, data.api, key)
         self._attr_unique_id = f"{data.id}-{key}"
-
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(data.id))},
             manufacturer="Tesla",
             configuration_url="https://teslemetry.com/console",
             name=self.coordinator.data.get("site_name", "Energy Site"),
         )
+
+        super().__init__(data.info_coordinator, data.api, key)
 
 
 class TeslemetryWallConnectorEntity(
@@ -242,10 +236,8 @@ class TeslemetryWallConnectorEntity(
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        super().__init__(data.live_coordinator, data.api, key)
-        self._attr_unique_id = f"{data.id}-{din}-{key}"
         self.din = din
-
+        self._attr_unique_id = f"{data.id}-{din}-{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
             manufacturer="Tesla",
@@ -254,6 +246,8 @@ class TeslemetryWallConnectorEntity(
             via_device=(DOMAIN, str(data.id)),
             serial_number=din.split("-")[-1],
         )
+
+        super().__init__(data.live_coordinator, data.api, key)
 
     @property
     def _value(self) -> int:

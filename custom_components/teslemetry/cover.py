@@ -59,9 +59,10 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
 
         if fd or fp or rd or rp == TeslemetryCoverStates.OPEN:
             self._attr_is_closed = False
-        if fd and fp and rd and rp == TeslemetryCoverStates.CLOSED:
+        elif fd and fp and rd and rp == TeslemetryCoverStates.CLOSED:
             self._attr_is_closed = True
-        self._attr_is_closed = None
+        else:
+            self._attr_is_closed = None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Vent windows."""
@@ -165,9 +166,10 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
         value = self._value
         if value == TeslemetryCoverStates.CLOSED:
             self._attr_is_closed = True
-        if value == TeslemetryCoverStates.OPEN:
+        elif value == TeslemetryCoverStates.OPEN:
             self._attr_is_closed = False
-        self._attr_is_closed = None
+        else:
+            self._attr_is_closed = None
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
