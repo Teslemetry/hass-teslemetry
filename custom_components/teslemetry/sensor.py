@@ -320,6 +320,8 @@ class TeslemetryTimeEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     variance: int = 60
+    streaming_key: TelemetryField | None = None
+    timestamp_key: TeslemetryTimestamp | None = None
 
 
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
