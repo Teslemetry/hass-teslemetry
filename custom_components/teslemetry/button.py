@@ -76,7 +76,6 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
         """Initialize the button."""
         self.entity_description = description
         super().__init__(data, description.key)
-        print(self._attr_available)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
