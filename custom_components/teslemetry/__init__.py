@@ -115,7 +115,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
-        *(vehicle.stream.connect() for vehicle in vehicles),
     )
 
     # Setup Platforms
