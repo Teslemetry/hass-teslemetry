@@ -118,7 +118,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_actual_current",
-        stream_key=TelemetryField.CHARGE_AMPS,
+        streaming_key=TelemetryField.CHARGE_AMPS,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
