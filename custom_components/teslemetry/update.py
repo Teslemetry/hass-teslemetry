@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import Scope
+from tesla_fleet_api.const import Scope, TelemetryField
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryUpdateStatus
+from .const import DOMAIN, TeslemetryUpdateStatus, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -39,7 +39,12 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     ) -> None:
         """Initialize the Update."""
         self.scoped = scoped
-        super().__init__(data, "vehicle_state_software_update_status")
+        super().__init__(
+            data,
+            "vehicle_state_software_update_status",
+            timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+            streaming_key=TelemetryField.VERSION,
+        )
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -86,6 +91,10 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
                 "vehicle_state_software_update_install_perc"
             )
         self._attr_in_progress = False
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_latest_version = value
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any

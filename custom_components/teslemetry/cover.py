@@ -108,6 +108,10 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
         """Update the entity attributes."""
         self._attr_is_closed = self._value
 
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_is_closed = value
+
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
         self.raise_for_scope()

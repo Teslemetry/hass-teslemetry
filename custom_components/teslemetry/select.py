@@ -1,7 +1,13 @@
 """Select platform for Teslemetry integration."""
 from __future__ import annotations
 from itertools import chain
-from tesla_fleet_api.const import Scope, Seat, EnergyExportMode, EnergyOperationMode
+from tesla_fleet_api.const import (
+    Scope,
+    Seat,
+    EnergyExportMode,
+    EnergyOperationMode,
+    TelemetryField,
+)
 
 from dataclasses import dataclass
 
@@ -10,7 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetrySeatHeaterOptions
+from .const import DOMAIN, TeslemetrySeatHeaterOptions, TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
@@ -24,21 +30,29 @@ class SeatHeaterDescription(SelectEntityDescription):
 
     position: Seat
     avaliable_fn: callable
+    timestamp_key: TeslemetryTimestamp | None = None
+    streaming_key: TelemetryField | None = None
 
 
 SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     SeatHeaterDescription(
         key="climate_state_seat_heater_left",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.SEAT_HEATER_LEFT,
         position=Seat.FRONT_LEFT,
         avaliable_fn=lambda _: True,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_right",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.SEAT_HEATER_RIGHT,
         position=Seat.FRONT_RIGHT,
         avaliable_fn=lambda _: True,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_left",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.SEAT_HEATER_REAR_LEFT,
         position=Seat.REAR_LEFT,
         avaliable_fn=lambda self: not self.exactly(
             "vehicle_config_rear_seat_heaters", 0
@@ -47,6 +61,8 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_center",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.SEAT_HEATER_REAR_CENTER,
         position=Seat.REAR_CENTER,
         avaliable_fn=lambda self: not self.exactly(
             0, "vehicle_config_rear_seat_heaters"
@@ -55,6 +71,8 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_right",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.SEAT_HEATER_REAR_RIGHT,
         position=Seat.REAR_RIGHT,
         avaliable_fn=lambda self: not self.exactly(
             0, "vehicle_config_rear_seat_heaters"
@@ -63,6 +81,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_third_row_left",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         position=Seat.THIRD_LEFT,
         avaliable_fn=lambda self: not self.exactly(
             "None", "vehicle_config_third_row_seats"
@@ -71,6 +90,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_third_row_right",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         position=Seat.THIRD_RIGHT,
         avaliable_fn=lambda self: not self.exactly(
             "None", "vehicle_config_third_row_seats"
@@ -131,7 +151,9 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         """Initialize the vehicle seat select entity."""
         self.entity_description = description
         self.scoped = scoped
-        super().__init__(data, description.key)
+        super().__init__(
+            data, description.key, description.timestamp_key, description.streaming_key
+        )
 
     def _async_update_attrs(self) -> None:
         """Handle updated data from the coordinator."""
@@ -141,6 +163,10 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
             self._attr_current_option = None
         else:
             self._attr_current_option = self._attr_options[value]
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_current_option = value
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""

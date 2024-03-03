@@ -79,7 +79,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
     TeslemetryNumberEntityDescription(
         key="vehicle_state_speed_limit_mode_current_limit_mph",
-        timestmap_key=TeslemetryTimestamp.VEHICLE_STATE,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         native_min_value=50,
         native_max_value=120,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
@@ -180,7 +180,13 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         """Initialize the Number entity."""
         self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
-        super().__init__(data, description.key)
+        super().__init__(
+            data, description.key, description.timestamp_key, description.streaming_key
+        )
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_native_value = value
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""

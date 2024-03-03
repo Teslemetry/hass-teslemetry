@@ -517,7 +517,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             self._attr_native_value = None
 
     def _async_value_from_stream(self, value) -> None:
-        """Update the value of the sensor."""
+        """Update the value of the entity."""
         self._attr_native_value = self.entity_description.value_fn(value)
 
 

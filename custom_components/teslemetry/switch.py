@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from tesla_fleet_api.const import Scope, Seat
+from tesla_fleet_api.const import Scope, Seat, TelemetryField
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -16,7 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
@@ -35,23 +35,30 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     on_func: Callable
     off_func: Callable
     scopes: list[Scope] | None = None
+    timestamp_key: TeslemetryTimestamp | None = None
+    streaming_key: TelemetryField | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        streaming_key=TelemetryField.SENTRY_MODE,
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         on_func=lambda api: api.set_valet_mode(on=True),
         off_func=lambda api: api.set_valet_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.AUTO_SEAT_CLIMATE_LEFT,
         on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
         off_func=lambda api: api.remote_auto_seat_climate_request(
             Seat.FRONT_LEFT, False
@@ -60,6 +67,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=TelemetryField.AUTO_SEAT_CLIMATE_RIGHT,
         on_func=lambda api: api.remote_auto_seat_climate_request(
             Seat.FRONT_RIGHT, True
         ),
@@ -70,6 +79,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_steering_wheel_heat",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
             on=True
         ),
@@ -146,9 +156,15 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(data, description.key)
+        super().__init__(
+            data, description.key, description.timestamp_key, description.streaming_key
+        )
         self.entity_description = description
         self.scoped = any(scope in scopes for scope in description.scopes)
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_is_on = value
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
