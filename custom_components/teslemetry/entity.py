@@ -172,12 +172,6 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         ):
             return
 
-        LOGGER.info(
-            "Streaming update of %s is %s sec newer",
-            self.name,
-            (data["timestamp"] - self._last_update) / 1000,
-        )
-
         self._last_update = data["timestamp"]
         self._async_value_from_stream(value)
         self.async_write_ha_state()
