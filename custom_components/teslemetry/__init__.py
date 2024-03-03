@@ -13,8 +13,9 @@ from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
@@ -78,26 +79,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             stream = TeslemetryStream(
                 session, access_token, vin=vin, parse_timestamp=True
             )
+            device = DeviceInfo(
+                identifiers={(DOMAIN, vin)},
+                manufacturer="Tesla",
+                configuration_url="https://teslemetry.com/console",
+                name=product["display_name"],
+                model=MODELS.get(vin[3]),
+                serial_number=vin,
+            )
+
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
                     coordinator=coordinator,
                     stream=stream,
-                    display_name=product["display_name"],
                     vin=vin,
+                    device=device,
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
+            live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
+            info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, product)
+            device = DeviceInfo(
+                identifiers={(DOMAIN, str(site_id))},
+                manufacturer="Tesla",
+                configuration_url="https://teslemetry.com/console",
+                name=product.get("site_name", "Energy Site"),
+            )
+
             energysites.append(
                 TeslemetryEnergyData(
                     api=api,
-                    live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
-                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(
-                        hass, api, product
-                    ),
+                    live_coordinator=live_coordinator,
+                    info_coordinator=info_coordinator,
                     id=site_id,
+                    device=device,
                 )
             )
 

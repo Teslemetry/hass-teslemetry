@@ -4,12 +4,13 @@ import asyncio
 from typing import Any
 from tesla_fleet_api import VehicleSpecific, EnergySpecific
 from tesla_fleet_api.exceptions import TeslaFleetError
+from tesla_fleet_api.const import TelemetryField
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import ServiceValidationError, HomeAssistantError
 
-from .const import DOMAIN, LOGGER, MODELS, TeslemetryState
+from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
 from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
@@ -18,6 +19,39 @@ from .coordinator import (
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 FUTURE = 32503680000000
+
+
+class TeslemetryVehicleStreamEntity:
+    """Parent class for Teslemetry Vehicle Stream entities."""
+
+    def __init__(
+        self, data: TeslemetryVehicleData, streaming_key: TelemetryField
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        self.streaming_key = streaming_key
+        self._attr_translation_key = streaming_key
+        self.stream = data.stream
+
+        self._attr_unique_id = f"{data.vin}-{streaming_key}"
+        self._attr_device_info = data.device
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        if self.streaming_key:
+            self.async_on_remove(
+                self.stream.async_add_listener(self._handle_stream_update)
+            )
+
+    def _handle_stream_update(self, data: dict[str, Any]) -> None:
+        """Handle updated data from the stream."""
+        if (
+            data["vin"] != self.api.vin
+            or (value := data["data"].get(self.streaming_key)) is None
+        ):
+            return
+        self._async_value_from_stream(value)
+        self.async_write_ha_state()
 
 
 class TeslemetryEntity(
@@ -108,8 +142,8 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self,
         data: TeslemetryVehicleData,
         key: str,
-        timestamp_key: str | None = None,
-        streaming_key: str | None = None,
+        timestamp_key: TeslemetryTimestamp | None = None,
+        streaming_key: TelemetryField | None = None,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.timestamp_key = timestamp_key
@@ -119,14 +153,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, data.vin)},
-            manufacturer="Tesla",
-            configuration_url="https://teslemetry.com/console",
-            name=data.display_name,
-            model=MODELS.get(data.vin[3]),
-            serial_number=data.vin,
-        )
+        self._attr_device_info = data.device
         super().__init__(data.coordinator, data.api, key)
 
     async def async_added_to_hass(self) -> None:
@@ -144,23 +171,22 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             or (value := data["data"].get(self.streaming_key)) is None
         ):
             return
-        if data["timestamp"] < self._last_update:
-            LOGGER.warning("A streaming update was older than a polled update")
+
+        LOGGER.info(
+            "Streaming update of %s is %s sec newer",
+            self.name,
+            (data["timestamp"] - self._last_update) / 1000,
+        )
+
         self._last_update = data["timestamp"]
         self._async_value_from_stream(value)
         self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.timestamp_key is None:
-            # LOGGER.debug("Updating %s, there is no timestamp key", self.name)
-            self._async_update_attrs()
-            self.async_write_ha_state()
-            return
-
         timestamp = self.get(self.timestamp_key)
         if timestamp is None:
-            # LOGGER.debug("Updating %s, there is no timestamp value", self.name)
+            # LOGGER.debug("Updating %s, there is no timestamp key or value", self.name)
             self._async_update_attrs()
             self.async_write_ha_state()
             return
@@ -170,9 +196,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             self._async_update_attrs()
             self.async_write_ha_state()
             return
-        if timestamp == self._last_update:
-            LOGGER.debug("Skipping update of %s, timestamps are the same", self.name)
-        else:
+        if timestamp < self._last_update:
             LOGGER.debug("Skipping update of %s, new timestamp is older", self.name)
 
     async def wake_up_if_asleep(self) -> None:
@@ -237,12 +261,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self._attr_unique_id = f"{data.id}-{key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(data.id))},
-            manufacturer="Tesla",
-            configuration_url="https://teslemetry.com/console",
-            name=self.coordinator.data.get("site_name", "Energy Site"),
-        )
+        self._attr_device_info = data.device
 
         super().__init__(data.info_coordinator, data.api, key)
 

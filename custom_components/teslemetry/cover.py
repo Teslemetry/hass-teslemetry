@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import WindowCommand, Trunk, Scope
+from tesla_fleet_api.const import WindowCommand, Trunk, Scope, TelemetryField
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryCoverStates
+from .const import DOMAIN, TeslemetryCoverStates, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -45,7 +45,9 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
 
     def __init__(self, data: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(data, "windows")
+        super().__init__(
+            data, "windows", timestamp_key=TeslemetryTimestamp.VEHICLE_STATE
+        )
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
@@ -89,7 +91,12 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "charge_state_charge_port_door_open")
+        super().__init__(
+            vehicle,
+            "charge_state_charge_port_door_open",
+            timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+            streaming_key=TelemetryField.CHARGE_PORT,
+        )
         self.scoped = any(
             scope in scopes
             for scope in [Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS]

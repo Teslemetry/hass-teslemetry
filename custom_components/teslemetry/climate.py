@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import Scope
+from tesla_fleet_api.const import Scope, TelemetryField
 
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -16,7 +16,7 @@ from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemper
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryClimateSide
+from .const import DOMAIN, TeslemetryClimateSide, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -63,7 +63,12 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         if not self.scoped:
             self._attr_supported_features = ClimateEntityFeature(0)
 
-        super().__init__(data, side)
+        super().__init__(
+            data,
+            side,
+            timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+            streaming_key=TelemetryField.INSIDE_TEMP,
+        )
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -80,6 +85,10 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         self._attr_preset_mode = self.get("climate_state_climate_keeper_mode")
         self._attr_min_temp = self.get("climate_state_min_avail_temp", DEFAULT_MIN_TEMP)
         self._attr_max_temp = self.get("climate_state_max_avail_temp", DEFAULT_MAX_TEMP)
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value from the stream."""
+        self._attr_current_temperature = value
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
