@@ -6,7 +6,7 @@ from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
 
-from teslemetry_stream import TeslemetryStream
+from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
@@ -53,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         # scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
         scopes = (await teslemetry.metadata())["scopes"]
+        await asyncio.sleep(1)  # Avoid rate limiting
         products = (await teslemetry.products())["response"]
     except InvalidToken:
         LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
@@ -119,8 +120,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
 
-    # Do all coordinator first refreshes simultaneously
-    await asyncio.gather(
+    # Control all first refreshes to avoid rate limiter
+    for task in (
         *(
             vehicle.coordinator.async_config_entry_first_refresh()
             for vehicle in vehicles
@@ -133,7 +134,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
-    )
+    ):
+        await asyncio.sleep(1)  # Avoid rate limiting
+        await task
+
+    # Control all stream get_config calls to avoid rate limiter
+    for vehicle in vehicles:
+        await asyncio.sleep(1)  # Avoid rate limiting
+        try:
+            await vehicle.stream.get_config()
+        except TeslemetryStreamVehicleNotConfigured:
+            LOGGER.warning(
+                "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
+                vehicle.device["name"],
+                vehicle.vin,
+            )
+            pass
 
     # Setup Platforms
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(

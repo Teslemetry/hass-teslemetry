@@ -159,7 +159,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        if self.streaming_key:
+        if self.stream.server and self.streaming_key:
             self.async_on_remove(
                 self.stream.async_add_listener(self._handle_stream_update)
             )
