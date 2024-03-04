@@ -218,8 +218,12 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a vehicle command."""
         result = await super().handle_command(command)
-        if not (message := result.get("response", {}).get("result")):
-            message = message or "Bad response from Tesla"
+        if (response := result.get("response")) is None:
+            message = response.get("error", "Bad response from Tesla")
+            LOGGER.debug("Command failure: %s", message)
+            raise ServiceValidationError(message)
+        if not (message := response.get("result")):
+            message = response.get("reason", "Bad response from Tesla")
             LOGGER.debug("Command failure: %s", message)
             raise ServiceValidationError(message)
         return result
