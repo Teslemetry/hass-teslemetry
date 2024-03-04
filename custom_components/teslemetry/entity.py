@@ -219,13 +219,19 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         """Handle a vehicle command."""
         result = await super().handle_command(command)
         if (response := result.get("response")) is None:
-            message = response.get("error", "Bad response from Tesla")
-            LOGGER.debug("Command failure: %s", message)
-            raise ServiceValidationError(message)
+            if message := response.get("error"):
+                LOGGER.info("Command failure: %s", message)
+                raise ServiceValidationError(message)
+            else:
+                LOGGER.warning("Unknown response: %s", response)
+                raise ServiceValidationError("Unknown response")
         if not (message := response.get("result")):
-            message = response.get("reason", "Bad response from Tesla")
-            LOGGER.debug("Command failure: %s", message)
-            raise ServiceValidationError(message)
+            if message := response.get("reason"):
+                LOGGER.info("Command failure: %s", message)
+                raise ServiceValidationError(message)
+            else:
+                LOGGER.warning("Unknown response: %s", response)
+                raise ServiceValidationError("Unknown response")
         return result
 
 
