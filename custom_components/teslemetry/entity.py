@@ -246,7 +246,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         data: TeslemetryEnergyData,
         key: str,
     ) -> None:
-        """Initialize common aspects of a Teslemetry entity."""
+        """Initialize common aspects of a Teslemetry Energy Site Live entity."""
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
 
@@ -261,7 +261,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         data: TeslemetryEnergyData,
         key: str,
     ) -> None:
-        """Initialize common aspects of a Teslemetry entity."""
+        """Initialize common aspects of a Teslemetry Energy Site Info entity."""
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
 
