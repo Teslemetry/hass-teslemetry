@@ -220,18 +220,21 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         result = await super().handle_command(command)
         if (response := result.get("response")) is None:
             if message := response.get("error"):
+                # No response with error
                 LOGGER.info("Command failure: %s", message)
                 raise ServiceValidationError(message)
-            else:
-                LOGGER.warning("Unknown response: %s", response)
-                raise ServiceValidationError("Unknown response")
-        if not (message := response.get("result")):
+            # No response without error (unexpected)
+            LOGGER.warning("Unknown response: %s", response)
+            raise ServiceValidationError("Unknown response")
+        if (message := response.get("result")) is not True:
             if message := response.get("reason"):
+                # Result of false with reason
                 LOGGER.info("Command failure: %s", message)
                 raise ServiceValidationError(message)
-            else:
-                LOGGER.warning("Unknown response: %s", response)
-                raise ServiceValidationError("Unknown response")
+            # Result of false without reason (unexpected)
+            LOGGER.warning("Unknown response: %s", response)
+            raise ServiceValidationError("Unknown response")
+        # Response with result of true
         return result
 
 
