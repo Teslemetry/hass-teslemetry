@@ -224,7 +224,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 LOGGER.info("Command failure: %s", message)
                 raise ServiceValidationError(message)
             # No response without error (unexpected)
-            LOGGER.warning("Unknown response: %s", response)
+            LOGGER.error("Unknown response: %s", response)
             raise ServiceValidationError("Unknown response")
         if (message := response.get("result")) is not True:
             if message := response.get("reason"):
@@ -232,7 +232,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 LOGGER.info("Command failure: %s", message)
                 raise ServiceValidationError(message)
             # Result of false without reason (unexpected)
-            LOGGER.warning("Unknown response: %s", response)
+            LOGGER.error("Unknown response: %s", response)
             raise ServiceValidationError("Unknown response")
         # Response with result of true
         return result
@@ -248,12 +248,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self._attr_unique_id = f"{data.id}-{key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(data.id))},
-            manufacturer="Tesla",
-            configuration_url="https://teslemetry.com/console",
-            name=self.coordinator.data.get("site_name", "Energy Site"),
-        )
+        self._attr_device_info = data.device
 
         super().__init__(data.live_coordinator, data.api, key)
 
