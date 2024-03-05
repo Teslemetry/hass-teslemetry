@@ -53,7 +53,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         # scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
         scopes = (await teslemetry.metadata())["scopes"]
-        await asyncio.sleep(1)  # Avoid rate limiting
         products = (await teslemetry.products())["response"]
     except InvalidToken:
         LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
@@ -135,12 +134,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for energysite in energysites
         ),
     ):
-        await asyncio.sleep(1)  # Avoid rate limiting
         await task
 
     # Control all stream get_config calls to avoid rate limiter
     for vehicle in vehicles:
-        await asyncio.sleep(1)  # Avoid rate limiting
         try:
             await vehicle.stream.get_config()
         except TeslemetryStreamVehicleNotConfigured:
