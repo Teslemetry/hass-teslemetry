@@ -1,5 +1,4 @@
 """Teslemetry integration."""
-import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
@@ -139,7 +138,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Control all stream get_config calls to avoid rate limiter
     for vehicle in vehicles:
         try:
-            await vehicle.stream.get_config()
+            async with teslemetry.rate_limit:
+                await vehicle.stream.get_config()
         except TeslemetryStreamVehicleNotConfigured:
             LOGGER.warning(
                 "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
