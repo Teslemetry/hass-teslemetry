@@ -150,26 +150,10 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryNumberEntity(NumberEntity):
-    """Base class for all Teslemetry number entities."""
+class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
+    """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the entity."""
-        self._attr_native_value = self._value
-        self._attr_native_min_value = self.get(
-            self.entity_description.min_key,
-            self.entity_description.native_min_value,
-        )
-        self._attr_native_max_value = self.get(
-            self.entity_description.max_key,
-            self.entity_description.native_max_value,
-        )
-
-
-class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEntity):
-    """Number entity for current charge."""
 
     def __init__(
         self,
@@ -182,6 +166,18 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         self.entity_description = description
         super().__init__(
             data, description.key, description.timestamp_key, description.streaming_key
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_native_value = self._value
+        self._attr_native_min_value = self.get(
+            self.entity_description.min_key,
+            self.entity_description.native_min_value,
+        )
+        self._attr_native_max_value = self.get(
+            self.entity_description.max_key,
+            self.entity_description.native_max_value,
         )
 
     def _async_value_from_stream(self, value) -> None:
@@ -197,10 +193,10 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, TeslemetryNumberEnt
         self.async_write_ha_state()
 
 
-class TeslemetryEnergyInfoNumberSensorEntity(
-    TeslemetryEnergyInfoEntity, TeslemetryNumberEntity
-):
+class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberEntity):
     """Number entity for current charge."""
+
+    entity_description: TeslemetryNumberEntityDescription
 
     def __init__(
         self,
@@ -213,14 +209,22 @@ class TeslemetryEnergyInfoNumberSensorEntity(
         self.entity_description = description
         super().__init__(data, description.key)
 
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_native_value = self._value
+        self._attr_native_min_value = self.get(
+            self.entity_description.min_key,
+            self.entity_description.native_min_value,
+        )
+        self._attr_native_max_value = self.get(
+            self.entity_description.max_key,
+            self.entity_description.native_max_value,
+        )
+        self._attr_icon = icon_for_battery_level(self.native_value)
+
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope()
         await self.handle_command(self.entity_description.func(self.api, value))
         self._attr_native_value = value
         self.async_write_ha_state()
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the entity."""
-        super()._async_update_attrs()
-        self._attr_icon = icon_for_battery_level(self.native_value)
