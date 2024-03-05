@@ -1,12 +1,18 @@
 """Teslemetry integration."""
-from typing import Final
 import asyncio
+from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
 from tesla_fleet_api.const import Scope
-from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
-
-from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
+from tesla_fleet_api.exceptions import (
+    InvalidToken,
+    SubscriptionRequired,
+    TeslaFleetError,
+)
+from teslemetry_stream import (
+    TeslemetryStream,
+    TeslemetryStreamVehicleNotConfigured
+)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
@@ -17,9 +23,9 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
+    TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator,
 )
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -57,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except InvalidToken:
         LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
         return False
-    except PaymentRequired:
+    except SubscriptionRequired:
         LOGGER.error("Subscription required, unable to connect to Telemetry")
         return False
     except TeslaFleetError as e:

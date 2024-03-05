@@ -12,9 +12,9 @@ from teslemetry_stream import TeslemetryStream
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .coordinator import (
+    TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator,
 )
 
 

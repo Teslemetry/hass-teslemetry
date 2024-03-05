@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 from tesla_fleet_api.const import TelemetryField
-
-from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from itertools import chain
 from typing import cast
 
 from homeassistant.components.sensor import (
@@ -29,18 +28,18 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
 )
-from homeassistant.util.variance import ignore_variance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
+from homeassistant.util.variance import ignore_variance
 
 from .const import DOMAIN, TeslemetryTimestamp
 from .entity import (
+    TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
     TeslemetryVehicleEntity,
     TeslemetryWallConnectorEntity,
-    TeslemetryEnergyInfoEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -180,6 +179,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         device_class=SensorDeviceClass.SPEED,
+        entity_registry_enabled_default=False,
         value_fn=lambda value: value or 0,
     ),
     TeslemetrySensorEntityDescription(
@@ -189,6 +189,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda value: value or 0,
     ),
     TeslemetrySensorEntityDescription(
@@ -197,7 +198,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda x: ShiftStates.get(x, "p"),
+        value_fn=lambda x: ShiftStates.get(str(x), "p"),
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_odometer",
@@ -208,6 +210,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.DISTANCE,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_fl",
@@ -219,6 +222,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_fr",
@@ -230,6 +234,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_rl",
@@ -241,6 +246,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="vehicle_state_tpms_pressure_rr",
@@ -252,11 +258,12 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="climate_state_inside_temp",
         streaming_key=TelemetryField.INSIDE_TEMP,
-        timestamp_key="climate_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -265,7 +272,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="climate_state_outside_temp",
         streaming_key=TelemetryField.OUTSIDE_TEMP,
-        timestamp_key="climate_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -273,21 +280,23 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         key="climate_state_driver_temp_setting",
-        timestamp_key="climate_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="climate_state_passenger_temp_setting",
-        timestamp_key="climate_state_timestamp",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_traffic_minutes_delay",
@@ -295,6 +304,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_energy_at_arrival",
@@ -303,6 +313,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_miles_to_arrival",
@@ -365,6 +376,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="percentage_charged",
@@ -412,6 +424,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(key="island_status", device_class=SensorDeviceClass.ENUM),
 )
@@ -421,13 +434,11 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="wall_connector_state",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.ENUM,
     ),
     SensorEntityDescription(
         key="wall_connector_fault_state",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.ENUM,
     ),
     SensorEntityDescription(
         key="wall_connector_power",
@@ -524,19 +535,19 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
 
-    entity_description: TeslemetrySensorEntityDescription
+    entity_description: TeslemetryTimeEntityDescription
     _last_value: int | None = None
 
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        description: TeslemetrySensorEntityDescription,
+        description: TeslemetryTimeEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
         super().__init__(data, description.key)
 
-    def _get_timestamp(value):
+    def _get_timestamp(self, value):
         return (
             ignore_variance(
                 func=lambda value: dt_util.now() + timedelta(minutes=value),
@@ -553,8 +564,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             return
         self._last_value = value
         if isinstance(value, int | float):
-            # value = self._get_timestamp(value)
-            value = dt_util.now() + timedelta(minutes=value)
+            value = self._get_timestamp(value)
         self.native_value = value
 
     def _async_value_from_stream(self, value) -> None:
@@ -565,7 +575,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
-    entity_description: TeslemetrySensorEntityDescription
+    entity_description: SensorEntityDescription
 
     def __init__(
         self,
@@ -585,7 +595,7 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
-    entity_description: TeslemetrySensorEntityDescription
+    entity_description: SensorEntityDescription
 
     def __init__(
         self,
@@ -610,7 +620,7 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
 class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
-    entity_description: TeslemetrySensorEntityDescription
+    entity_description: SensorEntityDescription
 
     def __init__(
         self,

@@ -1,15 +1,15 @@
 """Climate platform for Teslemetry integration."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from tesla_fleet_api.const import Scope, TelemetryField
 
 from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
-    ATTR_HVAC_MODE,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemperature
@@ -83,8 +83,12 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         self._attr_current_temperature = self.get("climate_state_inside_temp")
         self._attr_target_temperature = self.get(f"climate_state_{self.key}_setting")
         self._attr_preset_mode = self.get("climate_state_climate_keeper_mode")
-        self._attr_min_temp = self.get("climate_state_min_avail_temp", DEFAULT_MIN_TEMP)
-        self._attr_max_temp = self.get("climate_state_max_avail_temp", DEFAULT_MAX_TEMP)
+        self._attr_min_temp = cast(
+            float, self.get("climate_state_min_avail_temp", DEFAULT_MIN_TEMP)
+        )
+        self._attr_max_temp = cast(
+            float, self.get("climate_state_max_avail_temp", DEFAULT_MAX_TEMP)
+        )
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""

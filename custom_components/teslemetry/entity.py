@@ -2,23 +2,22 @@
 
 import asyncio
 from typing import Any
-from tesla_fleet_api import VehicleSpecific, EnergySpecific
+
+from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.exceptions import TeslaFleetError
 from tesla_fleet_api.const import TelemetryField
 
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.exceptions import ServiceValidationError, HomeAssistantError
 
 from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
 from .coordinator import (
+    TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
-    TeslemetryEnergySiteInfoCoordinator,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-
-FUTURE = 32503680000000
 
 
 class TeslemetryVehicleStreamEntity:
@@ -86,11 +85,11 @@ class TeslemetryEntity(
         return self.coordinator.last_update_success and self._attr_available
 
     @property
-    def _value(self) -> int:
+    def _value(self) -> Any | None:
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(self.key)
 
-    def get(self, key: str, default: Any | None = None) -> Any:
+    def get(self, key: str, default: Any | None = None) -> Any | None:
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(key, default)
 
@@ -131,6 +130,10 @@ class TeslemetryEntity(
         """Handle updated data from the coordinator."""
         self._async_update_attrs()
         self.async_write_ha_state()
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        raise NotImplementedError()
 
 
 class TeslemetryVehicleEntity(TeslemetryEntity):
@@ -178,14 +181,13 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        timestamp = self.get(self.timestamp_key)
-        if timestamp is None:
-            # LOGGER.debug("Updating %s, there is no timestamp key or value", self.name)
+        if self.timestamp_key is None or (
+            timestamp := self.get(self.timestamp_key.name) is None
+        ):
             self._async_update_attrs()
             self.async_write_ha_state()
             return
         if timestamp > self._last_update:
-            # LOGGER.debug("Updating %s, timestamp is newer", self.name)
             self._last_update = timestamp
             self._async_update_attrs()
             self.async_write_ha_state()
@@ -219,7 +221,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         """Handle a vehicle command."""
         result = await super().handle_command(command)
         if (response := result.get("response")) is None:
-            if message := response.get("error"):
+            if message := result.get("error"):
                 # No response with error
                 LOGGER.info("Command failure: %s", message)
                 raise ServiceValidationError(message)

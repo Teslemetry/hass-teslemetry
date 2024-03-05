@@ -18,11 +18,8 @@ ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 ENDPOINTS = [
     VehicleDataEndpoint.CHARGE_STATE,
     VehicleDataEndpoint.CLIMATE_STATE,
-    # VehicleDataEndpoint.CLOSURES_STATE,
     VehicleDataEndpoint.DRIVE_STATE,
-    #VehicleDataEndpoint.GUI_SETTINGS,
     VehicleDataEndpoint.LOCATION_DATA,
-    VehicleDataEndpoint.VEHICLE_CONFIG,
     VehicleDataEndpoint.VEHICLE_STATE,
 ]
 
@@ -88,7 +85,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         """Update energy site data using Teslemetry API."""
 
         try:
-            data = (await self.api.live_status())['response']
+            data = (await self.api.live_status())["response"]
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
