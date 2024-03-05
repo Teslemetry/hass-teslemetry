@@ -141,10 +141,6 @@ class TeslemetrySwitchEntity(SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
 
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the sensor."""
-        self._attr_is_on = self._value
-
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
@@ -161,6 +157,10 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         )
         self.entity_description = description
         self.scoped = any(scope in scopes for scope in description.scopes)
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+        self._attr_is_on = self._value
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
@@ -207,6 +207,10 @@ class TeslemetryStormModeSwitchEntity(
         """Initialize the Switch."""
         super().__init__(data, "storm_mode_enabled")
         self.scoped = Scope.ENERGY_CMDS in scopes
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+        self._attr_is_on = self._value
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""

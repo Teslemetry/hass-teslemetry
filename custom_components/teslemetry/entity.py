@@ -182,7 +182,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.timestamp_key is None or (
-            timestamp := self.get(self.timestamp_key.name) is None
+            timestamp := self.get(self.timestamp_key) is None
         ):
             self._async_update_attrs()
             self.async_write_ha_state()
