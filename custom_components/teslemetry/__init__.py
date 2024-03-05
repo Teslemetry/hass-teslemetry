@@ -1,5 +1,6 @@
 """Teslemetry integration."""
 from typing import Final
+import asyncio
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
 from tesla_fleet_api.const import Scope
@@ -118,8 +119,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
 
-    # Control all first refreshes to avoid rate limiter
-    for task in (
+    # Run all coordinator first refreshes
+    await asyncio.gather(
         *(
             vehicle.coordinator.async_config_entry_first_refresh()
             for vehicle in vehicles
@@ -132,10 +133,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
-    ):
-        await task
+    )
 
-    # Control all stream get_config calls to avoid rate limiter
+    # Control all stream get_config calls with rate limiter
     for vehicle in vehicles:
         try:
             async with teslemetry.rate_limit:
@@ -146,7 +146,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 vehicle.device["name"],
                 vehicle.vin,
             )
-            pass
 
     # Setup Platforms
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
