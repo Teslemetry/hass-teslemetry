@@ -80,6 +80,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
+        suggested_display_precision=1,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_usable_battery_level",
