@@ -30,7 +30,7 @@
         "name": "Charge cable"
       },
       "charge_state_charger_phases": {
-        "name": "Charging with multiple phases"
+        "name": "Charger has multiple phases"
       },
       "charge_state_preconditioning_enabled": {
         "name": "Preconditioning enabled"

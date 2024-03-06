@@ -177,7 +177,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         if not self.get("climate_state_is_climate_on"):
             await self.handle_command(self.api.auto_conditioning_start())
         await self.handle_command(
-            self.api.remote_seat_heater_request(self.description.position, level)
+            self.api.remote_seat_heater_request(self.entity_description.position, level)
         )
         self._attr_current_option = option
         self.async_write_ha_state()

@@ -174,26 +174,33 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             or (value := data["data"].get(self.streaming_key)) is None
         ):
             return
-
+        if data["timestamp"] < self._last_update:
+            LOGGER.warning(
+                "Streaming data of %s was %s seconds older than polling data",
+                self.name,
+                self._last_update - data["timestamp"] / 1000,
+            )
+            return
         self._last_update = data["timestamp"]
         self._async_value_from_stream(value)
         self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.timestamp_key is None or (
-            timestamp := self.get(self.timestamp_key) is None
-        ):
+        timestamp = self.timestamp_key and self.get(self.timestamp_key)
+        if not timestamp:
             self._async_update_attrs()
             self.async_write_ha_state()
-            return
-        if timestamp > self._last_update:
+        elif timestamp > self._last_update:
             self._last_update = timestamp
             self._async_update_attrs()
             self.async_write_ha_state()
-            return
-        if timestamp < self._last_update:
-            LOGGER.debug("Skipping update of %s, new timestamp is older", self.name)
+        elif timestamp < self._last_update:
+            LOGGER.debug(
+                "Skipping update of %s, new timestamp is %s older",
+                self.name,
+                self._last_update - timestamp / 1000,
+            )
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""

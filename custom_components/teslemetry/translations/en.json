@@ -30,7 +30,7 @@
         "name": "Charge port door"
       },
       "charge_state_charger_phases": {
-        "name": "Charging with multiple phases"
+        "name": "Charger has multiple phases"
       },
       "charge_state_charging_state": {
         "name": "Charging"
