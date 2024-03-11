@@ -28,19 +28,16 @@ class TeslemetryVehicleStreamEntity:
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_key = streaming_key
-        self._attr_translation_key = streaming_key
+        self._attr_translation_key = f"stream_{streaming_key.lower()}"
         self.stream = data.stream
 
-        self._attr_unique_id = f"{data.vin}-{streaming_key}"
+        self._attr_unique_id = f"{data.vin}-stream_{streaming_key.lower()}"
         self._attr_device_info = data.device
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        if self.streaming_key:
-            self.async_on_remove(
-                self.stream.async_add_listener(self._handle_stream_update)
-            )
+        self.async_on_remove(self.stream.async_add_listener(self._handle_stream_update))
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
