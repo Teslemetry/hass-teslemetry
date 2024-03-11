@@ -23,11 +23,14 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 class TeslemetryVehicleStreamEntity:
     """Parent class for Teslemetry Vehicle Stream entities."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self, data: TeslemetryVehicleData, streaming_key: TelemetryField
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_key = streaming_key
+
         self._attr_translation_key = f"stream_{streaming_key.lower()}"
         self.stream = data.stream
 
