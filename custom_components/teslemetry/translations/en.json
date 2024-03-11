@@ -442,6 +442,444 @@
       },
       "wall_connector_state": {
         "name": "State"
+      },
+      "stream_acchargingenergyin": {
+        "name": "ACChargingEnergyIn"
+      },
+      "stream_acchargingpower": {
+        "name": "ACChargingPower"
+      },
+      "stream_autoseatclimateleft": {
+        "name": "AutoSeatClimateLeft"
+      },
+      "stream_autoseatclimateright": {
+        "name": "AutoSeatClimateRight"
+      },
+      "stream_automaticblindspotcamera": {
+        "name": "AutomaticBlindSpotCamera"
+      },
+      "stream_automaticemergencybrakingoff": {
+        "name": "AutomaticEmergencyBrakingOff"
+      },
+      "stream_bmsstate": {
+        "name": "BMSState"
+      },
+      "stream_batteryheateron": {
+        "name": "BatteryHeaterOn"
+      },
+      "stream_batterylevel": {
+        "name": "BatteryLevel"
+      },
+      "stream_blindspotcollisionwarningchime": {
+        "name": "BlindSpotCollisionWarningChime"
+      },
+      "stream_bmsfullchargecomplete": {
+        "name": "BmsFullchargecomplete"
+      },
+      "stream_brakepedal": {
+        "name": "BrakePedal"
+      },
+      "stream_brakepedalpos": {
+        "name": "BrakePedalPos"
+      },
+      "stream_brickvoltagemax": {
+        "name": "BrickVoltageMax"
+      },
+      "stream_brickvoltagemin": {
+        "name": "BrickVoltageMin"
+      },
+      "stream_cartype": {
+        "name": "CarType"
+      },
+      "stream_chargeamps": {
+        "name": "ChargeAmps"
+      },
+      "stream_chargecurrentrequest": {
+        "name": "ChargeCurrentRequest"
+      },
+      "stream_chargecurrentrequestmax": {
+        "name": "ChargeCurrentRequestMax"
+      },
+      "stream_chargeenablerequest": {
+        "name": "ChargeEnableRequest"
+      },
+      "stream_chargelimitsoc": {
+        "name": "ChargeLimitSoc"
+      },
+      "stream_chargeport": {
+        "name": "ChargePort"
+      },
+      "stream_chargeportcoldweathermode": {
+        "name": "ChargePortColdWeatherMode"
+      },
+      "stream_chargeportlatch": {
+        "name": "ChargePortLatch"
+      },
+      "stream_chargestate": {
+        "name": "ChargeState"
+      },
+      "stream_chargerphases": {
+        "name": "ChargerPhases"
+      },
+      "stream_cruisefollowdistance": {
+        "name": "CruiseFollowDistance"
+      },
+      "stream_cruisesetspeed": {
+        "name": "CruiseSetSpeed"
+      },
+      "stream_cruisestate": {
+        "name": "CruiseState"
+      },
+      "stream_currentlimitmph": {
+        "name": "CurrentLimitMph"
+      },
+      "stream_dcchargingenergyin": {
+        "name": "DCChargingEnergyIn"
+      },
+      "stream_dcchargingpower": {
+        "name": "DCChargingPower"
+      },
+      "stream_dcdcenable": {
+        "name": "DCDCEnable"
+      },
+      "stream_destinationlocation": {
+        "name": "DestinationLocation"
+      },
+      "stream_diaxlespeedf": {
+        "name": "DiAxleSpeedF"
+      },
+      "stream_diaxlespeedr": {
+        "name": "DiAxleSpeedR"
+      },
+      "stream_diaxlespeedrel": {
+        "name": "DiAxleSpeedREL"
+      },
+      "stream_diaxlespeedrer": {
+        "name": "DiAxleSpeedRER"
+      },
+      "stream_diheatsinktf": {
+        "name": "DiHeatsinkTF"
+      },
+      "stream_diheatsinktr": {
+        "name": "DiHeatsinkTR"
+      },
+      "stream_diheatsinktrel": {
+        "name": "DiHeatsinkTREL"
+      },
+      "stream_diheatsinktrer": {
+        "name": "DiHeatsinkTRER"
+      },
+      "stream_dimotorcurrentf": {
+        "name": "DiMotorCurrentF"
+      },
+      "stream_dimotorcurrentr": {
+        "name": "DiMotorCurrentR"
+      },
+      "stream_dimotorcurrentrel": {
+        "name": "DiMotorCurrentREL"
+      },
+      "stream_dimotorcurrentrer": {
+        "name": "DiMotorCurrentRER"
+      },
+      "stream_dislavetorquecmd": {
+        "name": "DiSlaveTorqueCmd"
+      },
+      "stream_distatef": {
+        "name": "DiStateF"
+      },
+      "stream_distater": {
+        "name": "DiStateR"
+      },
+      "stream_distaterel": {
+        "name": "DiStateREL"
+      },
+      "stream_distaterer": {
+        "name": "DiStateRER"
+      },
+      "stream_distatortempf": {
+        "name": "DiStatorTempF"
+      },
+      "stream_distatortempr": {
+        "name": "DiStatorTempR"
+      },
+      "stream_distatortemprel": {
+        "name": "DiStatorTempREL"
+      },
+      "stream_distatortemprer": {
+        "name": "DiStatorTempRER"
+      },
+      "stream_ditorqueactualf": {
+        "name": "DiTorqueActualF"
+      },
+      "stream_ditorqueactualr": {
+        "name": "DiTorqueActualR"
+      },
+      "stream_ditorqueactualrel": {
+        "name": "DiTorqueActualREL"
+      },
+      "stream_ditorqueactualrer": {
+        "name": "DiTorqueActualRER"
+      },
+      "stream_ditorquemotor": {
+        "name": "DiTorquemotor"
+      },
+      "stream_divbatf": {
+        "name": "DiVBatF"
+      },
+      "stream_divbatr": {
+        "name": "DiVBatR"
+      },
+      "stream_divbatrel": {
+        "name": "DiVBatREL"
+      },
+      "stream_divbatrer": {
+        "name": "DiVBatRER"
+      },
+      "stream_doorstate": {
+        "name": "DoorState"
+      },
+      "stream_driverail": {
+        "name": "DriveRail"
+      },
+      "stream_driverseatbelt": {
+        "name": "DriverSeatBelt"
+      },
+      "stream_driverseatoccupied": {
+        "name": "DriverSeatOccupied"
+      },
+      "stream_emergencylanedepartureavoidance": {
+        "name": "EmergencyLaneDepartureAvoidance"
+      },
+      "stream_energyremaining": {
+        "name": "EnergyRemaining"
+      },
+      "stream_estbatteryrange": {
+        "name": "EstBatteryRange"
+      },
+      "stream_exteriorcolor": {
+        "name": "ExteriorColor"
+      },
+      "stream_fastchargerpresent": {
+        "name": "FastChargerPresent"
+      },
+      "stream_fdwindow": {
+        "name": "FdWindow"
+      },
+      "stream_forwardcollisionwarning": {
+        "name": "ForwardCollisionWarning"
+      },
+      "stream_fpwindow": {
+        "name": "FpWindow"
+      },
+      "stream_gear": {
+        "name": "Gear"
+      },
+      "stream_gpsheading": {
+        "name": "GpsHeading"
+      },
+      "stream_gpsstate": {
+        "name": "GpsState"
+      },
+      "stream_guestmodeenabled": {
+        "name": "GuestModeEnabled"
+      },
+      "stream_guestmodemobileaccessstate": {
+        "name": "GuestModeMobileAccessState"
+      },
+      "stream_hvil": {
+        "name": "Hvil"
+      },
+      "stream_idealbatteryrange": {
+        "name": "IdealBatteryRange"
+      },
+      "stream_insidetemp": {
+        "name": "InsideTemp"
+      },
+      "stream_isolationresistance": {
+        "name": "IsolationResistance"
+      },
+      "stream_lanedepartureavoidance": {
+        "name": "LaneDepartureAvoidance"
+      },
+      "stream_lateralacceleration": {
+        "name": "LateralAcceleration"
+      },
+      "stream_lifetimeenergygainedregen": {
+        "name": "LifetimeEnergyGainedRegen"
+      },
+      "stream_lifetimeenergyused": {
+        "name": "LifetimeEnergyUsed"
+      },
+      "stream_lifetimeenergyuseddrive": {
+        "name": "LifetimeEnergyUsedDrive"
+      },
+      "stream_location": {
+        "name": "Location"
+      },
+      "stream_locked": {
+        "name": "Locked"
+      },
+      "stream_longitudinalacceleration": {
+        "name": "LongitudinalAcceleration"
+      },
+      "stream_milestoarrival": {
+        "name": "MilesToArrival"
+      },
+      "stream_minutestoarrival": {
+        "name": "MinutesToArrival"
+      },
+      "stream_moduletempmax": {
+        "name": "ModuleTempMax"
+      },
+      "stream_moduletempmin": {
+        "name": "ModuleTempMin"
+      },
+      "stream_notenoughpowertoheat": {
+        "name": "NotEnoughPowerToHeat"
+      },
+      "stream_numbrickvoltagemax": {
+        "name": "NumBrickVoltageMax"
+      },
+      "stream_numbrickvoltagemin": {
+        "name": "NumBrickVoltageMin"
+      },
+      "stream_nummoduletempmax": {
+        "name": "NumModuleTempMax"
+      },
+      "stream_nummoduletempmin": {
+        "name": "NumModuleTempMin"
+      },
+      "stream_odometer": {
+        "name": "Odometer"
+      },
+      "stream_originlocation": {
+        "name": "OriginLocation"
+      },
+      "stream_outsidetemp": {
+        "name": "OutsideTemp"
+      },
+      "stream_packcurrent": {
+        "name": "PackCurrent"
+      },
+      "stream_packvoltage": {
+        "name": "PackVoltage"
+      },
+      "stream_pairedphonekeyandkeyfobqty": {
+        "name": "PairedPhoneKeyAndKeyFobQty"
+      },
+      "stream_passengerseatbelt": {
+        "name": "PassengerSeatBelt"
+      },
+      "stream_pedalposition": {
+        "name": "PedalPosition"
+      },
+      "stream_pintodriveenabled": {
+        "name": "PinToDriveEnabled"
+      },
+      "stream_preconditioningenabled": {
+        "name": "PreconditioningEnabled"
+      },
+      "stream_ratedrange": {
+        "name": "RatedRange"
+      },
+      "stream_rdwindow": {
+        "name": "RdWindow"
+      },
+      "stream_roofcolor": {
+        "name": "RoofColor"
+      },
+      "stream_routelastupdated": {
+        "name": "RouteLastUpdated"
+      },
+      "stream_routeline": {
+        "name": "RouteLine"
+      },
+      "stream_rpwindow": {
+        "name": "RpWindow"
+      },
+      "stream_scheduledchargingmode": {
+        "name": "ScheduledChargingMode"
+      },
+      "stream_scheduledchargingpending": {
+        "name": "ScheduledChargingPending"
+      },
+      "stream_scheduledchargingstarttime": {
+        "name": "ScheduledChargingStartTime"
+      },
+      "stream_scheduleddeparturetime": {
+        "name": "ScheduledDepartureTime"
+      },
+      "stream_seatheaterleft": {
+        "name": "SeatHeaterLeft"
+      },
+      "stream_seatheaterrearcenter": {
+        "name": "SeatHeaterRearCenter"
+      },
+      "stream_seatheaterrearleft": {
+        "name": "SeatHeaterRearLeft"
+      },
+      "stream_seatheaterrearright": {
+        "name": "SeatHeaterRearRight"
+      },
+      "stream_seatheaterright": {
+        "name": "SeatHeaterRight"
+      },
+      "stream_sentrymode": {
+        "name": "SentryMode"
+      },
+      "stream_servicemode": {
+        "name": "ServiceMode"
+      },
+      "stream_soc": {
+        "name": "Soc"
+      },
+      "stream_speedlimitmode": {
+        "name": "SpeedLimitMode"
+      },
+      "stream_speedlimitwarning": {
+        "name": "SpeedLimitWarning"
+      },
+      "stream_superchargersessiontripplanner": {
+        "name": "SuperchargerSessionTripPlanner"
+      },
+      "stream_timetofullcharge": {
+        "name": "TimeToFullCharge"
+      },
+      "stream_tpmslastseenpressuretimefl": {
+        "name": "TpmsLastSeenPressureTimeFl"
+      },
+      "stream_tpmslastseenpressuretimefr": {
+        "name": "TpmsLastSeenPressureTimeFr"
+      },
+      "stream_tpmslastseenpressuretimerl": {
+        "name": "TpmsLastSeenPressureTimeRl"
+      },
+      "stream_tpmslastseenpressuretimerr": {
+        "name": "TpmsLastSeenPressureTimeRr"
+      },
+      "stream_tpmspressurefl": {
+        "name": "TpmsPressureFl"
+      },
+      "stream_tpmspressurefr": {
+        "name": "TpmsPressureFr"
+      },
+      "stream_tpmspressurerl": {
+        "name": "TpmsPressureRl"
+      },
+      "stream_tpmspressurerr": {
+        "name": "TpmsPressureRr"
+      },
+      "stream_trim": {
+        "name": "Trim"
+      },
+      "stream_vehiclename": {
+        "name": "VehicleName"
+      },
+      "stream_vehiclespeed": {
+        "name": "VehicleSpeed"
+      },
+      "stream_version": {
+        "name": "Version"
       }
     },
     "switch": {
