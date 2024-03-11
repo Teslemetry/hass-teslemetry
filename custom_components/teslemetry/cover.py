@@ -1,4 +1,5 @@
 """Cover platform for Teslemetry integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -106,11 +107,11 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        self._attr_is_closed = self._value
+        self._attr_is_closed = not self._value
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_closed = value
+        self._attr_is_closed = not value
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
