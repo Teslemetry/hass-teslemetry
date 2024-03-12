@@ -44,10 +44,7 @@ class TeslemetryVehicleStreamEntity:
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        if (
-            data["vin"] != self.api.vin
-            or (value := data["data"].get(self.streaming_key)) is None
-        ):
+        if (value := data["data"].get(self.streaming_key)) is None:
             return
         self._async_value_from_stream(value)
         self.async_write_ha_state()
@@ -169,10 +166,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        if (
-            data["vin"] != self.api.vin
-            or (value := data["data"].get(self.streaming_key)) is None
-        ):
+        if (value := data["data"].get(self.streaming_key)) is None:
             return
         if data["timestamp"] < self._last_update:
             LOGGER.warning(
