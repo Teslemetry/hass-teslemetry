@@ -716,10 +716,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
-        key=TelemetryField.LOCATION,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
         key=TelemetryField.LOCKED,
         entity_registry_enabled_default=False,
     ),

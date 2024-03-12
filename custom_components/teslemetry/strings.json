@@ -667,9 +667,7 @@
       "stream_lifetimeenergyuseddrive": {
         "name": "LifetimeEnergyUsedDrive"
       },
-      "stream_location": {
-        "name": "Location"
-      },
+
       "stream_locked": {
         "name": "Locked"
       },
