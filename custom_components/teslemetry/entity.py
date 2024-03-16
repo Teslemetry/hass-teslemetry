@@ -20,6 +20,21 @@ from .coordinator import (
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 
+def auto_type(str):
+    """Automatically cast a string to a type."""
+    if str.isdigit():
+        return int(str)
+    try:
+        return float(str)
+    except ValueError:
+        pass
+
+    if str.lower() in ["true", "false"]:
+        return str.lower() == "true"
+
+    return str
+
+
 class TeslemetryVehicleStreamEntity:
     """Parent class for Teslemetry Vehicle Stream entities."""
 
@@ -49,7 +64,7 @@ class TeslemetryVehicleStreamEntity:
         """Handle updated data from the stream."""
         if (value := data["data"].get(self.streaming_key)) is None:
             return
-        self._async_value_from_stream(value)
+        self._async_value_from_stream(auto_type(value))
         self.async_write_ha_state()
 
 

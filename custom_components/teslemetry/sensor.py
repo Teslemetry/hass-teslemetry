@@ -354,26 +354,11 @@ VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
 )
 
 
-def auto_type(str):
-    """Automatically cast a string to a type."""
-    if str.isdigit():
-        return int(str)
-    try:
-        return float(str)
-    except ValueError:
-        pass
-
-    if str.lower() in ["true", "false"]:
-        return str.lower() == "true"
-
-    return str
-
-
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
-    value_fn: Callable[[StateType], StateType] = auto_type
+    value_fn: Callable[[StateType], StateType] = lambda x: x
 
 
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (

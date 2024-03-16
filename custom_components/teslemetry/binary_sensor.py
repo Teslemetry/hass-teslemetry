@@ -1,4 +1,5 @@
 """Binary Sensor platform for Teslemetry integration."""
+
 from __future__ import annotations
 
 from itertools import chain
@@ -61,7 +62,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_charger_phases",
         streaming_key=TelemetryField.CHARGER_PHASES,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        is_on=lambda x: x > 1,
+        is_on=lambda x: int(x) > 1,
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
