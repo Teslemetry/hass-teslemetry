@@ -354,584 +354,624 @@ VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
 )
 
 
-VEHICLE_STREAM_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
+def auto_type(str):
+    """Automatically cast a string to a type."""
+    if str.isdigit():
+        return int(str)
+    try:
+        return float(str)
+    except ValueError:
+        pass
+
+    if str.lower() in ["true", "false"]:
+        return str.lower() == "true"
+
+    return str
+
+
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
+    """Describes Teslemetry Sensor entity."""
+
+    value_fn: Callable[[StateType], StateType] = auto_type
+
+
+VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_ENERGY_IN,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_POWER,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AUTO_SEAT_CLIMATE_LEFT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AUTO_SEAT_CLIMATE_RIGHT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AUTOMATIC_BLIND_SPOT_CAMERA,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AUTOMATIC_EMERGENCY_BRAKING_OFF,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BMS_STATE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BATTERY_HEATER_ON,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BATTERY_LEVEL,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BLIND_SPOT_COLLISION_WARNING_CHIME,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BMS_FULL_CHARGE_COMPLETE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRAKE_PEDAL,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: bool(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRAKE_PEDAL_POS,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRICK_VOLTAGE_MAX,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRICK_VOLTAGE_MIN,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CAR_TYPE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_AMPS,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: int(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_CURRENT_REQUEST,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: int(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_CURRENT_REQUEST_MAX,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: int(x),
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_ENABLE_REQUEST,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_LIMIT_SOC,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_PORT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_PORT_COLD_WEATHER_MODE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_PORT_LATCH,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_STATE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGER_PHASES,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_FOLLOW_DISTANCE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_SET_SPEED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_STATE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CURRENT_LIMIT_MPH,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DC_CHARGING_ENERGY_IN,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DC_CHARGING_POWER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DC_DC_ENABLE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DESTINATION_LOCATION,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_AXLE_SPEED_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_AXLE_SPEED_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_AXLE_SPEED_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_AXLE_SPEED_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_HEATSINK_TF,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_HEATSINK_TR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_HEATSINK_TREL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_HEATSINK_TRER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_MOTOR_CURRENT_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_MOTOR_CURRENT_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_MOTOR_CURRENT_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_MOTOR_CURRENT_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_SLAVE_TORQUE_CMD,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATE_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATE_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATE_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATE_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUE_ACTUAL_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUE_ACTUAL_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUE_ACTUAL_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUE_ACTUAL_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUEMOTOR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_F,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_R,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_REL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_RER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DOOR_STATE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DRIVE_RAIL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DRIVER_SEAT_BELT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DRIVER_SEAT_OCCUPIED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EMERGENCY_LANE_DEPARTURE_AVOIDANCE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ENERGY_REMAINING,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EST_BATTERY_RANGE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EXTERIOR_COLOR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.FAST_CHARGER_PRESENT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.FD_WINDOW,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.FORWARD_COLLISION_WARNING,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.FP_WINDOW,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.GEAR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.GPS_HEADING,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.GPS_STATE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.GUEST_MODE_ENABLED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.GUEST_MODE_MOBILE_ACCESS_STATE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.HVIL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.IDEAL_BATTERY_RANGE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.INSIDE_TEMP,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ISOLATION_RESISTANCE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LANE_DEPARTURE_AVOIDANCE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LATERAL_ACCELERATION,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_GAINED_REGEN,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_USED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_USED_DRIVE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LOCKED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LONGITUDINAL_ACCELERATION,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MILES_TO_ARRIVAL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MINUTES_TO_ARRIVAL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MAX,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MIN,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NOT_ENOUGH_POWER_TO_HEAT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_BRICK_VOLTAGE_MAX,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_BRICK_VOLTAGE_MIN,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_MODULE_TEMP_MAX,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_MODULE_TEMP_MIN,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ODOMETER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ORIGIN_LOCATION,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.OUTSIDE_TEMP,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_CURRENT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_VOLTAGE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PAIRED_PHONE_KEY_AND_KEY_FOB_QTY,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PASSENGER_SEAT_BELT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PEDAL_POSITION,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PIN_TO_DRIVE_ENABLED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PRECONDITIONING_ENABLED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.RATED_RANGE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.RD_WINDOW,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ROOF_COLOR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ROUTE_LAST_UPDATED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ROUTE_LINE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.RP_WINDOW,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_CHARGING_MODE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_CHARGING_PENDING,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_CHARGING_START_TIME,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_LEFT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_REAR_CENTER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_REAR_LEFT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_REAR_RIGHT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_RIGHT,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SENTRY_MODE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SERVICE_MODE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SOC,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SPEED_LIMIT_MODE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SPEED_LIMIT_WARNING,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SUPERCHARGER_SESSION_TRIP_PLANNER,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TIME_TO_FULL_CHARGE,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_PRESSURE_FL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_PRESSURE_FR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_PRESSURE_RL,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TPMS_PRESSURE_RR,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TRIM,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.VEHICLE_NAME,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.VEHICLE_SPEED,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.VERSION,
         entity_registry_enabled_default=False,
     ),
