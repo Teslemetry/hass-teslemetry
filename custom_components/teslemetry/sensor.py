@@ -100,7 +100,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
-        value_fn=ignore_variance(lambda x: x, 0.5),
+        value_fn=ignore_variance(lambda x: float(x), 0.5),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_power",
