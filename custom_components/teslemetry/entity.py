@@ -48,6 +48,7 @@ class TeslemetryVehicleStreamEntity:
 
         self._attr_translation_key = f"stream_{streaming_key.lower()}"
         self.stream = data.stream
+        self.vin = data.vin
 
         self._attr_unique_id = f"{data.vin}-stream_{streaming_key.lower()}"
         self._attr_device_info = data.device
@@ -170,6 +171,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self.timestamp_key = timestamp_key
         self.streaming_key = streaming_key
         self.stream = data.stream
+        self.vin = data.vin
 
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
