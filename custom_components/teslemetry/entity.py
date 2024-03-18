@@ -66,9 +66,7 @@ class TeslemetryVehicleStreamEntity:
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        if (value := data["data"].get(self.streaming_key)) is None:
-            return
-        self._async_value_from_stream(auto_type(value))
+        self._async_value_from_stream(data["data"][self.streaming_key])
         self.async_write_ha_state()
 
 

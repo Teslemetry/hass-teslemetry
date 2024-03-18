@@ -1,4 +1,5 @@
 """Teslemetry integration."""
+
 import asyncio
 from typing import Final
 
@@ -9,10 +10,7 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
-from teslemetry_stream import (
-    TeslemetryStream,
-    TeslemetryStreamVehicleNotConfigured
-)
+from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
@@ -94,6 +92,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 serial_number=vin,
             )
 
+            # Setup Stream
+            try:
+                async with teslemetry.rate_limit:
+                    await vehicle.stream.get_config()
+                    vehicle.stream.add_listener(
+                        lambda x: hass.bus.fire("teslemetry_alert", x),
+                        {"vin": vin, "alerts": None}
+                    )
+                    vehicle.stream.add_listener(
+                        lambda x: hass.bus.fire("teslemetry_errors", x),
+                        {"vin": vin, "errors": None}
+                    )
+            except TeslemetryStreamVehicleNotConfigured:
+                LOGGER.warning(
+                    "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
+                    vehicle.device["name"],
+                    vehicle.vin,
+                )
+
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
@@ -143,15 +160,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Control all stream get_config calls with rate limiter
     for vehicle in vehicles:
-        try:
-            async with teslemetry.rate_limit:
-                await vehicle.stream.get_config()
-        except TeslemetryStreamVehicleNotConfigured:
-            LOGGER.warning(
-                "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
-                vehicle.device["name"],
-                vehicle.vin,
-            )
+
 
     # Setup Platforms
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
@@ -161,9 +170,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
-
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Teslemetry Config."""
+    for vehicle in hass.data[DOMAIN][entry.entry_id].vehicles:
+        if vehicle.remove_listener is not None:
+            vehicle.remove_listener()
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok

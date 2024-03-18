@@ -1,4 +1,5 @@
 """The Teslemetry integration models."""
+
 from __future__ import annotations
 
 import asyncio
@@ -34,6 +35,7 @@ class TeslemetryVehicleData:
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
+    remove_listener: callable
     vin: str
     wakelock = asyncio.Lock()
     device: DeviceInfo
