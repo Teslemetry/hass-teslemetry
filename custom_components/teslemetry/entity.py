@@ -57,7 +57,10 @@ class TeslemetryVehicleStreamEntity:
         await super().async_added_to_hass()
         if self.stream.server:
             self.async_on_remove(
-                self.stream.async_add_listener(self._handle_stream_update)
+                self.stream.async_add_listener(
+                    self._handle_stream_update,
+                    {"vin": self.vin, "data": {self.streaming_key: None}},
+                )
             )
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
@@ -179,13 +182,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         await super().async_added_to_hass()
         if self.stream.server and self.streaming_key:
             self.async_on_remove(
-                self.stream.async_add_listener(self._handle_stream_update)
+                self.stream.async_add_listener(
+                    self._handle_stream_update,
+                    {"vin": self.vin, "data": {self.streaming_key: None}},
+                )
             )
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        if (value := data["data"].get(self.streaming_key)) is None:
-            return
         if data["timestamp"] < self._last_update:
             LOGGER.warning(
                 "Streaming data of %s was %s seconds older than polling data",
@@ -194,7 +198,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             )
             return
         self._last_update = data["timestamp"]
-        self._async_value_from_stream(value)
+        self._async_value_from_stream(data["data"][self.streaming_key])
         self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
