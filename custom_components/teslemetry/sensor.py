@@ -1163,7 +1163,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Initialize the sensor."""
         self.entity_description = description
         self._get_timestamp = ignore_variance(
-            func=lambda value: dt_util.now() + timedelta(minutes=value),
+            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
             ignored_variance=timedelta(minutes=1),
         )
 
