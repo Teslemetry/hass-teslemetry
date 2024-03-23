@@ -327,17 +327,21 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.DISTANCE,
     ),
     TeslemetrySensorEntityDescription(
+        # This entity isnt allowed in core
         key="charge_state_minutes_to_full_charge",
         streaming_key=TelemetryField.TIME_TO_FULL_CHARGE,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
+        # This entity isnt allowed in core
         key="drive_state_active_route_minutes_to_arrival",
         streaming_key=TelemetryField.MINUTES_TO_ARRIVAL,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
     ),
 )
 
@@ -1183,6 +1187,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
         super().__init__(data, description.key)
         self._attr_translation_key = f"{self.entity_description.key}_timestamp"
+        self._attr_unique_id = f"{data.vin}-{description.key}_timestamp"
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""

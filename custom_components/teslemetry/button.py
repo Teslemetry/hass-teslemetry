@@ -1,6 +1,7 @@
 """Button platform for Teslemetry integration."""
 
 from __future__ import annotations
+from itertools import chain
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -47,7 +48,6 @@ DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
             lon=self.coordinator.data["drive_state_longitude"],
         ),
     ),
-    TeslemetryButtonEntityDescription(key="refresh"),
 )
 
 
@@ -58,10 +58,15 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryButtonEntity(vehicle, description)
-        for vehicle in data.vehicles
-        for description in DESCRIPTIONS
-        if Scope.VEHICLE_CMDS in data.scopes
+        chain(
+            (
+                TeslemetryButtonEntity(vehicle, description)
+                for vehicle in data.vehicles
+                for description in DESCRIPTIONS
+                if Scope.VEHICLE_CMDS in data.scopes
+            ),
+            (TeslemetryRefreshButtonEntity(vehicle) for vehicle in data.vehicles),
+        )
     )
 
 
@@ -85,7 +90,24 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Press the button."""
         await self.wake_up_if_asleep()
-        if self.key == "refresh":
-            await self.coordinator.async_request_refresh()
         if self.entity_description.func:
             await self.handle_command(self.entity_description.func(self))
+
+
+class TeslemetryRefreshButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
+    """Force Refresh entity for Teslemetry."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+    ) -> None:
+        """Initialize the button."""
+        super().__init__(data, "refresh")
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+
+    async def async_press(self) -> None:
+        """Press the button."""
+        await self.wake_up_if_asleep()
+        await self.coordinator.async_request_refresh()

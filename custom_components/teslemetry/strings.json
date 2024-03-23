@@ -109,7 +109,7 @@
       "refresh": {
         "name": "Force refresh"
       },
-      "trigger_homelink": {
+      "homelink": {
         "name": "Homelink"
       },
       "wake": {
