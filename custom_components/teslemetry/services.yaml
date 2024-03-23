@@ -1,0 +1,32 @@
+navigation_gps_request:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    latitude:
+      required: true
+      selector:
+        text:
+    longitude:
+      required: true
+      selector:
+        text:
+    order:
+      required: false
+      default: 1
+      selector:
+        number:
+test:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+

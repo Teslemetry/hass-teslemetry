@@ -18,6 +18,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .helpers import wake_up_vehicle
 
 
 def auto_type(str):
@@ -172,7 +173,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self.vin = data.vin
 
         self._attr_unique_id = f"{data.vin}-{key}"
-        self._wakelock = data.wakelock
+        self.wakelock = data.wakelock
 
         self._attr_device_info = data.device
         super().__init__(data.coordinator, data.api, key)
@@ -220,25 +221,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
-        async with self._wakelock:
-            times = 0
-            while self.coordinator.data["state"] != TeslemetryState.ONLINE:
-                try:
-                    if times == 0:
-                        cmd = await self.api.wake_up()
-                    else:
-                        cmd = await self.api.vehicle()
-                    state = cmd["response"]["state"]
-                except TeslaFleetError as e:
-                    raise HomeAssistantError(str(e)) from e
-                except TypeError as e:
-                    raise HomeAssistantError("Invalid response from Teslemetry") from e
-                self.coordinator.data["state"] = state
-                if state != TeslemetryState.ONLINE:
-                    times += 1
-                    if times >= 4:  # Give up after 30 seconds total
-                        raise HomeAssistantError("Could not wake up vehicle")
-                    await asyncio.sleep(times * 5)
+        await wake_up_vehicle(self)
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a vehicle command."""

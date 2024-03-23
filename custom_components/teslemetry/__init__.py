@@ -12,12 +12,14 @@ from tesla_fleet_api.exceptions import (
 )
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
 
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
@@ -26,6 +28,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
+from .services import async_register_services
 
 PLATFORMS: Final = [
     Platform.BINARY_SENSOR,
@@ -41,6 +44,12 @@ PLATFORMS: Final = [
     Platform.SWITCH,
     Platform.UPDATE,
 ]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Telemetry integration."""
+    async_register_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -95,20 +104,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Setup Stream
             try:
                 async with teslemetry.rate_limit:
-                    await vehicle.stream.get_config()
-                    vehicle.stream.add_listener(
-                        lambda x: hass.bus.fire("teslemetry_alert", x),
-                        {"vin": vin, "alerts": None}
-                    )
-                    vehicle.stream.add_listener(
-                        lambda x: hass.bus.fire("teslemetry_errors", x),
-                        {"vin": vin, "errors": None}
+                    await stream.get_config()
+
+                    remove_listeners = (
+                        stream.async_add_listener(
+                            lambda x: hass.bus.fire("teslemetry_alert", x),
+                            {"vin": vin, "alerts": None},
+                        ),
+                        stream.async_add_listener(
+                            lambda x: hass.bus.fire("teslemetry_error", x),
+                            {"vin": vin, "errors": None},
+                        ),
                     )
             except TeslemetryStreamVehicleNotConfigured:
                 LOGGER.warning(
                     "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
-                    vehicle.device["name"],
-                    vehicle.vin,
+                    product["display_name"],
+                    vin,
                 )
 
             vehicles.append(
@@ -118,6 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     vin=vin,
                     device=device,
+                    remove_listeners=remove_listeners,
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -158,10 +171,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ),
     )
 
-    # Control all stream get_config calls with rate limiter
-    for vehicle in vehicles:
-
-
     # Setup Platforms
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
         vehicles, energysites, scopes
@@ -170,11 +179,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Teslemetry Config."""
     for vehicle in hass.data[DOMAIN][entry.entry_id].vehicles:
-        if vehicle.remove_listener is not None:
-            vehicle.remove_listener()
+        for remove_listener in vehicle.remove_listeners:
+            remove_listener()
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok

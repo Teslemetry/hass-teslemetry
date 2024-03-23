@@ -35,7 +35,7 @@ class TeslemetryVehicleData:
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
-    remove_listener: callable
+    remove_listeners: tuple[callable]
     vin: str
     wakelock = asyncio.Lock()
     device: DeviceInfo
