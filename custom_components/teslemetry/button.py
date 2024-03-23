@@ -1,4 +1,5 @@
 """Button platform for Teslemetry integration."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -46,6 +47,7 @@ DESCRIPTIONS: tuple[TeslemetryButtonEntityDescription, ...] = (
             lon=self.coordinator.data["drive_state_longitude"],
         ),
     ),
+    TeslemetryButtonEntityDescription(key="refresh"),
 )
 
 
@@ -83,5 +85,7 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Press the button."""
         await self.wake_up_if_asleep()
+        if self.key == "refresh":
+            await self.coordinator.async_request_refresh()
         if self.entity_description.func:
             await self.handle_command(self.entity_description.func(self))

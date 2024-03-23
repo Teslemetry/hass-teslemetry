@@ -106,6 +106,9 @@
       "honk": {
         "name": "Honk horn"
       },
+      "refresh": {
+        "name": "Force refresh"
+      },
       "trigger_homelink": {
         "name": "Homelink"
       },
@@ -667,7 +670,6 @@
       "stream_lifetimeenergyuseddrive": {
         "name": "LifetimeEnergyUsedDrive"
       },
-
       "stream_locked": {
         "name": "Locked"
       },
@@ -863,6 +865,40 @@
     "update": {
       "vehicle_state_software_update_status": {
         "name": "[%key:component::update::title%]"
+      }
+    }
+  },
+  "services": {
+    "navigation_gps_request": {
+      "name": "Navigation request",
+      "description": "Shares latitude/longitude coordinates to a vehicle.",
+      "fields": {
+        "device_id": {
+          "name": "Vehicle",
+          "description": "The vehicle to share to."
+        },
+        "latitude": {
+          "name": "Latitude",
+          "description": "The latitude coordinates."
+        },
+        "longitude": {
+          "name": "Longitude",
+          "description": "The longitude coordinates."
+        },
+        "order": {
+          "name": "Order",
+          "description": "The order for this destination if specifying multiple destinations."
+        }
+      }
+    },
+    "test": {
+      "name": "Test",
+      "description": "Test service",
+      "fields": {
+        "device_id": {
+          "name": "Vehicle",
+          "description": "The vehicle to share to."
+        }
       }
     }
   }
