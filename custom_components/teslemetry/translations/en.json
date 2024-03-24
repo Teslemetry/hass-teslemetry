@@ -121,6 +121,9 @@
       "honk": {
         "name": "Honk horn"
       },
+      "refresh": {
+        "name": "Force refresh"
+      },
       "wake": {
         "name": "Wake"
       }
@@ -335,6 +338,9 @@
       "charge_state_minutes_to_full_charge": {
         "name": "Time to full charge"
       },
+      "charge_state_minutes_to_full_charge_timestamp": {
+        "name": "Time at full charge"
+      },
       "charge_state_usable_battery_level": {
         "name": "Usable Battery level"
       },
@@ -361,6 +367,9 @@
       },
       "drive_state_active_route_minutes_to_arrival": {
         "name": "Time to arrival"
+      },
+      "drive_state_active_route_minutes_to_arrival_timestamp": {
+        "name": "Time at arrival"
       },
       "drive_state_active_route_traffic_minutes_delay": {
         "name": "Traffic delay"
