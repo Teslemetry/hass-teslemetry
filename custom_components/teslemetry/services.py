@@ -29,7 +29,6 @@ TYPE = "type"
 VALUE = "value"
 LOCALE = "locale"
 ORDER = "order"
-ORDER_DEFAULT = 1
 TIMESTAMP = "timestamp"
 
 
@@ -84,7 +83,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
                 vehicle.api.navigation_gps_request(
                     lat=call.data.get(LATITUDE),
                     lon=call.data.get(LONGITUDE),
-                    order=call.data.get(ORDER, ORDER_DEFAULT),
+                    order=call.data.get(ORDER),
                 )
             )
         except TeslaFleetError as e:
@@ -99,7 +98,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
                 vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(LATITUDE): cv.string,
                 vol.Required(LONGITUDE): cv.string,
-                vol.Optional(ORDER, default=ORDER_DEFAULT): cv.positive_int,
+                vol.Optional(ORDER): cv.positive_int,
             }
         ),
     )
@@ -115,7 +114,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
             await handle_command(
                 vehicle.api.navigation_sc_request(
                     id=call.data.get(ID),
-                    order=call.data.get(ORDER, ORDER_DEFAULT),
+                    order=call.data.get(ORDER),
                 )
             )
         except TeslaFleetError as e:
@@ -129,7 +128,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
             {
                 vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(ID): cv.positive_int,
-                vol.Optional(ORDER, default=ORDER_DEFAULT): cv.positive_int,
+                vol.Optional(ORDER): cv.positive_int,
             }
         ),
     )
