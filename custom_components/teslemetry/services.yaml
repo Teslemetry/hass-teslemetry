@@ -20,7 +20,7 @@ navigation_gps_request:
       default: 1
       selector:
         number:
-test:
+navigation_sc_request:
   fields:
     device_id:
       required: true
@@ -29,4 +29,38 @@ test:
           integration: teslemetry
           entity:
             domain: button
+    id:
+      required: true
+      selector:
+        number:
+    order:
+      required: false
+      default: 1
+      selector:
+        number:
+navigation_request:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    type:
+      required: true
+      selector:
+        text:
+    value:
+      required: true
+      selector:
+        text:
+    locale:
+      required: false
+      selector:
+        text:
+    timestamp_ms:
+      required: false
+      selector:
+        text:
 

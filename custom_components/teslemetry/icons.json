@@ -48,6 +48,9 @@
       "wake": {
         "default": "mdi:sleep-off"
       },
+      "refresh": {
+        "default": "mdi:refresh"
+      },
       "homelink": {
         "default": "mdi:garage"
       }
@@ -258,6 +261,17 @@
       "vehicle_state_speed_limit_mode_active": {
         "default": "mdi:car-speed-limiter"
       }
+    }
+  },
+  "services": {
+    "navigate_gps_request": {
+      "default": "mdi:routes"
+    },
+    "navigate_sc_request": {
+      "default": "mdi:routes"
+    },
+    "navigate_request": {
+      "default": "mdi:routes"
     }
   }
 }

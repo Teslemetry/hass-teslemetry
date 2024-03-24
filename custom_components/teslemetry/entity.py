@@ -18,7 +18,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .helpers import wake_up_vehicle
+from .helpers import wake_up_vehicle, handle_command
 
 
 def auto_type(str):
@@ -134,15 +134,7 @@ class TeslemetryEntity(
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a command."""
-        try:
-            result = await command
-            LOGGER.debug("Command result: %s", result)
-        except TeslaFleetError as e:
-            LOGGER.debug("Command error: %s", e.message)
-            raise ServiceValidationError(
-                f"Teslemetry command failed, {e.message}"
-            ) from e
-        return result
+        return await handle_command(command)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

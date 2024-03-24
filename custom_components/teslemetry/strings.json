@@ -876,20 +876,18 @@
   },
   "services": {
     "navigation_gps_request": {
-      "name": "Navigation request",
-      "description": "Shares latitude/longitude coordinates to a vehicle.",
+      "name": "Navigate to coordinates",
+      "description": "Set vehicle navigation to the provided latitude/longitude coordinates.",
       "fields": {
         "device_id": {
           "name": "Vehicle",
           "description": "The vehicle to share to."
         },
         "latitude": {
-          "name": "Latitude",
-          "description": "The latitude coordinates."
+          "name": "Latitude"
         },
         "longitude": {
-          "name": "Longitude",
-          "description": "The longitude coordinates."
+          "name": "Longitude"
         },
         "order": {
           "name": "Order",
@@ -897,13 +895,37 @@
         }
       }
     },
-    "test": {
-      "name": "Test",
-      "description": "Test service",
+    "Navigation_sc_request": {
+      "name": "Navigate to Supercharger",
+      "description": "Set vehicle navigation to the specified supercharger.",
       "fields": {
         "device_id": {
           "name": "Vehicle",
           "description": "The vehicle to share to."
+        },
+        "id": {
+          "name": "Supercharger ID"
+        },
+        "order": {
+          "name": "Order",
+          "description": "The order for this destination if specifying multiple destinations."
+        }
+      }
+    },
+    "navigation_request": {
+      "name": "Navigate to address",
+      "description": "Set vehicle navigation to the provided address.",
+      "fields": {
+        "device_id": {
+          "name": "Vehicle",
+          "description": "The vehicle to share to."
+        },
+        "address": {
+          "name": "Address"
+        },
+        "order": {
+          "name": "Order",
+          "description": "The order for this destination if specifying multiple destinations."
         }
       }
     }

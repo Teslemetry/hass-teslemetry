@@ -1,9 +1,10 @@
 """Teslemetry helper functions."""
 
 import asyncio
-from homeassistant.exceptions import HomeAssistantError
+from typing import Any
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from tesla_fleet_api.exceptions import TeslaFleetError
-from .const import TeslemetryState
+from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
 
 
 async def wake_up_vehicle(vehicle):
@@ -27,3 +28,14 @@ async def wake_up_vehicle(vehicle):
                 if times >= 4:  # Give up after 30 seconds total
                     raise HomeAssistantError("Could not wake up vehicle")
                 await asyncio.sleep(times * 5)
+
+
+async def handle_command(command) -> dict[str, Any]:
+    """Handle a command."""
+    try:
+        result = await command
+        LOGGER.debug("Command result: %s", result)
+    except TeslaFleetError as e:
+        LOGGER.debug("Command error: %s", e.message)
+        raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
+    return result

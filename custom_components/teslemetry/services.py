@@ -19,13 +19,18 @@ from homeassistant.helpers import (
 
 from .const import DOMAIN
 from .models import TeslemetryVehicleData
-from .helpers import wake_up_vehicle
+from .helpers import wake_up_vehicle, handle_command
 
 _LOGGER = logging.getLogger(__name__)
+ID = "id"
 LATITUDE = "latitude"
 LONGITUDE = "longitude"
+TYPE = "type"
+VALUE = "value"
+LOCALE = "locale"
 ORDER = "order"
 ORDER_DEFAULT = 1
+TIMESTAMP = "timestamp"
 
 
 def async_get_device_for_service_call(
@@ -75,12 +80,13 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            resp = await vehicle.api.navigation_gps_request(
-                lat=call.data.get(LATITUDE),
-                lon=call.data.get(LONGITUDE),
-                order=call.data.get(ORDER, ORDER_DEFAULT),
+            await handle_command(
+                vehicle.api.navigation_gps_request(
+                    lat=call.data.get(LATITUDE),
+                    lon=call.data.get(LONGITUDE),
+                    order=call.data.get(ORDER, ORDER_DEFAULT),
+                )
             )
-            print(resp)
         except TeslaFleetError as e:
             raise HomeAssistantError from e
 
@@ -98,6 +104,36 @@ def async_register_services(hass: HomeAssistant) -> bool:
         ),
     )
 
+    async def navigate_sc_request(call: ServiceCall) -> None:
+        """Send supercharger navigation request."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        try:
+            await wake_up_vehicle(vehicle)
+            await handle_command(
+                vehicle.api.navigation_sc_request(
+                    id=call.data.get(ID),
+                    order=call.data.get(ORDER, ORDER_DEFAULT),
+                )
+            )
+        except TeslaFleetError as e:
+            raise HomeAssistantError from e
+
+    hass.services.async_register(
+        DOMAIN,
+        "navigation_sc_request",
+        navigate_sc_request,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Required(ID): cv.positive_int,
+                vol.Optional(ORDER, default=ORDER_DEFAULT): cv.positive_int,
+            }
+        ),
+    )
+
     async def navigate_request(call: ServiceCall) -> None:
         """Send lat,lon,order with a vehicle."""
         device = async_get_device_for_service_call(hass, call)
@@ -106,12 +142,14 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            resp = await vehicle.api.navigation_request(
-                lat=call.data.get(LATITUDE),
-                lon=call.data.get(LONGITUDE),
-                order=call.data.get(ORDER, ORDER_DEFAULT),
+            await handle_command(
+                vehicle.api.navigation_request(
+                    type=call.data.get(TYPE),
+                    value=call.data.get(VALUE),
+                    locale=call.data.get(LOCALE),
+                    timestamp=call.data.get(TIMESTAMP),
+                )
             )
-            print(resp)
         except TeslaFleetError as e:
             raise HomeAssistantError from e
 
@@ -122,29 +160,10 @@ def async_register_services(hass: HomeAssistant) -> bool:
         schema=vol.Schema(
             {
                 vol.Required(CONF_DEVICE_ID): cv.string,
-                vol.Required(LATITUDE): cv.string,
-                vol.Required(LONGITUDE): cv.string,
-                vol.Optional(ORDER, default=ORDER_DEFAULT): cv.positive_int,
+                vol.Required(TYPE): cv.string,
+                vol.Required(VALUE): cv.string,
+                vol.Required(LOCALE): cv.string,
+                vol.Optional(TIMESTAMP): cv.positive_int,
             }
         ),
-    )
-
-    async def test(call: ServiceCall) -> None:
-        """Send lat,lon,order with a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
-        vehicle = async_get_vehicle_for_entry(hass, device, config)
-
-        try:
-            await wake_up_vehicle(vehicle)
-            resp = await vehicle.api.flash_lights()
-            print(resp)
-        except TeslaFleetError as e:
-            raise HomeAssistantError from e
-
-    hass.services.async_register(
-        DOMAIN,
-        "test",
-        test,
-        schema=vol.Schema({vol.Required(CONF_DEVICE_ID): cv.string}),
     )
