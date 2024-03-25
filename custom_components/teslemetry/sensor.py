@@ -383,35 +383,17 @@ class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_ENERGY_IN,
+        device_class=SensorDeviceClass.ENERGY,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_POWER,
+        device_class=SensorDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.AUTO_SEAT_CLIMATE_LEFT,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.AUTO_SEAT_CLIMATE_RIGHT,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.AUTOMATIC_BLIND_SPOT_CAMERA,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.AUTOMATIC_EMERGENCY_BRAKING_OFF,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BMS_STATE,
@@ -485,7 +467,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_LIMIT_SOC,
-        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
     ),
@@ -1217,12 +1198,12 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
     """Base class for Teslemetry vehicle streaming sensors."""
 
-    entity_description: SensorEntityDescription
+    entity_description: TeslemetryStreamSensorEntityDescription
 
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        description: SensorEntityDescription,
+        description: TeslemetryStreamSensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description

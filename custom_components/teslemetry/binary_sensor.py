@@ -24,6 +24,7 @@ from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,
     TeslemetryEnergyInfoEntity,
+    TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
@@ -201,6 +202,39 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     ),
 )
 
+
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryStreamBinarySensorEntityDescription(BinarySensorEntityDescription):
+    """Describes Teslemetry binary sensor entity."""
+
+    is_on: Callable[[StateType], bool] = lambda x: bool(x)
+
+
+VEHICLE_STREAM_DESCRIPTIONS: tuple[
+    TeslemetryStreamBinarySensorEntityDescription, ...
+] = (
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.AUTO_SEAT_CLIMATE_LEFT,
+        entity_registry_enabled_default=False,
+        is_on=lambda x: bool(x),
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.AUTO_SEAT_CLIMATE_RIGHT,
+        entity_registry_enabled_default=False,
+        is_on=lambda x: bool(x),
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.AUTOMATIC_BLIND_SPOT_CAMERA,
+        entity_registry_enabled_default=False,
+        is_on=lambda x: bool(x),
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.AUTOMATIC_EMERGENCY_BRAKING_OFF,
+        entity_registry_enabled_default=False,
+        is_on=lambda x: bool(x),
+    ),
+)
+
 ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(key="backup_capable"),
     BinarySensorEntityDescription(key="grid_services_active"),
@@ -269,6 +303,27 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""
         self._attr_is_on = self.entity_description.is_on(value)
+
+
+class TeslemetryStreamBinarySensorEntity(
+    TeslemetryVehicleStreamEntity, BinarySensorEntity
+):
+    """Base class for Teslemetry vehicle streaming sensors."""
+
+    entity_description: BinarySensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        super().__init__(data, description.key)
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_native_value = self.entity_description.value_fn(value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
