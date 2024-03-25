@@ -383,11 +383,13 @@ class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_ENERGY_IN,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.AC_CHARGING_POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
@@ -423,6 +425,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BATTERY_LEVEL,
+        device_class=SensorDeviceClass.BATTERY,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
@@ -481,6 +484,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_LIMIT_SOC,
+        device_class=SensorDeviceClass.BATTERY,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
