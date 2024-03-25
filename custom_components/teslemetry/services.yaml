@@ -63,4 +63,16 @@ navigation_request:
       required: false
       selector:
         text:
-
+stream_fields:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    fields:
+      required: true
+      selector:
+        yaml:

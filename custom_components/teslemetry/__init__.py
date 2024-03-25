@@ -122,6 +122,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     product["display_name"],
                     vin,
                 )
+            except Exception as e:
+                LOGGER.info(
+                    "Vehicle %s is unable to use streaming", product["display_name"]
+                )
+                LOGGER.debug(e)
 
             vehicles.append(
                 TeslemetryVehicleData(

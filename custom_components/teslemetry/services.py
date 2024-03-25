@@ -30,6 +30,7 @@ VALUE = "value"
 LOCALE = "locale"
 ORDER = "order"
 TIMESTAMP = "timestamp"
+FIELDS = "fields"
 
 
 def async_get_device_for_service_call(
@@ -163,6 +164,31 @@ def async_register_services(hass: HomeAssistant) -> bool:
                 vol.Required(VALUE): cv.string,
                 vol.Required(LOCALE): cv.string,
                 vol.Optional(TIMESTAMP): cv.positive_int,
+            }
+        ),
+    )
+
+    async def stream_fields(call: ServiceCall) -> None:
+        """Configure fleet telemetry."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        try:
+            resp = await vehicle.stream.replace_fields(fields=call.data[FIELDS])
+        except Exception as e:
+            raise HomeAssistantError from e
+        if "error" in resp:
+            raise ServiceValidationError(resp["error"])
+
+    hass.services.async_register(
+        DOMAIN,
+        "stream_fields",
+        stream_fields,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Required(FIELDS): dict,
             }
         ),
     )

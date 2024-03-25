@@ -14,7 +14,7 @@
   ],
   "requirements": [
     "tesla-fleet-api==0.5.1",
-    "teslemetry-stream==0.2.0"
+    "teslemetry-stream==0.2.2"
   ],
   "version": "1.5.6"
 }

@@ -980,6 +980,20 @@
           "description": "The order for this destination if specifying multiple destinations."
         }
       }
+    },
+    "stream_fields": {
+      "name": "Stream fields",
+      "description": "Set the fields streamed from a vehicle.",
+      "fields": {
+        "device_id": {
+          "name": "Vehicle",
+          "description": "The vehicle to configure."
+        },
+        "fields": {
+          "name": "Fields",
+          "description": "The fields to stream."
+        }
+      }
     }
   }
 }
