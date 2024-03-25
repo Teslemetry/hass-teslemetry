@@ -426,6 +426,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BATTERY_LEVEL,
         device_class=SensorDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
@@ -485,6 +486,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_LIMIT_SOC,
         device_class=SensorDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
