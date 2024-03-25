@@ -116,6 +116,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             {"vin": vin, "errors": None},
                         ),
                     )
+
+                    vehicles.append(
+                        TeslemetryVehicleData(
+                            api=api,
+                            coordinator=coordinator,
+                            stream=stream,
+                            vin=vin,
+                            device=device,
+                            remove_listeners=remove_listeners,
+                        )
+                    )
             except TeslemetryStreamVehicleNotConfigured:
                 LOGGER.warning(
                     "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
@@ -128,16 +139,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
                 LOGGER.debug(e)
 
-            vehicles.append(
-                TeslemetryVehicleData(
-                    api=api,
-                    coordinator=coordinator,
-                    stream=stream,
-                    vin=vin,
-                    device=device,
-                    remove_listeners=remove_listeners,
-                )
-            )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
