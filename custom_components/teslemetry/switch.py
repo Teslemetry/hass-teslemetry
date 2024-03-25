@@ -1,4 +1,5 @@
 """Switch platform for Teslemetry integration."""
+
 from __future__ import annotations
 from itertools import chain
 from collections.abc import Callable
@@ -92,6 +93,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
 
 VEHICLE_CHARGE_DESCRIPTIONS = TeslemetrySwitchEntityDescription(
     key="charge_state_user_charge_enable_request",
+    streaming_key=TelemetryField.CHARGE_ENABLE_REQUEST,
     on_func=lambda api: api.charge_start(),
     off_func=lambda api: api.charge_stop(),
     scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],

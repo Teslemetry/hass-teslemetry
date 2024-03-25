@@ -1,17 +1,23 @@
 """Teslemetry parent entity class."""
 
-import asyncio
 from typing import Any
+from time import time
+from datetime import datetime, UTC
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.exceptions import TeslaFleetError
 from tesla_fleet_api.const import TelemetryField
 
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
+from .const import (
+    DOMAIN,
+    LOGGER,
+    TeslemetryTimestamp,
+    TeslemetryUpdateType,
+    STREAMING_GAP,
+)
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
@@ -134,7 +140,8 @@ class TeslemetryEntity(
 class TeslemetryVehicleEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle entities."""
 
-    _last_update: int = 0
+    _updated_at: int = 0
+    _updated_by: TeslemetryUpdateType = TeslemetryUpdateType.NONE
 
     def __init__(
         self,
@@ -168,33 +175,33 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        if data["timestamp"] < self._last_update:
-            LOGGER.warning(
-                "Streaming data of %s was %s seconds older than polling data",
-                self.name,
-                self._last_update - data["timestamp"] / 1000,
-            )
-            return
-        self._last_update = data["timestamp"]
+        self._updated_by = TeslemetryUpdateType.STREAMING
+        self._updated_at = data["timestamp"]
         self._async_value_from_stream(data["data"][self.streaming_key])
+        self._attr_extra_state_attributes = {
+            "updated_by": self._updated_by.value,
+            "updated_at": datetime.fromtimestamp(self._updated_at / 1000, tz=UTC),
+        }
         self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        timestamp = self.timestamp_key and self.get(self.timestamp_key)
-        if not timestamp:
+        timestamp = (
+            self.timestamp_key and self.get(self.timestamp_key) or int(time() * 1000)
+        )
+        if (
+            self._updated_by != TeslemetryUpdateType.STREAMING
+            and timestamp > self._updated_at
+            or timestamp > (self._updated_at + STREAMING_GAP)
+        ):
+            self._updated_by = TeslemetryUpdateType.POLLING
+            self._updated_at = timestamp
             self._async_update_attrs()
+            self._attr_extra_state_attributes = {
+                "updated_by": self._updated_by.value,
+                "updated_at": datetime.fromtimestamp(self._updated_at / 1000, tz=UTC),
+            }
             self.async_write_ha_state()
-        elif timestamp > self._last_update:
-            self._last_update = timestamp
-            self._async_update_attrs()
-            self.async_write_ha_state()
-        elif timestamp < self._last_update:
-            LOGGER.debug(
-                "Skipping update of %s, new timestamp is %s older",
-                self.name,
-                self._last_update - timestamp / 1000,
-            )
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""

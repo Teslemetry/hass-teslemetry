@@ -207,31 +207,35 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
 class TeslemetryStreamBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
-    is_on: Callable[[StateType], bool] = lambda x: bool(x)
+    is_on: Callable[[StateType], bool] = lambda x: x.lower() == "true"
 
 
 VEHICLE_STREAM_DESCRIPTIONS: tuple[
     TeslemetryStreamBinarySensorEntityDescription, ...
 ] = (
     TeslemetryStreamBinarySensorEntityDescription(
-        key=TelemetryField.AUTO_SEAT_CLIMATE_LEFT,
-        entity_registry_enabled_default=False,
-        is_on=lambda x: bool(x),
-    ),
-    TeslemetryStreamBinarySensorEntityDescription(
-        key=TelemetryField.AUTO_SEAT_CLIMATE_RIGHT,
-        entity_registry_enabled_default=False,
-        is_on=lambda x: bool(x),
-    ),
-    TeslemetryStreamBinarySensorEntityDescription(
         key=TelemetryField.AUTOMATIC_BLIND_SPOT_CAMERA,
         entity_registry_enabled_default=False,
-        is_on=lambda x: bool(x),
     ),
     TeslemetryStreamBinarySensorEntityDescription(
         key=TelemetryField.AUTOMATIC_EMERGENCY_BRAKING_OFF,
         entity_registry_enabled_default=False,
-        is_on=lambda x: bool(x),
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.BLIND_SPOT_COLLISION_WARNING_CHIME,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.BMS_FULL_CHARGE_COMPLETE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.BRAKE_PEDAL,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.CHARGE_ENABLE_REQUEST,
+        entity_registry_enabled_default=False,
     ),
 )
 

@@ -1,10 +1,13 @@
 """Constants used by Teslemetry integration."""
+
 from __future__ import annotations
 
-from enum import StrEnum, IntEnum
+from enum import StrEnum, IntEnum, Enum
 import logging
 
 DOMAIN = "teslemetry"
+
+STREAMING_GAP = 60000
 
 LOGGER = logging.getLogger(__package__)
 
@@ -14,6 +17,14 @@ MODELS = {
     "X": "Model X",
     "Y": "Model Y",
 }
+
+
+class TeslemetryUpdateType(StrEnum):
+    """Teslemetry Update Types."""
+
+    NONE = "none"
+    POLLING = "polling"
+    STREAMING = "streaming"
 
 
 class TeslemetryTimestamp(StrEnum):

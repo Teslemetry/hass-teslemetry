@@ -54,3 +54,20 @@ def auto_type(str):
         return str.lower() == "true"
 
     return str
+
+
+def ignore_drop(change=1):
+    """Ignore a drop in value."""
+    _last_value = None
+
+    def _ignore_drop(value):
+        nonlocal _last_value
+        try:
+            value = float(value)
+        except ValueError:
+            return None
+        if value > _last_value or (_last_value - value) > change or _last_value is None:
+            _last_value = value
+        return _last_value
+
+    return _ignore_drop

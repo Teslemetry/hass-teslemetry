@@ -44,7 +44,7 @@ from .entity import (
     TeslemetryWallConnectorEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .helpers import auto_type
+from .helpers import auto_type, ignore_drop
 
 ChargeStates = {
     "Starting": "starting",
@@ -83,6 +83,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
+        value_fn=lambda x: float(x),
         suggested_display_precision=1,
     ),
     TeslemetrySensorEntityDescription(
@@ -101,7 +102,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
-        value_fn=ignore_variance(lambda x: float(x), 0.5),
+        value_fn=ignore_drop(),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_power",
@@ -110,6 +111,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
+        value_fn=lambda x: float(x),
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_voltage",
@@ -381,14 +383,14 @@ class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
 
 
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
-    TeslemetryStreamSensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.AC_CHARGING_ENERGY_IN,
         device_class=SensorDeviceClass.ENERGY,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
-    TeslemetryStreamSensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.AC_CHARGING_POWER,
         device_class=SensorDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
@@ -400,12 +402,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
         value_fn=lambda x: x,
     ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.BATTERY_HEATER_ON,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.BATTERY_LEVEL,
         device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
@@ -413,31 +410,23 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.BLIND_SPOT_COLLISION_WARNING_CHIME,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.BMS_FULL_CHARGE_COMPLETE,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.BRAKE_PEDAL,
-        entity_registry_enabled_default=False,
-        value_fn=lambda x: bool(x),
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRAKE_PEDAL_POS,
+        native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRICK_VOLTAGE_MAX,
+        device_class=SensorDeviceClass.VOLTAGE,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRICK_VOLTAGE_MIN,
+        device_class=SensorDeviceClass.VOLTAGE,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
     ),
@@ -446,26 +435,29 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
         value_fn=lambda x: x,
     ),
-    TeslemetryStreamSensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.CHARGE_AMPS,
+        device_class=SensorDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_registry_enabled_default=False,
         value_fn=lambda x: int(x),
     ),
-    TeslemetryStreamSensorEntityDescription(
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.CHARGE_CURRENT_REQUEST,
+        device_class=SensorDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_registry_enabled_default=False,
         value_fn=lambda x: int(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_CURRENT_REQUEST_MAX,
+        device_class=SensorDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_registry_enabled_default=False,
         value_fn=lambda x: int(x),
     ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CHARGE_ENABLE_REQUEST,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
+    
+    TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.CHARGE_LIMIT_SOC,
         native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
@@ -888,10 +880,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SEAT_HEATER_RIGHT,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SENTRY_MODE,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
