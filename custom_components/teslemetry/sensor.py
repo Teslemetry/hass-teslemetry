@@ -44,6 +44,7 @@ from .entity import (
     TeslemetryWallConnectorEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .helpers import auto_type
 
 ChargeStates = {
     "Starting": "starting",
@@ -376,7 +377,7 @@ VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
 class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
-    value_fn: Callable[[StateType], StateType] = lambda x: x
+    value_fn: Callable[[StateType], StateType] = lambda x: auto_type(x)
 
 
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
@@ -1223,7 +1224,7 @@ class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_native_value = value
+        self._attr_native_value = self.entity_description.value_fn(value)
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

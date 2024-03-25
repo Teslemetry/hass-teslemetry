@@ -21,21 +21,6 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import wake_up_vehicle, handle_command
 
 
-def auto_type(str):
-    """Automatically cast a string to a type."""
-    if str.isdigit():
-        return int(str)
-    try:
-        return float(str)
-    except ValueError:
-        pass
-
-    if str.lower() in ["true", "false"]:
-        return str.lower() == "true"
-
-    return str
-
-
 class TeslemetryVehicleStreamEntity:
     """Parent class for Teslemetry Vehicle Stream entities."""
 

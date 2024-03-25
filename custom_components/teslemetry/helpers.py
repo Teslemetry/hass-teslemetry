@@ -39,3 +39,18 @@ async def handle_command(command) -> dict[str, Any]:
         LOGGER.debug("Command error: %s", e.message)
         raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
     return result
+
+
+def auto_type(str):
+    """Automatically cast a string to a type."""
+    if str.isdigit():
+        return int(str)
+    try:
+        return float(str)
+    except ValueError:
+        pass
+
+    if str.lower() in ["true", "false"]:
+        return str.lower() == "true"
+
+    return str
