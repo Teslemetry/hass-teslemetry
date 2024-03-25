@@ -15,6 +15,9 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
@@ -422,6 +425,8 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         key=TelemetryField.BATTERY_HEATER_ON,
         entity_registry_enabled_default=False,
         value_fn=lambda x: bool(x),
+        device_class=BinarySensorDeviceClass.HEAT,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BATTERY_LEVEL,
@@ -453,11 +458,19 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         key=TelemetryField.BRICK_VOLTAGE_MAX,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BRICK_VOLTAGE_MIN,
         entity_registry_enabled_default=False,
         value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CAR_TYPE,
@@ -468,6 +481,10 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         key=TelemetryField.CHARGE_AMPS,
         entity_registry_enabled_default=False,
         value_fn=lambda x: int(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_CURRENT_REQUEST,
@@ -612,18 +629,38 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_F,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_R,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_REL,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_RER,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_TORQUE_ACTUAL_F,
@@ -648,10 +685,20 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_F,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_R,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_REL,
@@ -684,10 +731,20 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ENERGY_REMAINING,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EST_BATTERY_RANGE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EXTERIOR_COLOR,
@@ -736,14 +793,25 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.IDEAL_BATTERY_RANGE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.INSIDE_TEMP,
         entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ISOLATION_RESISTANCE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LANE_DEPARTURE_AVOIDANCE,
@@ -784,10 +852,20 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MAX,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MIN,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NOT_ENOUGH_POWER_TO_HEAT,
@@ -820,14 +898,29 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.OUTSIDE_TEMP,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_CURRENT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_VOLTAGE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PAIRED_PHONE_KEY_AND_KEY_FOB_QTY,
