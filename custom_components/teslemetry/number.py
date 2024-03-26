@@ -80,6 +80,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
         key="vehicle_state_speed_limit_mode_current_limit_mph",
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        streaming_key=TelemetryField.CURRENT_LIMIT_MPH,
         native_min_value=50,
         native_max_value=120,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,

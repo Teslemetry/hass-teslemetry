@@ -237,6 +237,10 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[
         key=TelemetryField.CHARGE_ENABLE_REQUEST,
         entity_registry_enabled_default=False,
     ),
+    TeslemetryStreamBinarySensorEntityDescription(
+        key=TelemetryField.CHARGE_PORT_COLD_WEATHER_MODE,
+        entity_registry_enabled_default=False,
+    ),
 )
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (

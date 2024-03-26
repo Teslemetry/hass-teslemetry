@@ -91,7 +91,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
 )
 
-VEHICLE_CHARGE_DESCRIPTIONS = TeslemetrySwitchEntityDescription(
+VEHICLE_CHARGE_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="charge_state_user_charge_enable_request",
     streaming_key=TelemetryField.CHARGE_ENABLE_REQUEST,
     on_func=lambda api: api.charge_start(),
@@ -115,7 +115,7 @@ async def async_setup_entry(
             ),
             (
                 TeslemetryChargeSwitchEntity(
-                    vehicle, VEHICLE_CHARGE_DESCRIPTIONS, data.scopes
+                    vehicle, VEHICLE_CHARGE_DESCRIPTION, data.scopes
                 )
                 for vehicle in data.vehicles
             ),
@@ -194,6 +194,8 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
             self._attr_is_on = self.get("charge_state_charge_enable_request")
         else:
             self._attr_is_on = self._value
+
+    # Need to test how streaming impacts this entity
 
 
 class TeslemetryStormModeSwitchEntity(

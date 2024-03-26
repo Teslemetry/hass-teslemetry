@@ -456,31 +456,16 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
         value_fn=lambda x: int(x),
     ),
-    
     TeslemetryStreamSensorEntityDescription(  # TO REMOVE
         key=TelemetryField.CHARGE_LIMIT_SOC,
         native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: int(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CHARGE_PORT,
         entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CHARGE_PORT_COLD_WEATHER_MODE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CHARGE_PORT_LATCH,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CHARGE_STATE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CHARGER_PHASES,
-        entity_registry_enabled_default=False,
+        value_fn=lambda x: x,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_FOLLOW_DISTANCE,
@@ -489,6 +474,8 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_SET_SPEED,
         entity_registry_enabled_default=False,
+        device_class=SensorDeviceClass.SPEED,
+        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,  # Might be dynamic
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.CRUISE_STATE,
