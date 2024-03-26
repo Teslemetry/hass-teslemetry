@@ -649,17 +649,8 @@
       "stream_fastchargerpresent": {
         "name": "FastChargerPresent"
       },
-      "stream_fdwindow": {
-        "name": "FdWindow"
-      },
       "stream_forwardcollisionwarning": {
         "name": "ForwardCollisionWarning"
-      },
-      "stream_fpwindow": {
-        "name": "FpWindow"
-      },
-      "stream_gear": {
-        "name": "Gear"
       },
       "stream_gpsheading": {
         "name": "GpsHeading"
@@ -675,12 +666,6 @@
       },
       "stream_hvil": {
         "name": "Hvil"
-      },
-      "stream_idealbatteryrange": {
-        "name": "IdealBatteryRange"
-      },
-      "stream_insidetemp": {
-        "name": "InsideTemp"
       },
       "stream_isolationresistance": {
         "name": "IsolationResistance"
@@ -706,9 +691,6 @@
       "stream_longitudinalacceleration": {
         "name": "LongitudinalAcceleration"
       },
-      "stream_milestoarrival": {
-        "name": "MilesToArrival"
-      },
       "stream_minutestoarrival": {
         "name": "MinutesToArrival"
       },
@@ -733,14 +715,8 @@
       "stream_nummoduletempmin": {
         "name": "NumModuleTempMin"
       },
-      "stream_odometer": {
-        "name": "Odometer"
-      },
       "stream_originlocation": {
         "name": "OriginLocation"
-      },
-      "stream_outsidetemp": {
-        "name": "OutsideTemp"
       },
       "stream_packcurrent": {
         "name": "PackCurrent"
@@ -760,14 +736,8 @@
       "stream_pintodriveenabled": {
         "name": "PinToDriveEnabled"
       },
-      "stream_preconditioningenabled": {
-        "name": "PreconditioningEnabled"
-      },
       "stream_ratedrange": {
         "name": "RatedRange"
-      },
-      "stream_rdwindow": {
-        "name": "RdWindow"
       },
       "stream_roofcolor": {
         "name": "RoofColor"
@@ -778,35 +748,14 @@
       "stream_routeline": {
         "name": "RouteLine"
       },
-      "stream_rpwindow": {
-        "name": "RpWindow"
-      },
       "stream_scheduledchargingmode": {
         "name": "ScheduledChargingMode"
-      },
-      "stream_scheduledchargingpending": {
-        "name": "ScheduledChargingPending"
       },
       "stream_scheduledchargingstarttime": {
         "name": "ScheduledChargingStartTime"
       },
       "stream_scheduleddeparturetime": {
         "name": "ScheduledDepartureTime"
-      },
-      "stream_seatheaterleft": {
-        "name": "SeatHeaterLeft"
-      },
-      "stream_seatheaterrearcenter": {
-        "name": "SeatHeaterRearCenter"
-      },
-      "stream_seatheaterrearleft": {
-        "name": "SeatHeaterRearLeft"
-      },
-      "stream_seatheaterrearright": {
-        "name": "SeatHeaterRearRight"
-      },
-      "stream_seatheaterright": {
-        "name": "SeatHeaterRight"
       },
       "stream_servicemode": {
         "name": "ServiceMode"
@@ -838,26 +787,11 @@
       "stream_tpmslastseenpressuretimerr": {
         "name": "TpmsLastSeenPressureTimeRr"
       },
-      "stream_tpmspressurefl": {
-        "name": "TpmsPressureFl"
-      },
-      "stream_tpmspressurefr": {
-        "name": "TpmsPressureFr"
-      },
-      "stream_tpmspressurerl": {
-        "name": "TpmsPressureRl"
-      },
-      "stream_tpmspressurerr": {
-        "name": "TpmsPressureRr"
-      },
       "stream_trim": {
         "name": "Trim"
       },
       "stream_vehiclename": {
         "name": "VehicleName"
-      },
-      "stream_vehiclespeed": {
-        "name": "VehicleSpeed"
       },
       "stream_version": {
         "name": "Version"

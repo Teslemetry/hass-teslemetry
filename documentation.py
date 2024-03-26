@@ -48,6 +48,7 @@ def compare_keys(a, b, parent=""):
 # compare_keys(en, strings, "en.json ")
 
 used = []
+streaming_used = []
 domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
 
 # Check for missing
@@ -56,9 +57,9 @@ for domain, descriptions in (
         "binary_sensor",
         chain(
             BINARY_VEHICLE_DESCRIPTIONS,
-            BINARY_VEHICLE_STREAM_DESCRIPTIONS,
             BINARY_ENERGY_LIVE_DESCRIPTIONS,
             BINARY_ENERGY_INFO_DESCRIPTIONS,
+            BINARY_VEHICLE_STREAM_DESCRIPTIONS,
         ),
     ),
     ("button", BUTTON_DESCRIPTIONS),
@@ -68,11 +69,11 @@ for domain, descriptions in (
         "sensor",
         chain(
             SENSOR_VEHICLE_DESCRIPTIONS,
-            SENSOR_VEHICLE_STREAM_DESCRIPTIONS,
             SENSOR_VEHICLE_TIME_DESCRIPTIONS,
             SENSOR_ENERGY_INFO_DESCRIPTIONS,
             SENSOR_ENERGY_LIVE_DESCRIPTIONS,
             SENSOR_WALL_CONNECTOR_DESCRIPTIONS,
+            SENSOR_VEHICLE_STREAM_DESCRIPTIONS,
         ),
     ),
     ("switch", SWITCH_VEHICLE_DESCRIPTIONS),
@@ -95,13 +96,14 @@ for domain, descriptions in (
             hasattr(description, "streaming_key")
             and description.streaming_key is not None
         ):
-            print(
-                f"{description.streaming_key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Combo"
-            )
+            streaming_used.append(description.streaming_key.value)
+            # print(f"{description.streaming_key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Combo")
         if isinstance(description.key, TelemetryField):
-            print(
-                f"{description.key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Disabled"
-            )
+            if description.key.value in streaming_used:
+                print(f"DUPLICATE: {description.key.value}")
+            else:
+                streaming_used.append(description.key.value)
+            # print(f"{description.key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Disabled")
 
 # Check for unused
 for domain in en["entity"]:
