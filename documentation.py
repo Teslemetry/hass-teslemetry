@@ -122,6 +122,7 @@ for domain in en["entity"]:
                 "climate_state_steering_wheel_heat_level",
                 "storm_mode_enabled",
                 "components_disallow_charge_from_grid_with_solar_installed",
+                "vin",
             ):
                 if (domain, key) not in used:
                     print(f"UNUSED: {domain} {key}")

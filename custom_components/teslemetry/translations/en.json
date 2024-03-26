@@ -746,7 +746,11 @@
         "name": "Version"
       },
       "vin": {
-        "name": "Vehicle"
+        "name": "Vehicle",
+        "state_attributes": {
+          "model": "Model",
+          "vin": "VIN"
+        }
       },
       "vpp_backup_reserve_percent": {
         "name": "VPP backup reserve"
@@ -761,15 +765,15 @@
         "name": "State",
         "state": {
           "booting": "Booting",
-          "not_connected": "Not connected",
-          "connected": "Connected",
-          "ready": "Ready",
-          "negotiating": "Negotiating",
-          "error": "Error",
+          "charging": "Charging",
           "charging_finished": "Charging finished",
-          "waiting_car": "Waiting for car",
           "charging_reduced": "Charging reduced",
-          "charging": "Charging"
+          "connected": "Connected",
+          "error": "Error",
+          "negotiating": "Negotiating",
+          "not_connected": "Not connected",
+          "ready": "Ready",
+          "waiting_car": "Waiting for car"
         }
       }
     },

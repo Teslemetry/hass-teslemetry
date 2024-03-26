@@ -790,8 +790,8 @@
       "wall_connector_state": {
         "name": "State",
         "state_attributes": {
-          "vin": "VIN",
-          "model": "Model"
+          "model": "Model",
+          "vin": "VIN"
         }
       }
     },
