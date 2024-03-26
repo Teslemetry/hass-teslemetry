@@ -35,7 +35,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
 
-from .const import DOMAIN, TeslemetryTimestamp
+from .const import DOMAIN, TeslemetryTimestamp, MODELS
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
@@ -43,7 +43,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
     TeslemetryWallConnectorEntity,
 )
-from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .models import TeslemetryEnergyData, TeslemetryVehicleData, TeslemetryData
 from .helpers import auto_type, ignore_drop
 
 ChargeStates = {
@@ -999,9 +999,6 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
     ),
-    TeslemetryWallConnectorSensorEntityDescription(
-        key="vin",
-    ),
 )
 
 ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
@@ -1049,6 +1046,13 @@ async def async_setup_entry(
                 for energysite in data.energysites
                 for din in energysite.live_coordinator.data.get("wall_connectors", {})
                 for description in WALL_CONNECTOR_DESCRIPTIONS
+            ),
+            (  # Add wall connector connected vehicle
+                TeslemetryWallConnectorVehicleSensorEntity(
+                    energysite, din, data.vehicles
+                )
+                for energysite in data.energysites
+                for din in energysite.live_coordinator.data.get("wall_connectors", {})
             ),
             (  # Add energy site info
                 TeslemetryEnergyInfoSensorEntity(energysite, description)
@@ -1173,7 +1177,7 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
 
 
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
-    """Base class for Teslemetry energy site metric sensors."""
+    """Base class for Teslemetry Wall Connector sensors."""
 
     entity_description: TeslemetryWallConnectorSensorEntityDescription
 
@@ -1195,6 +1199,49 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
         """Update the attributes of the sensor."""
         self._attr_available = not self.exactly(None)
         self._attr_native_value = self.entity_description.value_fn(self._value)
+
+
+class TeslemetryWallConnectorVehicleSensorEntity(
+    TeslemetryWallConnectorEntity, SensorEntity
+):
+    """Entity for Teslemetry wall connector vehicle sensors."""
+
+    entity_description: TeslemetryWallConnectorSensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        din: str,
+        vehicles: list[TeslemetryVehicleData],
+    ) -> None:
+        """Initialize the sensor."""
+        self._vehicles = vehicles
+        super().__init__(
+            data,
+            din,
+            "vin",
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+        self._attr_available = not self.exactly(None)
+        value = self._value
+        if value is None:
+            self._attr_native_value = None
+            return
+        for vehicle in self._vehicles:
+            if vehicle.vin == value:
+                self._attr_native_value = vehicle.device["name"]
+                self._attr_extra_state_attributes = {
+                    "vin": vehicle.vin,
+                    "model": vehicle.device["model"],
+                }
+                return
+        self._attr_native_value = value
+        self._attr_extra_state_attributes = {
+            "vin": value,
+            "model": MODELS.get(value[3]),
+        }
 
 
 class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
