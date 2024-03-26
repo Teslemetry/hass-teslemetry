@@ -320,7 +320,7 @@ class TeslemetryStreamBinarySensorEntity(
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        description: SensorEntityDescription,
+        description: BinarySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
