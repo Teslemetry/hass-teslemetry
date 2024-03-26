@@ -454,6 +454,18 @@
       "vehicle_state_tpms_pressure_rr": {
         "name": "Tire pressure rear right"
       },
+      "vehicle_state_tpms_last_seen_pressure_time_fl": {
+        "name": "Tire pressure last measured front left"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_fr": {
+        "name": "Tire pressure last measured front right"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_rl": {
+        "name": "Tire pressure last measured rear left"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_rr": {
+        "name": "Tire pressure last measured rear right"
+      },
       "version": {
         "name": "Version"
       },
@@ -472,17 +484,8 @@
       "wall_connector_state": {
         "name": "State"
       },
-      "stream_acchargingenergyin": {
-        "name": "ACChargingEnergyIn"
-      },
-      "stream_acchargingpower": {
-        "name": "ACChargingPower"
-      },
       "stream_bmsstate": {
         "name": "BMSState"
-      },
-      "stream_batterylevel": {
-        "name": "BatteryLevel"
       },
       "stream_brakepedalpos": {
         "name": "BrakePedalPos"
@@ -496,17 +499,8 @@
       "stream_cartype": {
         "name": "CarType"
       },
-      "stream_chargeamps": {
-        "name": "ChargeAmps"
-      },
-      "stream_chargecurrentrequest": {
-        "name": "ChargeCurrentRequest"
-      },
       "stream_chargecurrentrequestmax": {
         "name": "ChargeCurrentRequestMax"
-      },
-      "stream_chargelimitsoc": {
-        "name": "ChargeLimitSoc"
       },
       "stream_chargeport": {
         "name": "ChargePort"
@@ -519,9 +513,6 @@
       },
       "stream_cruisestate": {
         "name": "CruiseState"
-      },
-      "stream_currentlimitmph": {
-        "name": "CurrentLimitMph"
       },
       "stream_dcchargingenergyin": {
         "name": "DCChargingEnergyIn"
@@ -643,11 +634,8 @@
       "stream_energyremaining": {
         "name": "EnergyRemaining"
       },
-      "stream_estbatteryrange": {
-        "name": "EstBatteryRange"
-      },
-      "stream_exteriorcolor": {
-        "name": "ExteriorColor"
+      "vehicle_config_exterior_color": {
+        "name": "Exterior color"
       },
       "stream_fastchargerpresent": {
         "name": "FastChargerPresent"
@@ -688,14 +676,8 @@
       "stream_lifetimeenergyuseddrive": {
         "name": "LifetimeEnergyUsedDrive"
       },
-      "stream_locked": {
-        "name": "Locked"
-      },
       "stream_longitudinalacceleration": {
         "name": "LongitudinalAcceleration"
-      },
-      "stream_minutestoarrival": {
-        "name": "MinutesToArrival"
       },
       "stream_moduletempmax": {
         "name": "ModuleTempMax"
@@ -742,8 +724,8 @@
       "stream_ratedrange": {
         "name": "RatedRange"
       },
-      "stream_roofcolor": {
-        "name": "RoofColor"
+      "vehicle_config_roof_color": {
+        "name": "Roof color"
       },
       "stream_routelastupdated": {
         "name": "RouteLastUpdated"
@@ -751,41 +733,23 @@
       "stream_routeline": {
         "name": "RouteLine"
       },
-      "stream_scheduledchargingmode": {
-        "name": "ScheduledChargingMode"
+      "charge_state_scheduled_charging_mode": {
+        "name": "Scheduled charging mode"
       },
-      "stream_scheduledchargingstarttime": {
-        "name": "ScheduledChargingStartTime"
+      "charge_state_scheduled_charging_start_time": {
+        "name": "Scheduled charging start time"
       },
-      "stream_scheduleddeparturetime": {
-        "name": "ScheduledDepartureTime"
+      "charge_state_scheduled_departure_time": {
+        "name": "Scheduled departure time"
       },
       "stream_soc": {
         "name": "Soc"
-      },
-      "stream_speedlimitmode": {
-        "name": "SpeedLimitMode"
       },
       "stream_speedlimitwarning": {
         "name": "SpeedLimitWarning"
       },
       "stream_superchargersessiontripplanner": {
         "name": "SuperchargerSessionTripPlanner"
-      },
-      "stream_timetofullcharge": {
-        "name": "TimeToFullCharge"
-      },
-      "stream_tpmslastseenpressuretimefl": {
-        "name": "TpmsLastSeenPressureTimeFl"
-      },
-      "stream_tpmslastseenpressuretimefr": {
-        "name": "TpmsLastSeenPressureTimeFr"
-      },
-      "stream_tpmslastseenpressuretimerl": {
-        "name": "TpmsLastSeenPressureTimeRl"
-      },
-      "stream_tpmslastseenpressuretimerr": {
-        "name": "TpmsLastSeenPressureTimeRr"
       },
       "stream_trim": {
         "name": "Trim"

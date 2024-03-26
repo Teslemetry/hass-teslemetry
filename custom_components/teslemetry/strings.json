@@ -409,17 +409,8 @@
       "wall_connector_state": {
         "name": "State"
       },
-      "stream_acchargingenergyin": {
-        "name": "ACChargingEnergyIn"
-      },
-      "stream_acchargingpower": {
-        "name": "ACChargingPower"
-      },
       "stream_bmsstate": {
         "name": "BMSState"
-      },
-      "stream_batterylevel": {
-        "name": "BatteryLevel"
       },
       "stream_blindspotcollisionwarningchime": {
         "name": "BlindSpotCollisionWarningChime"
@@ -441,12 +432,6 @@
       },
       "stream_cartype": {
         "name": "CarType"
-      },
-      "stream_chargeamps": {
-        "name": "ChargeAmps"
-      },
-      "stream_chargecurrentrequest": {
-        "name": "ChargeCurrentRequest"
       },
       "stream_chargecurrentrequestmax": {
         "name": "ChargeCurrentRequestMax"
