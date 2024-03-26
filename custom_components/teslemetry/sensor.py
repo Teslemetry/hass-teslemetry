@@ -378,6 +378,40 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
         entity_registry_enabled_default=False,
     ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_config_roof_color",
+        streaming_key=TelemetryField.ROOF_COLOR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_CONFIG,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_scheduled_charging_mode",
+        streaming_key=TelemetryField.SCHEDULED_CHARGING_MODE,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_scheduled_charging_start_time",
+        streaming_key=TelemetryField.SCHEDULED_CHARGING_START_TIME,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="charge_state_scheduled_departure_time",
+        streaming_key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
+        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_config_exterior_color",
+        streaming_key=TelemetryField.EXTERIOR_COLOR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_CONFIG,
+        entity_registry_enabled_default=False,
+    ),
 )
 
 
@@ -603,18 +637,38 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_F,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_R,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_REL,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_RER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -639,10 +693,20 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_F,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_V_BAT_R,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
+        value_fn=lambda x: float(x),
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -675,14 +739,20 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ENERGY_REMAINING,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=1,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.EST_BATTERY_RANGE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.EXTERIOR_COLOR,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -715,6 +785,8 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ISOLATION_RESISTANCE,
+        value_fn=lambda x: float(x),
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -738,23 +810,21 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.LOCKED,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LONGITUDINAL_ACCELERATION,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.MINUTES_TO_ARRIVAL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MAX,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MIN,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -783,10 +853,16 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_CURRENT,
+        device_class=SensorDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_VOLTAGE,
+        device_class=SensorDeviceClass.VOLTAGE,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -810,30 +886,13 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.ROOF_COLOR,
+        key=TelemetryField.ROUTE_LINE,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ROUTE_LAST_UPDATED,
         entity_registry_enabled_default=False,
     ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.ROUTE_LINE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SCHEDULED_CHARGING_MODE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SCHEDULED_CHARGING_START_TIME,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
-        entity_registry_enabled_default=False,
-    ),
-    
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SOC,
         device_class=SensorDeviceClass.BATTERY,
