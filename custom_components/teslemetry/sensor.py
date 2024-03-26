@@ -55,6 +55,19 @@ ChargeStates = {
     "NoPower": "no_power",
 }
 
+WallConnectorStates = {
+    0: "booting",
+    1: "not_connected",
+    2: "connected",
+    4: "ready",
+    6: "negotiating",
+    7: "error",
+    8: "charging_finished",
+    9: "waiting_car",
+    10: "charging_reduced",
+    11: "charging",
+}
+
 ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}
 
 
@@ -620,7 +633,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DI_STATOR_TEMP_RER,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         value_fn=lambda x: float(x),
@@ -765,6 +778,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MODULE_TEMP_MIN,
@@ -772,6 +786,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NOT_ENOUGH_POWER_TO_HEAT,
@@ -780,18 +795,22 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_BRICK_VOLTAGE_MAX,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,  # Number is not a measurement
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_BRICK_VOLTAGE_MIN,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,  # Number is not a measurement
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_MODULE_TEMP_MAX,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,  # Number is not a measurement
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.NUM_MODULE_TEMP_MIN,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: x,  # Number is not a measurement
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ORIGIN_LOCATION,
@@ -803,6 +822,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PACK_VOLTAGE,
@@ -810,10 +830,12 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: float(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PAIRED_PHONE_KEY_AND_KEY_FOB_QTY,
         entity_registry_enabled_default=False,
+        value_fn=lambda x: int(x),
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.PASSENGER_SEAT_BELT,
@@ -946,18 +968,30 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(key="island_status", device_class=SensorDeviceClass.ENUM),
 )
 
-WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
+
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryWallConnectorSensorEntityDescription(SensorEntityDescription):
+    """Describes Teslemetry Sensor entity."""
+
+    value_fn: Callable[[StateType], StateType] = lambda x: x
+
+
+WALL_CONNECTOR_DESCRIPTIONS: tuple[
+    TeslemetryWallConnectorSensorEntityDescription, ...
+] = (
+    TeslemetryWallConnectorSensorEntityDescription(
         key="wall_connector_state",
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        options=list(WallConnectorStates.values()),
+        device_class=SensorDeviceClass.ENUM,
+        value_fn=lambda value: WallConnectorStates.get(cast(str, value)),
     ),
-    SensorEntityDescription(
+    TeslemetryWallConnectorSensorEntityDescription(
         key="wall_connector_fault_state",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
-    SensorEntityDescription(
+    TeslemetryWallConnectorSensorEntityDescription(
         key="wall_connector_power",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -965,7 +999,7 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
     ),
-    SensorEntityDescription(
+    TeslemetryWallConnectorSensorEntityDescription(
         key="vin",
     ),
 )
@@ -1141,13 +1175,13 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
 class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorEntity):
     """Base class for Teslemetry energy site metric sensors."""
 
-    entity_description: SensorEntityDescription
+    entity_description: TeslemetryWallConnectorSensorEntityDescription
 
     def __init__(
         self,
         data: TeslemetryEnergyData,
         din: str,
-        description: SensorEntityDescription,
+        description: TeslemetryWallConnectorSensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
@@ -1160,7 +1194,7 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
         self._attr_available = not self.exactly(None)
-        self._attr_native_value = self._value
+        self._attr_native_value = self.entity_description.value_fn(self._value)
 
 
 class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
