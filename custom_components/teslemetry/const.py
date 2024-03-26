@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import StrEnum, IntEnum, Enum
+from enum import StrEnum, IntEnum
 import logging
 
 DOMAIN = "teslemetry"

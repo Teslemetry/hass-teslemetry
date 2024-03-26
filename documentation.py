@@ -1,6 +1,5 @@
-"""Write documentation"""
+"""Write documentation."""
 
-from enum import Enum
 from tesla_fleet_api.const import TelemetryField
 from itertools import chain
 import json

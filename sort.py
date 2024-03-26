@@ -1,4 +1,4 @@
-"""Write documentation"""
+"""Sort JSON files."""
 
 import json
 

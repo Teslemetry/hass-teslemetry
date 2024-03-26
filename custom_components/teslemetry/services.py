@@ -1,3 +1,5 @@
+"""Service calls for the Teslemetry integration."""
+
 import logging
 import voluptuous as vol
 from tesla_fleet_api.exceptions import TeslaFleetError

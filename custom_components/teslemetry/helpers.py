@@ -4,7 +4,7 @@ import asyncio
 from typing import Any
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from tesla_fleet_api.exceptions import TeslaFleetError
-from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
+from .const import LOGGER, TeslemetryState
 
 
 async def wake_up_vehicle(vehicle):

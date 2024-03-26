@@ -2,7 +2,6 @@
 
 from typing import Any
 from time import time
-from datetime import datetime, UTC
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import TelemetryField
