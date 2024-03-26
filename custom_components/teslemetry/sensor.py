@@ -5,7 +5,7 @@ from __future__ import annotations
 from tesla_fleet_api.const import TelemetryField
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from itertools import chain
 from typing import cast
 
@@ -351,7 +351,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FL,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -359,7 +359,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FR,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -367,7 +367,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RL,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -375,7 +375,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RR,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -395,7 +395,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.SCHEDULED_CHARGING_START_TIME,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -403,7 +403,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
+        value_fn=lambda x: dt_util.utc_from_timestamp(int(x)),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1073,7 +1073,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Initialize the sensor."""
         self.entity_description = description
         self._get_timestamp = ignore_variance(
-            func=lambda value: datetime.now() + timedelta(minutes=value),
+            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
             ignored_variance=timedelta(minutes=1),
         )
 
@@ -1096,7 +1096,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_value_from_stream(self, value) -> None:
         self._attr_available = True
-        self._attr_native_value = dt_util.now() + timedelta(minutes=int(value))
+        self._attr_native_value = self._get_timestamp(int(value))
 
 
 class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):

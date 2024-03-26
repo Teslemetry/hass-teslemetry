@@ -10,6 +10,7 @@ from tesla_fleet_api.const import TelemetryField
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -180,7 +181,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self._async_value_from_stream(data["data"][self.streaming_key])
         self._attr_extra_state_attributes = {
             "updated_by": self._updated_by.value,
-            "updated_at": datetime.fromtimestamp(self._updated_at / 1000, tz=UTC),
+            "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
         }
         self.async_write_ha_state()
 
@@ -199,7 +200,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
             self._async_update_attrs()
             self._attr_extra_state_attributes = {
                 "updated_by": self._updated_by.value,
-                "updated_at": datetime.fromtimestamp(self._updated_at / 1000, tz=UTC),
+                "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
             }
             self.async_write_ha_state()
 
