@@ -304,9 +304,6 @@
       "climate_state_passenger_temp_setting": {
         "name": "Zieltemperatur Beifahrerseite"
       },
-      "drive_state_active_route_destination": {
-        "name": "Navigationsziel"
-      },
       "drive_state_active_route_energy_at_arrival": {
         "name": "Ladestand am Ziel"
       },
@@ -365,9 +362,6 @@
       },
       "climate_state_auto_steering_wheel_heat": {
         "name": "Automatische Lenkradheizung"
-      },
-      "climate_state_defrost_mode": {
-        "name": "Fahrzeug enteisen"
       },
       "climate_state_steering_wheel_heater": {
         "name": "Lenkradheizung"

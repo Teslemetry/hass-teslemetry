@@ -1,4 +1,5 @@
 """Select platform for Teslemetry integration."""
+
 from __future__ import annotations
 from itertools import chain
 from tesla_fleet_api.const import (
@@ -16,7 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetrySeatHeaterOptions, TeslemetryTimestamp
+from .const import DOMAIN, TeslemetryHeaterOptions, TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
@@ -136,10 +137,10 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
     entity_description: SeatHeaterDescription
 
     _attr_options = [
-        TeslemetrySeatHeaterOptions.OFF,
-        TeslemetrySeatHeaterOptions.LOW,
-        TeslemetrySeatHeaterOptions.MEDIUM,
-        TeslemetrySeatHeaterOptions.HIGH,
+        TeslemetryHeaterOptions.OFF,
+        TeslemetryHeaterOptions.LOW,
+        TeslemetryHeaterOptions.MEDIUM,
+        TeslemetryHeaterOptions.HIGH,
     ]
 
     def __init__(
@@ -178,6 +179,52 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
             await self.handle_command(self.api.auto_conditioning_start())
         await self.handle_command(
             self.api.remote_seat_heater_request(self.entity_description.position, level)
+        )
+        self._attr_current_option = option
+        self.async_write_ha_state()
+
+
+class TeslemetryWheelHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
+    """Select entity for vehicle steering wheel heater."""
+
+    _attr_options = [
+        TeslemetryHeaterOptions.OFF,
+        TeslemetryHeaterOptions.LOW,
+        TeslemetryHeaterOptions.HIGH,
+    ]
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scoped: bool,
+    ) -> None:
+        """Initialize the vehicle seat select entity."""
+        self.scoped = scoped
+        super().__init__(
+            data,
+            "climate_state_steering_wheel_heat_level",
+            TeslemetryTimestamp.CLIMATE_STATE,
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Handle updated data from the coordinator."""
+
+        value = self._value
+        if value is None:
+            self._attr_current_option = None
+        else:
+            self._attr_current_option = self._attr_options[value]
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        level = self._attr_options.index(option)
+        # AC must be on to turn on seat heater
+        if not self.get("climate_state_is_climate_on"):
+            await self.handle_command(self.api.auto_conditioning_start())
+        await self.handle_command(
+            self.api.remote_steering_wheel_heat_level_request(level)
         )
         self._attr_current_option = option
         self.async_write_ha_state()

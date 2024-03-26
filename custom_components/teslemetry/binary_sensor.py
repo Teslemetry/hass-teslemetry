@@ -53,13 +53,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
-        key="charge_state_charge_state_enabled",
-        streaming_key=TelemetryField.CHARGE_STATE,
-        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryBinarySensorEntityDescription(
         key="charge_state_charger_phases",
         streaming_key=TelemetryField.CHARGER_PHASES,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,

@@ -138,7 +138,7 @@
           "backup": "mdi:battery-charging-100"
         }
       },
-      "components_net_meter_mode": {
+      "components_customer_preferred_export_rule": {
         "default": "mdi:transmission-tower",
         "state": {
           "battery_ok": "mdi:battery-negative",
@@ -166,9 +166,6 @@
           "2": "mdi:numeric-2-box",
           "3": "mdi:numeric-3-box"
         }
-      },
-      "drive_state_active_route_destination": {
-        "default": "mdi:routes"
       },
       "drive_state_active_route_minutes_to_arrival": {
         "default": "mdi:routes-clock"

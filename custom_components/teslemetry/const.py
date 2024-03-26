@@ -53,7 +53,7 @@ class TeslemetryClimateSide(StrEnum):
     PASSENGER = "passenger_temp"
 
 
-class TeslemetrySeatHeaterOptions(StrEnum):
+class TeslemetryHeaterOptions(StrEnum):
     """Teslemetry seat heater options."""
 
     OFF = "off"

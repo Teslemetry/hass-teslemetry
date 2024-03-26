@@ -91,6 +91,12 @@
       },
       "vehicle_state_tpms_soft_warning_rr": {
         "name": "Tire pressure warning rear right"
+      },
+      "stream_automaticblindspotcamera": {
+        "name": "AutomaticBlindSpotCamera"
+      },
+      "stream_automaticemergencybrakingoff": {
+        "name": "AutomaticEmergencyBrakingOff"
       }
     },
     "button": {
@@ -322,9 +328,6 @@
       "climate_state_passenger_temp_setting": {
         "name": "Passenger temperature setting"
       },
-      "drive_state_active_route_destination": {
-        "name": "Destination"
-      },
       "drive_state_active_route_energy_at_arrival": {
         "name": "State of charge at arrival"
       },
@@ -412,23 +415,8 @@
       "stream_acchargingpower": {
         "name": "ACChargingPower"
       },
-      "stream_autoseatclimateleft": {
-        "name": "AutoSeatClimateLeft"
-      },
-      "stream_autoseatclimateright": {
-        "name": "AutoSeatClimateRight"
-      },
-      "stream_automaticblindspotcamera": {
-        "name": "AutomaticBlindSpotCamera"
-      },
-      "stream_automaticemergencybrakingoff": {
-        "name": "AutomaticEmergencyBrakingOff"
-      },
       "stream_bmsstate": {
         "name": "BMSState"
-      },
-      "stream_batteryheateron": {
-        "name": "BatteryHeaterOn"
       },
       "stream_batterylevel": {
         "name": "BatteryLevel"
@@ -474,15 +462,6 @@
       },
       "stream_chargeportcoldweathermode": {
         "name": "ChargePortColdWeatherMode"
-      },
-      "stream_chargeportlatch": {
-        "name": "ChargePortLatch"
-      },
-      "stream_chargestate": {
-        "name": "ChargeState"
-      },
-      "stream_chargerphases": {
-        "name": "ChargerPhases"
       },
       "stream_cruisefollowdistance": {
         "name": "CruiseFollowDistance"
@@ -784,9 +763,6 @@
       "stream_seatheaterright": {
         "name": "SeatHeaterRight"
       },
-      "stream_sentrymode": {
-        "name": "SentryMode"
-      },
       "stream_servicemode": {
         "name": "ServiceMode"
       },
@@ -944,5 +920,4 @@
       }
     }
   }
-}
 }
