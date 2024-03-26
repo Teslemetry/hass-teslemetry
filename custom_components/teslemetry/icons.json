@@ -3,32 +3,32 @@
     "binary_sensor": {
       "vehicle_state_is_user_present": {
         "state": {
-          "on": "mdi:account",
-          "off": "mdi:account-remove-outline"
+          "off": "mdi:account-remove-outline",
+          "on": "mdi:account"
         }
       },
       "vehicle_state_tpms_soft_warning_fl": {
         "state": {
-          "on": "mdi:car-tire-alert",
-          "off": "mdi:tire"
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
         }
       },
       "vehicle_state_tpms_soft_warning_fr": {
         "state": {
-          "on": "mdi:car-tire-alert",
-          "off": "mdi:tire"
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
         }
       },
       "vehicle_state_tpms_soft_warning_rl": {
         "state": {
-          "on": "mdi:car-tire-alert",
-          "off": "mdi:tire"
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
         }
       },
       "vehicle_state_tpms_soft_warning_rr": {
         "state": {
-          "on": "mdi:car-tire-alert",
-          "off": "mdi:tire"
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
         }
       }
     },
@@ -42,22 +42,17 @@
       "flash_lights": {
         "default": "mdi:flashlight"
       },
+      "homelink": {
+        "default": "mdi:garage"
+      },
       "honk": {
         "default": "mdi:bullhorn"
-      },
-      "wake": {
-        "default": "mdi:sleep-off"
       },
       "refresh": {
         "default": "mdi:refresh"
       },
-      "homelink": {
-        "default": "mdi:garage"
-      }
-    },
-    "cover": {
-      "charge_state_charge_port_door_open": {
-        "default": "mdi:ev-plug-tesla"
+      "wake": {
+        "default": "mdi:sleep-off"
       }
     },
     "climate": {
@@ -65,21 +60,40 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "off": "mdi:power",
-              "keep": "mdi:fan",
+              "camp": "mdi:tent",
               "dog": "mdi:dog",
-              "camp": "mdi:tent"
+              "keep": "mdi:fan",
+              "off": "mdi:power"
             }
           }
         }
       }
     },
+    "cover": {
+      "charge_state_charge_port_door_open": {
+        "default": "mdi:ev-plug-tesla"
+      }
+    },
     "device_tracker": {
-      "route": {
-        "default": "mdi:routes"
-      },
       "location": {
         "default": "mdi:map-marker"
+      },
+      "route": {
+        "default": "mdi:routes"
+      }
+    },
+    "lock": {
+      "charge_state_charge_port_latch": {
+        "default": "mdi:ev-plug-tesla"
+      },
+      "vehicle_state_locked": {
+        "state": {
+          "locked": "mdi:car-door-lock",
+          "unlocked": "mdi:car-door-lock-open"
+        }
+      },
+      "vehicle_state_speed_limit_mode_active": {
+        "default": "mdi:car-speed-limiter"
       }
     },
     "number": {
@@ -94,7 +108,7 @@
           "off": "mdi:car-seat"
         }
       },
-      "climate_state_seat_heater_right": {
+      "climate_state_seat_heater_rear_center": {
         "default": "mdi:car-seat-heater",
         "state": {
           "off": "mdi:car-seat"
@@ -106,13 +120,13 @@
           "off": "mdi:car-seat"
         }
       },
-      "climate_state_seat_heater_rear_center": {
+      "climate_state_seat_heater_rear_right": {
         "default": "mdi:car-seat-heater",
         "state": {
           "off": "mdi:car-seat"
         }
       },
-      "climate_state_seat_heater_rear_right": {
+      "climate_state_seat_heater_right": {
         "default": "mdi:car-seat-heater",
         "state": {
           "off": "mdi:car-seat"
@@ -130,26 +144,33 @@
           "off": "mdi:car-seat"
         }
       },
-      "default_real_mode": {
-        "default": "mdi:home-battery",
-        "state": {
-          "autonomous": "mdi:auto-fix",
-          "self_consumption": "mdi:home-battery",
-          "backup": "mdi:battery-charging-100"
-        }
-      },
       "components_customer_preferred_export_rule": {
         "default": "mdi:transmission-tower",
         "state": {
           "battery_ok": "mdi:battery-negative",
-          "pv_only": "mdi:solar-panel",
-          "never": "mdi:transmission-tower-off"
+          "never": "mdi:transmission-tower-off",
+          "pv_only": "mdi:solar-panel"
+        }
+      },
+      "default_real_mode": {
+        "default": "mdi:home-battery",
+        "state": {
+          "autonomous": "mdi:auto-fix",
+          "backup": "mdi:battery-charging-100",
+          "self_consumption": "mdi:home-battery"
         }
       }
     },
     "sensor": {
       "battery_power": {
         "default": "mdi:home-battery"
+      },
+      "charge_state_charge_phases": {
+        "state": {
+          "1": "mdi:numeric-1-box",
+          "2": "mdi:numeric-2-box",
+          "3": "mdi:numeric-3-box"
+        }
       },
       "charge_state_charging_state": {
         "default": "mdi:ev-station",
@@ -158,13 +179,6 @@
           "no_power": "mdi:power-plug-off-outline",
           "starting": "mdi:play-circle",
           "stopped": "mdi:stop-circle"
-        }
-      },
-      "charge_state_charge_phases": {
-        "state": {
-          "1": "mdi:numeric-1-box",
-          "2": "mdi:numeric-2-box",
-          "3": "mdi:numeric-3-box"
         }
       },
       "drive_state_active_route_minutes_to_arrival": {
@@ -214,6 +228,9 @@
       }
     },
     "switch": {
+      "charge_state_user_charge_enable_request": {
+        "default": "mdi:ev-station"
+      },
       "climate_state_auto_seat_climate_left": {
         "default": "mdi:car-seat-heater",
         "state": {
@@ -229,34 +246,17 @@
       "climate_state_auto_steering_wheel_heat": {
         "default": "mdi:steering"
       },
-      "charge_state_user_charge_enable_request": {
-        "default": "mdi:ev-station"
+      "components_disallow_charge_from_grid_with_solar_installed": {
+        "state": {
+          "false": "mdi:transmission-tower",
+          "true": "mdi:solar-power"
+        }
       },
       "vehicle_state_sentry_mode": {
         "default": "mdi:shield-car"
       },
       "vehicle_state_valet_mode": {
         "default": "mdi:speedometer-slow"
-      },
-      "components_disallow_charge_from_grid_with_solar_installed": {
-        "state": {
-          "false": "mdi:transmission-tower",
-          "true": "mdi:solar-power"
-        }
-      }
-    },
-    "lock": {
-      "vehicle_state_locked": {
-        "state": {
-          "locked": "mdi:car-door-lock",
-          "unlocked": "mdi:car-door-lock-open"
-        }
-      },
-      "charge_state_charge_port_latch": {
-        "default": "mdi:ev-plug-tesla"
-      },
-      "vehicle_state_speed_limit_mode_active": {
-        "default": "mdi:car-speed-limiter"
       }
     }
   },
@@ -264,10 +264,10 @@
     "navigate_gps_request": {
       "default": "mdi:routes"
     },
-    "navigate_sc_request": {
+    "navigate_request": {
       "default": "mdi:routes"
     },
-    "navigate_request": {
+    "navigate_sc_request": {
       "default": "mdi:routes"
     }
   }
