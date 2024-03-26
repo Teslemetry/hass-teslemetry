@@ -97,13 +97,17 @@ for domain, descriptions in (
             and description.streaming_key is not None
         ):
             streaming_used.append(description.streaming_key.value)
-            # print(f"{description.streaming_key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Combo")
+            print(
+                f"['{description.streaming_key.value}','{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')}','Polling & Streaming'],"
+            )
         if isinstance(description.key, TelemetryField):
             if description.key.value in streaming_used:
                 print(f"DUPLICATE: {description.key.value}")
             else:
                 streaming_used.append(description.key.value)
-            # print(f"{description.key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Disabled")
+            print(
+                f"['{description.key.value}','{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')}','Streaming'],"
+            )
 
 # Check for unused
 for domain in en["entity"]:

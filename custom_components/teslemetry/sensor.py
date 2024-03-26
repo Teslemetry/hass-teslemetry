@@ -351,7 +351,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FL,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -359,7 +359,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FR,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -367,7 +367,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RL,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -375,7 +375,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RR,
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -395,7 +395,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.SCHEDULED_CHARGING_START_TIME,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -403,7 +403,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        value_fn=lambda x: datetime.fromtimestamp(int(x), UTC),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1045,7 +1045,12 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
         if self.has():
-            self._attr_native_value = self.entity_description.value_fn(self._value)
+            if self._value is None:
+                self._attr_available = False
+                self._attr_native_value = None
+            else:
+                self._attr_available = True
+                self._attr_native_value = self.entity_description.value_fn(self._value)
         else:
             self._attr_native_value = None
 
@@ -1068,7 +1073,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         """Initialize the sensor."""
         self.entity_description = description
         self._get_timestamp = ignore_variance(
-            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
+            func=lambda value: datetime.now() + timedelta(minutes=value),
             ignored_variance=timedelta(minutes=1),
         )
 
