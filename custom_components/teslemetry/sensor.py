@@ -658,19 +658,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.FD_WINDOW,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.FORWARD_COLLISION_WARNING,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.FP_WINDOW,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.GEAR,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -691,14 +679,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.HVIL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.IDEAL_BATTERY_RANGE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.INSIDE_TEMP,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -734,10 +714,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.MILES_TO_ARRIVAL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.MINUTES_TO_ARRIVAL,
         entity_registry_enabled_default=False,
     ),
@@ -770,15 +746,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.ODOMETER,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.ORIGIN_LOCATION,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.OUTSIDE_TEMP,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -806,15 +774,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.PRECONDITIONING_ENABLED,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.RATED_RANGE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.RD_WINDOW,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -830,15 +790,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.RP_WINDOW,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_CHARGING_MODE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SCHEDULED_CHARGING_PENDING,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -847,26 +799,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SEAT_HEATER_LEFT,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SEAT_HEATER_REAR_CENTER,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SEAT_HEATER_REAR_LEFT,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SEAT_HEATER_REAR_RIGHT,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SEAT_HEATER_RIGHT,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -910,31 +842,11 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_PRESSURE_FL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_PRESSURE_FR,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_PRESSURE_RL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_PRESSURE_RR,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.TRIM,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.VEHICLE_NAME,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.VEHICLE_SPEED,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(

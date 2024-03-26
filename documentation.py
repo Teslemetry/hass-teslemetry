@@ -50,6 +50,7 @@ def compare_keys(a, b, parent=""):
 used = []
 domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
 
+# Check for missing
 for domain, descriptions in (
     (
         "binary_sensor",
@@ -90,6 +91,19 @@ for domain, descriptions in (
         else:
             used.append((domain, translation_key))
 
+        if (
+            hasattr(description, "streaming_key")
+            and description.streaming_key is not None
+        ):
+            print(
+                f"{description.streaming_key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Combo"
+            )
+        if isinstance(description.key, TelemetryField):
+            print(
+                f"{description.key.value},{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')},Disabled"
+            )
+
+# Check for unused
 for domain in en["entity"]:
     if domain in domains:
         for key in en["entity"][domain]:
