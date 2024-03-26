@@ -115,6 +115,9 @@
       },
       "stream_chargeportcoldweathermode": {
         "name": "ChargePortColdWeatherMode"
+      },
+      "stream_servicemode": {
+        "name": "ServiceMode"
       }
     },
     "button": {
@@ -756,9 +759,6 @@
       },
       "stream_scheduleddeparturetime": {
         "name": "ScheduledDepartureTime"
-      },
-      "stream_servicemode": {
-        "name": "ServiceMode"
       },
       "stream_soc": {
         "name": "Soc"

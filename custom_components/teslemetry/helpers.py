@@ -56,17 +56,18 @@ def auto_type(str):
     return str
 
 
-def ignore_drop(change=1):
+def ignore_drop(change: int | float = 1):
     """Ignore a drop in value."""
     _last_value = None
 
     def _ignore_drop(value):
-        nonlocal _last_value
         try:
             value = float(value)
         except ValueError:
             return None
-        if value > _last_value or (_last_value - value) > change or _last_value is None:
+
+        nonlocal _last_value, change
+        if _last_value is None or value > _last_value or (_last_value - value) > change:
             _last_value = value
         return _last_value
 

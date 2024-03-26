@@ -781,29 +781,17 @@
       "stream_timetofullcharge": {
         "name": "TimeToFullCharge"
       },
-      "stream_tpmslastseenpressuretimefl": {
-        "name": "TpmsLastSeenPressureTimeFl"
+      "vehicle_state_tpms_last_seen_pressure_time_fl": {
+        "name": "Tire pressure last measurement front left"
       },
-      "stream_tpmslastseenpressuretimefr": {
-        "name": "TpmsLastSeenPressureTimeFr"
+      "vehicle_state_tpms_last_seen_pressure_time_fr": {
+        "name": "Tire pressure last measurement front right"
       },
-      "stream_tpmslastseenpressuretimerl": {
-        "name": "TpmsLastSeenPressureTimeRl"
+      "vehicle_state_tpms_last_seen_pressure_time_rl": {
+        "name": "Tire pressure last measurement rear left"
       },
-      "stream_tpmslastseenpressuretimerr": {
-        "name": "TpmsLastSeenPressureTimeRr"
-      },
-      "stream_tpmspressurefl": {
-        "name": "TpmsPressureFl"
-      },
-      "stream_tpmspressurefr": {
-        "name": "TpmsPressureFr"
-      },
-      "stream_tpmspressurerl": {
-        "name": "TpmsPressureRl"
-      },
-      "stream_tpmspressurerr": {
-        "name": "TpmsPressureRr"
+      "vehicle_state_tpms_last_seen_pressure_time_rr": {
+        "name": "Tire pressure last measurement rear right"
       },
       "stream_trim": {
         "name": "Trim"

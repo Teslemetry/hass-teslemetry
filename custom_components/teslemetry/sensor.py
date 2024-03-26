@@ -5,7 +5,7 @@ from __future__ import annotations
 from tesla_fleet_api.const import TelemetryField
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from itertools import chain
 from typing import cast
 
@@ -345,6 +345,38 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.MINUTES,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_state_tpms_last_seen_pressure_time_fl",
+        streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FL,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_state_tpms_last_seen_pressure_time_fr",
+        streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_state_tpms_last_seen_pressure_time_rl",
+        streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RL,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="vehicle_state_tpms_last_seen_pressure_time_rr",
+        streaming_key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RR,
+        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda x: datetime.fromtimestamp(x, UTC).isoformat(),
+        entity_registry_enabled_default=False,
     ),
 )
 
@@ -801,16 +833,11 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         key=TelemetryField.SCHEDULED_DEPARTURE_TIME,
         entity_registry_enabled_default=False,
     ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SERVICE_MODE,
-        entity_registry_enabled_default=False,
-    ),
+    
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SOC,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.SPEED_LIMIT_MODE,
+        device_class=SensorDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
@@ -819,26 +846,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SUPERCHARGER_SESSION_TRIP_PLANNER,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TIME_TO_FULL_CHARGE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_FR,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RL,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.TPMS_LAST_SEEN_PRESSURE_TIME_RR,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
