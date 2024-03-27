@@ -20,6 +20,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
@@ -72,6 +73,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     except SubscriptionRequired:
         LOGGER.error("Subscription required, unable to connect to Telemetry")
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "teslemetry_subscription_required",
+            is_fixable=True,
+            is_persistent=True,
+            learn_more_url="https://teslemetry.com/console#subscription",
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="teslemetry_subscription_required",
+        )
         return False
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e

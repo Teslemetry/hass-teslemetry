@@ -896,5 +896,18 @@
       },
       "name": "Stream fields"
     }
+  },
+  "issues": {
+    "teslemetry_subscription_required": {
+      "title": "An active subscription to Teslemetry is required.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Renew subscription",
+            "description": "Something else here."
+          }
+        }
+      }
+    }
   }
 }
