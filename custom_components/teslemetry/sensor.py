@@ -759,7 +759,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_GAINED_REGEN,
         entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
@@ -768,7 +768,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_USED,
         entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
@@ -777,7 +777,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.LIFETIME_ENERGY_USED_DRIVE,
         entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=2,
