@@ -12,7 +12,17 @@
           "access_token": "Access token"
         },
         "description": "Enter an access token from {url}."
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate",
+        "description": "Update access token from {url}",
+        "data": {
+          "access_token": "Access token"
+        }
       }
+    },
+    "abort": {
+      "reauth_successful": "Reauth successful"
     }
   },
   "entity": {

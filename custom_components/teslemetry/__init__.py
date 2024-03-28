@@ -16,7 +16,7 @@ from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
@@ -68,22 +68,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
         scopes = (await teslemetry.metadata())["scopes"]
         products = (await teslemetry.products())["response"]
-    except InvalidToken:
-        LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
-        return False
-    except SubscriptionRequired:
-        LOGGER.error("Subscription required, unable to connect to Telemetry")
-        ir.async_create_issue(
-            hass,
-            DOMAIN,
-            "teslemetry_subscription_required",
-            is_fixable=True,
-            is_persistent=True,
-            learn_more_url="https://teslemetry.com/console#subscription",
-            severity=ir.IssueSeverity.ERROR,
-            translation_key="teslemetry_subscription_required",
-        )
-        return False
+    except InvalidToken as e:
+        raise ConfigEntryAuthFailed from e
+    except SubscriptionRequired as e:
+        raise ConfigEntryAuthFailed from e
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
     except TypeError as e:
