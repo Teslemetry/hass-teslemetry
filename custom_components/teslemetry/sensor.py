@@ -43,7 +43,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
     TeslemetryWallConnectorEntity,
 )
-from .models import TeslemetryEnergyData, TeslemetryVehicleData, TeslemetryData
+from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import auto_type, ignore_drop
 
 ChargeStates = {
@@ -57,15 +57,15 @@ ChargeStates = {
 
 WallConnectorStates = {
     0: "booting",
-    1: "not_connected",
-    2: "connected",
-    4: "ready",
-    6: "negotiating",
-    7: "error",
-    8: "charging_finished",
-    9: "waiting_car",
-    10: "charging_reduced",
-    11: "charging",
+    1: "charging",
+    2: "not_connected",
+    4: "connected",
+    5: "scheduled",
+    6: "negotiating", #unseen
+    7: "error", #unseen
+    8: "charging_finished", #seen, unconfirmed
+    9: "waiting_car", #unseen
+    10: "charging_reduced", #unseen
 }
 
 ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}

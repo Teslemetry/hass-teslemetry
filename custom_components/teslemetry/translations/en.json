@@ -783,7 +783,8 @@
           "negotiating": "Negotiating",
           "not_connected": "Not connected",
           "ready": "Ready",
-          "waiting_car": "Waiting for car"
+          "waiting_car": "Waiting for car",
+          "scheduled": "Scheduled"
         }
       }
     },
