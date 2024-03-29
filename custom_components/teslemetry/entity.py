@@ -276,6 +276,9 @@ class TeslemetryWallConnectorEntity(
         """Initialize common aspects of a Teslemetry entity."""
         self.din = din
         self._attr_unique_id = f"{data.id}-{din}-{key}"
+
+
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
             manufacturer="Tesla",
@@ -283,9 +286,16 @@ class TeslemetryWallConnectorEntity(
             name="Wall Connector",
             via_device=(DOMAIN, str(data.id)),
             serial_number=din.split("-")[-1],
+            model=self._get_model(data)
         )
 
         super().__init__(data.live_coordinator, data.api, key)
+
+    def _get_model(self, data) -> str | None:
+        """Return the model of the wall connector."""
+        for wc in data.info_coordinator.data.get("components_wall_connectors", []):
+            if wc.get('din') == self.din:
+                return wc.get("part_name")
 
     @property
     def _value(self) -> int:
