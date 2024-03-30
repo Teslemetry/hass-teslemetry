@@ -97,6 +97,8 @@ class TeslemetryButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
 class TeslemetryRefreshButtonEntity(TeslemetryVehicleEntity, ButtonEntity):
     """Force Refresh entity for Teslemetry."""
 
+    _attr_entity_registry_enabled_default = False
+
     def __init__(
         self,
         data: TeslemetryVehicleData,

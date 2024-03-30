@@ -300,13 +300,18 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        if self._value is None:
-            self._attr_is_on = None
-        else:
-            self._attr_is_on = self.entity_description.is_on(self._value)
+        if "vin" in self.coordinator.data:
+            if self._value is None:
+                self._attr_available = False
+                self._attr_is_on = None
+            else:
+                self._attr_available = True
+                self._attr_is_on = self.entity_description.is_on(self._value)
+        self._attr_is_on = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""
+        self._attr_available = True
         self._attr_is_on = self.entity_description.is_on(value)
 
 

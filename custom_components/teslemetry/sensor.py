@@ -76,6 +76,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
+    available_fn : Callable[[StateType], StateType | datetime] = lambda x: x is not None
     streaming_key: TelemetryField | None = None
     timestamp_key: TeslemetryTimestamp | None = None
 
@@ -218,6 +219,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         options=list(ShiftStates.values()),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda x: ShiftStates.get(str(x), "p"),
+        available_fn=lambda x: True,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -350,6 +352,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.MINUTES,
         entity_category=EntityCategory.DIAGNOSTIC,
+        available_fn=lambda x: x is not None and x > 0,
     ),
     TeslemetrySensorEntityDescription(
         # This entity isnt allowed in core
@@ -1097,18 +1100,19 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        if self.has():
-            if self._value is None:
-                self._attr_available = False
-                self._attr_native_value = None
-            else:
+        if "vin" in self.coordinator.data:
+            if self.entity_description.available_fn(self._value):
                 self._attr_available = True
                 self._attr_native_value = self.entity_description.value_fn(self._value)
+            else:
+                self._attr_available = False
+                self._attr_native_value = None
         else:
             self._attr_native_value = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
+        self._attr_available = True
         self._attr_native_value = self.entity_description.value_fn(value)
 
 
