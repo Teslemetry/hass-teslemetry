@@ -24,7 +24,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .helpers import wake_up_vehicle, handle_command
+from .helpers import wake_up_vehicle, handle_command, handle_vehicle_command
 
 
 class TeslemetryVehicleStreamEntity:
@@ -209,25 +209,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a vehicle command."""
-        result = await super().handle_command(command)
-        if (response := result.get("response")) is None:
-            if message := result.get("error"):
-                # No response with error
-                LOGGER.info("Command failure: %s", message)
-                raise ServiceValidationError(message)
-            # No response without error (unexpected)
-            LOGGER.error("Unknown response: %s", response)
-            raise ServiceValidationError("Unknown response")
-        if (message := response.get("result")) is not True:
-            if message := response.get("reason"):
-                # Result of false with reason
-                LOGGER.info("Command failure: %s", message)
-                raise ServiceValidationError(message)
-            # Result of false without reason (unexpected)
-            LOGGER.error("Unknown response: %s", response)
-            raise ServiceValidationError("Unknown response")
-        # Response with result of true
-        return result
+        return await handle_vehicle_command(command)
 
 
 class TeslemetryEnergyLiveEntity(TeslemetryEntity):

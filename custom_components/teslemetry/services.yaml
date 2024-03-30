@@ -75,4 +75,40 @@ stream_fields:
     fields:
       required: true
       selector:
-        yaml:
+        object:
+set_scheduled_charging:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    enable:
+      required: true
+      default: true
+      selector:
+        boolean:
+    time:
+      required: false
+      selector:
+        time:
+set_scheduled_departure:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    enable:
+      required: true
+      default: true
+      selector:
+        boolean:
+    time:
+      required: false
+      selector:
+        time:

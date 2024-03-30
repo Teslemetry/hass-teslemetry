@@ -48,8 +48,6 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
-        # Avaliable
-        #self._attr_available = self.has()
 
         # Supported Features
         if self.scoped and self._value in (

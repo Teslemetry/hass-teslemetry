@@ -821,7 +821,7 @@
     }
   },
   "services": {
-    "Navigation_sc_request": {
+    "navigation_sc_request": {
       "description": "Set vehicle navigation to the specified supercharger.",
       "fields": {
         "device_id": {
@@ -888,6 +888,38 @@
         }
       },
       "name": "Stream fields"
+    },
+    "set_scheduled_charging": {
+      "description": "Sets a time at which charging should be completed.",
+      "fields": {
+        "device_id": {
+          "description": "The vehicle to schedule.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "name": "Enable"
+        },
+        "time": {
+          "name": "Time"
+        }
+      },
+      "name": "Set scheduled charging"
+    },
+    "set_scheduled_departure": {
+      "description": "Sets a time at which departure should be completed.",
+      "fields": {
+        "device_id": {
+          "description": "The vehicle to schedule.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "name": "Enable"
+        },
+        "time": {
+          "name": "Time"
+        }
+      },
+      "name": "Set scheduled departure"
     }
   }
 }

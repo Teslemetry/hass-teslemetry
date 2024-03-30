@@ -40,6 +40,28 @@ async def handle_command(command) -> dict[str, Any]:
         raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
     return result
 
+async def handle_vehicle_command(command) -> dict[str, Any]:
+    """Handle a vehicle command response"""
+    result = await handle_command(command)
+    if (response := result.get("response")) is None:
+        if message := result.get("error"):
+            # No response with error
+            LOGGER.info("Command failure: %s", message)
+            raise ServiceValidationError(message)
+        # No response without error (unexpected)
+        LOGGER.error("Unknown response: %s", response)
+        raise ServiceValidationError("Unknown response")
+    if (message := response.get("result")) is not True:
+        if message := response.get("reason"):
+            # Result of false with reason
+            LOGGER.info("Command failure: %s", message)
+            raise ServiceValidationError(message)
+        # Result of false without reason (unexpected)
+        LOGGER.error("Unknown response: %s", response)
+        raise ServiceValidationError("Unknown response")
+    # Response with result of true
+    return result
+
 
 def auto_type(str):
     """Automatically cast a string to a type."""

@@ -2,6 +2,7 @@
 
 import logging
 import voluptuous as vol
+import time
 from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,7 +22,7 @@ from homeassistant.helpers import (
 
 from .const import DOMAIN
 from .models import TeslemetryVehicleData
-from .helpers import wake_up_vehicle, handle_command
+from .helpers import wake_up_vehicle, handle_vehicle_command
 
 _LOGGER = logging.getLogger(__name__)
 ID = "id"
@@ -33,7 +34,8 @@ LOCALE = "locale"
 ORDER = "order"
 TIMESTAMP = "timestamp"
 FIELDS = "fields"
-
+ENABLE = "enable"
+TIME = "time"
 
 def async_get_device_for_service_call(
     hass: HomeAssistant, call: ServiceCall
@@ -82,7 +84,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            await handle_command(
+            await handle_vehicle_command(
                 vehicle.api.navigation_gps_request(
                     lat=call.data.get(LATITUDE),
                     lon=call.data.get(LONGITUDE),
@@ -114,7 +116,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            await handle_command(
+            await handle_vehicle_command(
                 vehicle.api.navigation_sc_request(
                     id=call.data.get(ID),
                     order=call.data.get(ORDER),
@@ -144,7 +146,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            await handle_command(
+            await handle_vehicle_command(
                 vehicle.api.navigation_request(
                     type=call.data.get(TYPE),
                     value=call.data.get(VALUE),
@@ -166,6 +168,74 @@ def async_register_services(hass: HomeAssistant) -> bool:
                 vol.Required(VALUE): cv.string,
                 vol.Required(LOCALE): cv.string,
                 vol.Optional(TIMESTAMP): cv.positive_int,
+            }
+        ),
+    )
+
+    async def set_scheduled_charging(call: ServiceCall) -> None:
+        """Configure fleet telemetry."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        # Convert time to minutes since minute
+        if "time" in call.data:
+            (hours,minutes,seconds) = call.data["time"].split(":")
+            time = int(hours)*60 + int(minutes)
+        elif call.data["enable"]:
+            raise ServiceValidationError("Time required to enable scheduled charging")
+        else:
+            time = None
+
+        try:
+            await wake_up_vehicle(vehicle)
+            await handle_vehicle_command(vehicle.api.set_scheduled_charging(enable=call.data["enable"], time=time))
+        except TeslaFleetError as e:
+            raise HomeAssistantError from e
+
+    hass.services.async_register(
+        DOMAIN,
+        "set_scheduled_charging",
+        set_scheduled_charging,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Required(ENABLE): bool,
+                vol.Optional(TIME): str
+            }
+        ),
+    )
+
+    async def set_scheduled_departure(call: ServiceCall) -> None:
+        """Configure fleet telemetry."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        # Convert time to minutes since minute
+        if "time" in call.data:
+            (hours,minutes,seconds) = call.data["time"].split(":")
+            time = int(hours)*60 + int(minutes)
+        elif call.data["enable"]:
+            raise ServiceValidationError("Time required to enable scheduled charging")
+        else:
+            time = None
+
+        try:
+            await wake_up_vehicle(vehicle)
+            await handle_vehicle_command(vehicle.api.set_scheduled_departure(enable=call.data["enable"], time=time))
+        except TeslaFleetError as e:
+            raise HomeAssistantError from e
+
+    hass.services.async_register(
+        DOMAIN,
+        "set_scheduled_departure",
+        set_scheduled_departure,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Required(ENABLE): bool,
+                vol.Optional(TIME): str
             }
         ),
     )
