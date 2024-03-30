@@ -223,7 +223,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         try:
             await wake_up_vehicle(vehicle)
-            await handle_vehicle_command(vehicle.api.set_scheduled_departure(enable=call.data["enable"], time=time))
+            await handle_vehicle_command(vehicle.api.set_scheduled_departure(preconditioning_enabled=call.data["enable"], departure_time=time))
         except TeslaFleetError as e:
             raise HomeAssistantError from e
 
