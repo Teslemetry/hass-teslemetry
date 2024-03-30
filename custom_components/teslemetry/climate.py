@@ -1,4 +1,5 @@
 """Climate platform for Teslemetry integration."""
+from itertools import chain
 from __future__ import annotations
 
 from typing import Any, cast
@@ -31,8 +32,12 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, data.scopes)
-        for vehicle in data.vehicles
+        chain(
+            (TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, data.scopes)
+            for vehicle in data.vehicles),
+            (TeslemetryCabinOverheatProtectionEntity(vehicle, data.scopes)
+            for vehicle in data.vehicles),
+        )
     )
 
 
