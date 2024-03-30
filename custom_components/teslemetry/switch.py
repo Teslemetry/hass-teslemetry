@@ -95,7 +95,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         on_func=lambda api: api.set_preconditioning_max(on=True),
         off_func=lambda api: api.set_preconditioning_max(on=False),
         scopes=[Scope.VEHICLE_CMDS],
-    ),
+    )
 )
 
 VEHICLE_CHARGE_DESCRIPTION = TeslemetrySwitchEntityDescription(
