@@ -49,7 +49,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
         # Avaliable
-        self._attr_available = self.has()
+        #self._attr_available = self.has()
 
         # Supported Features
         if self.scoped and self._value in (
@@ -94,7 +94,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_latest_version = value
+        self._attr_installed_version = value
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any

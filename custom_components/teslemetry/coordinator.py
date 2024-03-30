@@ -40,6 +40,8 @@ def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
+    updated_once = False
+
     def __init__(
         self, hass: HomeAssistant, api: VehicleSpecific, product: dict
     ) -> None:
@@ -65,6 +67,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
+        self.updated_once = True
         return flatten(data)
 
 

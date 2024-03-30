@@ -1100,7 +1100,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        if "vin" in self.coordinator.data:
+        if self.coordinator.updated_once:
             if self.entity_description.available_fn(self._value):
                 self._attr_available = True
                 self._attr_native_value = self.entity_description.value_fn(self._value)
@@ -1140,6 +1140,8 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
+        if not self.coordinator.updated_once:
+            return None
         self._attr_available = self._value is not None and self._value > 0
 
         if (value := self._value) == self._last_value:

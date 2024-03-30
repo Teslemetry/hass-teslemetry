@@ -27,7 +27,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
-
+from .helpers import auto_type
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
@@ -300,19 +300,21 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
-        if "vin" in self.coordinator.data:
+
+        if self.coordinator.updated_once:
             if self._value is None:
                 self._attr_available = False
                 self._attr_is_on = None
             else:
                 self._attr_available = True
                 self._attr_is_on = self.entity_description.is_on(self._value)
-        self._attr_is_on = None
+        else:
+            self._attr_is_on = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""
         self._attr_available = True
-        self._attr_is_on = self.entity_description.is_on(value)
+        self._attr_is_on = self.entity_description.is_on(auto_type(value))
 
 
 class TeslemetryStreamBinarySensorEntity(
