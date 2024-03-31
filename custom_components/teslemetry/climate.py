@@ -189,6 +189,14 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
         scopes: Scope,
     ) -> None:
         """Initialize the climate."""
+
+        super().__init__(
+            data,
+            "climate_state_cabin_overheat_protection",
+            timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+            streaming_key=TelemetryField.INSIDE_TEMP,
+        )
+
         # Supported Features
         self._attr_supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         if self.get("vehicle_config_cop_user_set_temp_supported"):
@@ -199,12 +207,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
         if not self.scoped:
             self._attr_supported_features = ClimateEntityFeature(0)
 
-        super().__init__(
-            data,
-            "climate_state_cabin_overheat_protection",
-            timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-            streaming_key=TelemetryField.INSIDE_TEMP,
-        )
+
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
