@@ -86,14 +86,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
-        key="climate_state_cabin_overheat_protection",
-        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        device_class=BinarySensorDeviceClass.RUNNING,
-        is_on=lambda x: x == "On",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryBinarySensorEntityDescription(
         key="climate_state_cabin_overheat_protection_actively_cooling",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         device_class=BinarySensorDeviceClass.HEAT,

@@ -48,9 +48,6 @@
       "charge_state_trip_charging": {
         "name": "Trip charging"
       },
-      "climate_state_cabin_overheat_protection": {
-        "name": "Cabin overheat protection"
-      },
       "climate_state_cabin_overheat_protection_actively_cooling": {
         "name": "Cabin overheat protection actively cooling"
       },
