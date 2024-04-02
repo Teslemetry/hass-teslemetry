@@ -4,10 +4,11 @@ from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import VehicleDataEndpoint
-from tesla_fleet_api.exceptions import TeslaFleetError, VehicleOffline
+from tesla_fleet_api.exceptions import TeslaFleetError, VehicleOffline, InvalidToken, SubscriptionRequired
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import LOGGER, TeslemetryState
 
@@ -63,6 +64,10 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data
+        except InvalidToken as e:
+            raise ConfigEntryAuthFailed from e
+        except SubscriptionRequired as e:
+            raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
@@ -90,6 +95,10 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
         try:
             data = (await self.api.live_status())["response"]
+        except InvalidToken as e:
+            raise ConfigEntryAuthFailed from e
+        except SubscriptionRequired as e:
+            raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
@@ -122,6 +131,10 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
         try:
             data = (await self.api.site_info())["response"]
+        except InvalidToken as e:
+            raise ConfigEntryAuthFailed from e
+        except SubscriptionRequired as e:
+            raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
