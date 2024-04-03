@@ -35,12 +35,14 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_auth(self, user_input: Mapping[str, Any]) -> dict[str, str]:
         """Reusable Auth Helper."""
+        user_input[CONF_ACCESS_TOKEN] = user_input[CONF_ACCESS_TOKEN].strip()
+
         teslemetry = Teslemetry(
             session=async_get_clientsession(self.hass),
             access_token=user_input[CONF_ACCESS_TOKEN],
         )
         try:
-            await teslemetry.metadata()
+            await teslemetry.test()
         except InvalidToken:
             return {CONF_ACCESS_TOKEN: "invalid_access_token"}
         except SubscriptionRequired:
