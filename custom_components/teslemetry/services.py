@@ -212,30 +212,41 @@ def async_register_services(hass: HomeAssistant) -> bool:
         config = async_get_config_for_device(hass, device)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
-        # Convert time to minutes since minute
+
+        enable = call.data.get("enable",True)
+
+        # Preconditioning
+        preconditioning_enabled = call.data.get("preconditioning_enabled",False)
+        preconditioning_weekdays_only = call.data.get("preconditioning_weekdays_only", False)
         if "departure_time" in call.data:
             (hours,minutes,seconds) = call.data["departure_time"].split(":")
             departure_time = int(hours)*60 + int(minutes)
+        elif preconditioning_enabled:
+            raise ServiceValidationError("Departure time required to enable preconditioning")
         else:
-            departure_time = None
+            departure_time = 0
 
+        # Off peak charging
+        off_peak_charging_enabled = call.data.get("off_peak_charging_enabled",False)
+        off_peak_charging_weekdays_only = call.data.get("off_peak_charging_weekdays_only", False)
         if "end_off_peak_time" in call.data:
             (hours,minutes,seconds) = call.data["end_off_peak_time"].split(":")
             end_off_peak_time = int(hours)*60 + int(minutes)
+        elif off_peak_charging_enabled:
+            raise ServiceValidationError("End off peak time required to enable off peak charging")
         else:
-            end_off_peak_time = None
-
+            end_off_peak_time = 0
 
         try:
             await wake_up_vehicle(vehicle)
             await handle_vehicle_command(vehicle.api.set_scheduled_departure(
-                enable=call.data["enable"],
-                preconditioning_enabled=call.data["preconditioning_enabled"],
-                preconditioning_weekdays_only=call.data["preconditioning_weekdays_only"],
-                departure_time=departure_time,
-                off_peak_charging_enabled=call.data["off_peak_charging_enabled"],
-                off_peak_charging_weekdays_only=call.data["off_peak_charging_weekdays_only"],
-                end_off_peak_time=end_off_peak_time
+                enable,
+                preconditioning_enabled,
+                preconditioning_weekdays_only,
+                departure_time,
+                off_peak_charging_enabled,
+                off_peak_charging_weekdays_only,
+                end_off_peak_time
             ))
 
         except TeslaFleetError as e:
@@ -248,8 +259,13 @@ def async_register_services(hass: HomeAssistant) -> bool:
         schema=vol.Schema(
             {
                 vol.Required(CONF_DEVICE_ID): cv.string,
-                vol.Required(ENABLE): bool,
-                vol.Optional(TIME): str
+                vol.Optional(ENABLE): bool,
+                vol.Optional("preconditioning_enabled"): bool,
+                vol.Optional("preconditioning_weekdays_only"): bool,
+                vol.Optional("departure_time"): str,
+                vol.Optional("off_peak_charging_enabled"): bool,
+                vol.Optional("off_peak_charging_weekdays_only"): bool,
+                vol.Optional("end_off_peak_time"): str
             }
         ),
     )

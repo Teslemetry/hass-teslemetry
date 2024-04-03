@@ -104,7 +104,7 @@ set_scheduled_departure:
           entity:
             domain: button
     enable:
-      required: true
+      required: false
       default: true
       selector:
         boolean:

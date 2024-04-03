@@ -915,8 +915,23 @@
         "enable": {
           "name": "Enable"
         },
-        "time": {
-          "name": "Time"
+        "preconditioning_enabled": {
+          "name": "Preconditioning enabled"
+        },
+        "preconditioning_weekdays_only": {
+          "name": "Preconditioning weekdays only"
+        },
+        "departure_time": {
+          "name": "Departure time"
+        },
+        "off_peak_charging_enabled": {
+          "name": "Off peak charging enabled"
+        },
+        "off_peak_charging_weekdays_only": {
+          "name": "Off peak charging weekdays only"
+        },
+        "end_off_peak_time": {
+          "name": "End off peak time"
         }
       },
       "name": "Set scheduled departure"
