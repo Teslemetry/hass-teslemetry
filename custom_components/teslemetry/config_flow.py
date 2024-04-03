@@ -14,7 +14,7 @@ from tesla_fleet_api.exceptions import (
 )
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, FlowResult
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -40,7 +40,7 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             access_token=user_input[CONF_ACCESS_TOKEN],
         )
         try:
-            metadata = await teslemetry.metadata()
+            await teslemetry.metadata()
         except InvalidToken:
             return {CONF_ACCESS_TOKEN: "invalid_access_token"}
         except SubscriptionRequired:
@@ -50,17 +50,15 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
         except TeslaFleetError as e:
             LOGGER.error(str(e))
             return {"base": "unknown"}
-        self._entry = await self.async_set_unique_id(metadata.get("uid"))
 
         return {}
 
     async def async_step_user(
         self, user_input: Mapping[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Get configuration from the user."""
         errors: dict[str, str] = {}
         if user_input and not (errors := await self.async_auth(user_input)):
-            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title="Teslemetry",
                 data=user_input,
@@ -75,13 +73,14 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle reauth on failure."""
+        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_confirm(entry_data)
 
     async def async_step_reauth_confirm(
         self, user_input: Mapping[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle users reauth credentials."""
 
         errors: dict[str, str] | None = None

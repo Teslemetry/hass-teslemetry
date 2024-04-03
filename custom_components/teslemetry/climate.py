@@ -182,6 +182,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = list(COP_MODES.values())
     _enable_turn_on_off_backwards_compatibility = False
+    _attr_entity_registry_enabled_default = False
 
     def __init__(
         self,
