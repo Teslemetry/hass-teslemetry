@@ -900,7 +900,7 @@
           "name": "Vehicle"
         },
         "fields": {
-          "description": "The fields to stream.",
+          "description": "A dictionary of fields, each with a dictionary of interval seconds and value.",
           "name": "Fields"
         }
       },
