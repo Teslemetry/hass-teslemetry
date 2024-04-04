@@ -828,17 +828,15 @@
       "description": "Set vehicle navigation to the provided latitude/longitude coordinates.",
       "fields": {
         "device_id": {
-          "description": "The vehicle to share to.",
+          "description": "Vehicle to share to.",
           "name": "Vehicle"
         },
-        "latitude": {
-          "name": "Latitude"
-        },
-        "longitude": {
-          "name": "Longitude"
+        "gps": {
+          "description": "Location to navigate to.",
+          "name": "Location"
         },
         "order": {
-          "description": "The order for this destination if specifying multiple destinations.",
+          "description": "Order for this destination if specifying multiple destinations.",
           "name": "Order"
         }
       },
@@ -851,11 +849,11 @@
           "name": "Address"
         },
         "device_id": {
-          "description": "The vehicle to share to.",
+          "description": "Vehicle to share to.",
           "name": "Vehicle"
         },
         "order": {
-          "description": "The order for this destination if specifying multiple destinations.",
+          "description": "Order for this destination if specifying multiple destinations.",
           "name": "Order"
         }
       },
@@ -865,14 +863,14 @@
       "description": "Set vehicle navigation to the specified supercharger.",
       "fields": {
         "device_id": {
-          "description": "The vehicle to share to.",
+          "description": "Vehicle to share to.",
           "name": "Vehicle"
         },
         "id": {
           "name": "Supercharger ID"
         },
         "order": {
-          "description": "The order for this destination if specifying multiple destinations.",
+          "description": "Order for this destination if specifying multiple destinations.",
           "name": "Order"
         }
       },
@@ -882,7 +880,7 @@
       "description": "Sets a time at which charging should be completed.",
       "fields": {
         "device_id": {
-          "description": "The vehicle to schedule.",
+          "description": "Vehicle to schedule.",
           "name": "Vehicle"
         },
         "enable": {
@@ -901,7 +899,7 @@
           "name": "Departure time"
         },
         "device_id": {
-          "description": "The vehicle to schedule.",
+          "description": "Vehicle to schedule.",
           "name": "Vehicle"
         },
         "enable": {
@@ -929,11 +927,11 @@
       "description": "Set the fields streamed from a vehicle.",
       "fields": {
         "device_id": {
-          "description": "The vehicle to configure.",
+          "description": "Vehicle to configure.",
           "name": "Vehicle"
         },
         "fields": {
-          "description": "The fields to stream.",
+          "description": "Fields to stream each with interval_seconds field.",
           "name": "Fields"
         }
       },

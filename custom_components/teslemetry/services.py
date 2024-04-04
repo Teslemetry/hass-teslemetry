@@ -8,6 +8,8 @@ from tesla_fleet_api.exceptions import TeslaFleetError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_DEVICE_ID,
+    CONF_LATITUDE,
+    CONF_LONGITUDE
 )
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
@@ -26,8 +28,7 @@ from .helpers import wake_up_vehicle, handle_vehicle_command
 
 _LOGGER = logging.getLogger(__name__)
 ID = "id"
-LATITUDE = "latitude"
-LONGITUDE = "longitude"
+GPS = "gps"
 TYPE = "type"
 VALUE = "value"
 LOCALE = "locale"
@@ -86,8 +87,8 @@ def async_register_services(hass: HomeAssistant) -> bool:
             await wake_up_vehicle(vehicle)
             await handle_vehicle_command(
                 vehicle.api.navigation_gps_request(
-                    lat=call.data.get(LATITUDE),
-                    lon=call.data.get(LONGITUDE),
+                    lat=call.data[GPS][CONF_LATITUDE],
+                    lon=call.data[GPS][CONF_LONGITUDE],
                     order=call.data.get(ORDER),
                 )
             )
@@ -101,8 +102,10 @@ def async_register_services(hass: HomeAssistant) -> bool:
         schema=vol.Schema(
             {
                 vol.Required(CONF_DEVICE_ID): cv.string,
-                vol.Required(LATITUDE): cv.string,
-                vol.Required(LONGITUDE): cv.string,
+                vol.Required(GPS): {
+                    vol.Required(CONF_LATITUDE): cv.latitude,
+                    vol.Required(CONF_LONGITUDE): cv.longitude,
+                },
                 vol.Optional(ORDER): cv.positive_int,
             }
         ),

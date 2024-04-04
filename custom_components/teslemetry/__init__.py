@@ -121,7 +121,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, product)
             device = DeviceInfo(
                 identifiers={(DOMAIN, str(site_id))},
-                manufacturer="Tesla",
+                manufacturer="Tesla Energy",
                 configuration_url="https://teslemetry.com/console",
                 name=product.get("site_name", "Energy Site"),
             )
