@@ -10,6 +10,7 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
+from tesla_fleet_api.teslemetry import rate_limit
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
 
 
@@ -65,8 +66,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
-        scopes = (await teslemetry.metadata())["scopes"]
-        products = (await teslemetry.products())["response"]
+        calls = await asyncio.gather(
+            teslemetry.metadata(),
+            teslemetry.products(),
+        )
+        scopes = calls[0]["scopes"]
+        products = calls[1]["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
     except SubscriptionRequired as e:
@@ -99,35 +104,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 serial_number=vin,
             )
 
-            # Setup Stream
-            try:
-                async with teslemetry.rate_limit:
-                    await stream.get_config()
-
-                    remove_listeners = (
-                        stream.async_add_listener(
-                            lambda x: hass.bus.fire("teslemetry_alert", x),
-                            {"vin": vin, "alerts": None},
-                        ),
-                        stream.async_add_listener(
-                            lambda x: hass.bus.fire("teslemetry_error", x),
-                            {"vin": vin, "errors": None},
-                        ),
-                    )
-            except TeslemetryStreamVehicleNotConfigured:
-                LOGGER.warning(
-                    "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
-                    product["display_name"],
-                    vin,
-                )
-                remove_listeners = ()
-            except Exception as e:
-                LOGGER.info(
-                    "Vehicle %s is unable to use streaming", product["display_name"]
-                )
-                LOGGER.debug(e)
-                remove_listeners = ()
-
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
@@ -135,7 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     vin=vin,
                     device=device,
-                    remove_listeners=remove_listeners,
+                    remove_listeners=(),
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -163,6 +139,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(
+            async_setup_stream(hass, vehicle) for vehicle in vehicles
+        ),
+        *(
             vehicle.coordinator.async_config_entry_first_refresh()
             for vehicle in vehicles
         ),
@@ -173,7 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         *(
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
-        ),
+        )
     )
 
     # Setup Platforms
@@ -193,3 +172,33 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
+
+async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData):
+    """Setup stream for vehicle."""
+    LOGGER.debug("Stream Starting Up")
+    try:
+        async with rate_limit:
+            await vehicle.stream.get_config()
+
+            vehicle.remove_listeners = (
+                vehicle.stream.async_add_listener(
+                    lambda x: hass.bus.fire("teslemetry_alert", x),
+                    {"vin": vehicle.vin, "alerts": None},
+                ),
+                vehicle.stream.async_add_listener(
+                    lambda x: hass.bus.fire("teslemetry_error", x),
+                    {"vin": vehicle.vin, "errors": None},
+                ),
+            )
+    except TeslemetryStreamVehicleNotConfigured:
+        LOGGER.warning(
+            "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
+            vehicle.vin,
+            vehicle.vin,
+        )
+    except Exception as e:
+        LOGGER.info(
+            "Vehicle %s is unable to use streaming", vehicle.vin
+        )
+        LOGGER.debug(e)
