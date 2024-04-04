@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "reauth_successful": "Reauth successful"
+    },
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_access_token": "Invalid access token",
@@ -7,22 +10,19 @@
       "unknown": "Unexpected error"
     },
     "step": {
+      "reauth_confirm": {
+        "data": {
+          "access_token": "Access token"
+        },
+        "description": "Update access token from {url}",
+        "title": "Reauthenticate"
+      },
       "user": {
         "data": {
           "access_token": "Access token"
         },
         "description": "Enter an access token from {url}."
-      },
-      "reauth_confirm": {
-        "title": "Reauthenticate",
-        "description": "Update access token from {url}",
-        "data": {
-          "access_token": "Access token"
-        }
       }
-    },
-    "abort": {
-      "reauth_successful": "Reauth successful"
     }
   },
   "entity": {
@@ -151,6 +151,9 @@
       }
     },
     "climate": {
+      "climate_state_cabin_overheat_protection": {
+        "name": "Cabin overheat protection"
+      },
       "driver_temp": {
         "name": "Climate",
         "state_attributes": {
@@ -163,9 +166,6 @@
             }
           }
         }
-      },
-      "climate_state_cabin_overheat_protection": {
-        "name": "Cabin overheat protection"
       }
     },
     "cover": {
@@ -783,8 +783,8 @@
           "negotiating": "Negotiating",
           "not_connected": "Not connected",
           "ready": "Ready",
-          "waiting_car": "Waiting for car",
-          "scheduled": "Scheduled"
+          "scheduled": "Scheduled",
+          "waiting_car": "Waiting for car"
         }
       }
     },
@@ -800,6 +800,9 @@
       },
       "climate_state_auto_steering_wheel_heat": {
         "name": "Auto steering wheel heater"
+      },
+      "climate_state_is_preconditioning": {
+        "name": "Preconditioning"
       },
       "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Allow charging from grid"
@@ -821,23 +824,6 @@
     }
   },
   "services": {
-    "navigation_sc_request": {
-      "description": "Set vehicle navigation to the specified supercharger.",
-      "fields": {
-        "device_id": {
-          "description": "The vehicle to share to.",
-          "name": "Vehicle"
-        },
-        "id": {
-          "name": "Supercharger ID"
-        },
-        "order": {
-          "description": "The order for this destination if specifying multiple destinations.",
-          "name": "Order"
-        }
-      },
-      "name": "Navigate to Supercharger"
-    },
     "navigation_gps_request": {
       "description": "Set vehicle navigation to the provided latitude/longitude coordinates.",
       "fields": {
@@ -875,19 +861,22 @@
       },
       "name": "Navigate to address"
     },
-    "stream_fields": {
-      "description": "Set the fields streamed from a vehicle.",
+    "navigation_sc_request": {
+      "description": "Set vehicle navigation to the specified supercharger.",
       "fields": {
         "device_id": {
-          "description": "The vehicle to configure.",
+          "description": "The vehicle to share to.",
           "name": "Vehicle"
         },
-        "fields": {
-          "description": "The fields to stream.",
-          "name": "Fields"
+        "id": {
+          "name": "Supercharger ID"
+        },
+        "order": {
+          "description": "The order for this destination if specifying multiple destinations.",
+          "name": "Order"
         }
       },
-      "name": "Stream fields"
+      "name": "Navigate to Supercharger"
     },
     "set_scheduled_charging": {
       "description": "Sets a time at which charging should be completed.",
@@ -908,6 +897,9 @@
     "set_scheduled_departure": {
       "description": "Sets a time at which departure should be completed.",
       "fields": {
+        "departure_time": {
+          "name": "Departure time"
+        },
         "device_id": {
           "description": "The vehicle to schedule.",
           "name": "Vehicle"
@@ -915,14 +907,8 @@
         "enable": {
           "name": "Enable"
         },
-        "preconditioning_enabled": {
-          "name": "Preconditioning enabled"
-        },
-        "preconditioning_weekdays_only": {
-          "name": "Preconditioning weekdays only"
-        },
-        "departure_time": {
-          "name": "Departure time"
+        "end_off_peak_time": {
+          "name": "End off peak time"
         },
         "off_peak_charging_enabled": {
           "name": "Off peak charging enabled"
@@ -930,11 +916,28 @@
         "off_peak_charging_weekdays_only": {
           "name": "Off peak charging weekdays only"
         },
-        "end_off_peak_time": {
-          "name": "End off peak time"
+        "preconditioning_enabled": {
+          "name": "Preconditioning enabled"
+        },
+        "preconditioning_weekdays_only": {
+          "name": "Preconditioning weekdays only"
         }
       },
       "name": "Set scheduled departure"
+    },
+    "stream_fields": {
+      "description": "Set the fields streamed from a vehicle.",
+      "fields": {
+        "device_id": {
+          "description": "The vehicle to configure.",
+          "name": "Vehicle"
+        },
+        "fields": {
+          "description": "The fields to stream.",
+          "name": "Fields"
+        }
+      },
+      "name": "Stream fields"
     }
   }
 }
