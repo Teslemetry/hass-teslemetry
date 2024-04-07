@@ -1,6 +1,7 @@
 """The Teslemetry integration models."""
 
 from __future__ import annotations
+from homeassistant.util import dt as dt_util
 
 import asyncio
 from dataclasses import dataclass
@@ -37,8 +38,10 @@ class TeslemetryVehicleData:
     stream: TeslemetryStream
     remove_listeners: tuple[callable]
     vin: str
-    wakelock = asyncio.Lock()
     device: DeviceInfo
+    wakelock = asyncio.Lock()
+    last_alert: str = dt_util.utcnow().isoformat()
+    last_error: str = dt_util.utcnow().isoformat()
 
 
 @dataclass

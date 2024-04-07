@@ -85,9 +85,9 @@ set_scheduled_charging:
       required: true
       selector:
         device:
-          filter:
-            integration: teslemetry
-            model: tesla
+          integration: teslemetry
+          entity:
+            domain: button
     enable:
       required: true
       default: true

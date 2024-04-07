@@ -8,8 +8,6 @@
 
 [![Discord][discord-shield]][discord]
 
-_Integration to integrate with [Teslemetry]("https://teslemetry.com")._
-
 **This integration requires a subscription and access token from Teslemetry.com**
 
 ## HACS
@@ -21,17 +19,87 @@ _Integration to integrate with [Teslemetry]("https://teslemetry.com")._
 3. Search for Teslemetry and install.
 4. Restart Home Assistant
 
-## Manual Installation
+## Services
 
-1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-1. If you do not have a `custom_components` directory (folder) there, you need to create it.
-1. In the `custom_components` directory (folder) create a new folder called `hacs-teslemetry`.
-1. Download _all_ the files from the `custom_components/hacs-teslemetry/` directory (folder) in this repository.
-1. Place the files you downloaded in the new directory (folder) you created.
-1. Restart Home Assistant
-1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Integration blueprint"
+The services are all documented inside Home Assistant as well, so its recommended you start with the services developer tool (developer-tools/service) to correctly format your service calls.
 
-## Configuration is done in the UI
+### teslemetry.navigation_gps_request
+| Field         | Description                | Example                          |
+|---------------|----------------------------|----------------------------------|
+| device_id     | The vehicles device_id     | 0d462c0c4c0b064b1a91cdbd1ffcbd31 |
+| gps           | Dictionary of coordinates  |                                  |
+| gps.latitude  | Latitude in degrees        | -27.9699373                      |
+| gps.longitude | Longitude in degrees       | 153.4081865                      |
+| order         | Order for this destination | 1                                |
+
+### navigation_sc_request
+| Field     | Description                | Example                          |
+|-----------|----------------------------|----------------------------------|
+| device_id | The vehicles device_id     | 0d462c0c4c0b064b1a91cdbd1ffcbd31 |
+| id        | Supercharged ID            | Unknown                          |
+| order     | Order for this destination | 1                                |
+
+### teslemetry.navigation_request
+| Field        | Description             | Example                          |
+|--------------|-------------------------|----------------------------------|
+| device_id    | The vehicles device_id  | 0d462c0c4c0b064b1a91cdbd1ffcbd31 |
+| type         | Unknown                 | Unknown                          |
+| value        | Location to navigate to | Unknown                          |
+| locale       | ISO string              | en-au                            |
+| timestamp_ms | Unknown                 | Unknown                          |
+
+### teslemetry.set_scheduled_charging
+| Field     | Description                           | Example                          |
+|-----------|---------------------------------------|----------------------------------|
+| device_id | The vehicles device_id                | 0d462c0c4c0b064b1a91cdbd1ffcbd31 |
+| enable    | Enable or disable scheduled charging. | true                             |
+| time      | Time to start charging in HH:MM       | 6:00                             |
+
+### teslemetry.set_scheduled_departure
+| Field                           | Description                               | Example                          |
+|---------------------------------|-------------------------------------------|----------------------------------|
+| device_id                       | The vehicles device_id                    | 0d462c0c4c0b064b1a91cdbd1ffcbd31 |
+| enable                          | Enable or disable scheduled departure     | true                             |
+| preconditioning_enabled         | Enable preconditioning                    | true                             |
+| preconditioning_weekdays_only   | Enable preconditioning on weekdays only   | false                            |
+| departure_time                  | Time to precondition by (HH:MM)           | 6:00                             |
+| off_peak_charging_enabled       | Enable off peak charging                  | false                            |
+| off_peak_charging_weekdays_only | Enable off peak charging on weekdays only | false                            |
+| end_off_peak_time               | Time to complete charging by (HH:MM)      | 5:00                             |
+
+### teslemetry.stream_fields
+The stream fields service replaces the fields in your streaming configuration, and uses the same structure as the [Tesla Fleet API](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create) for ensure future compatibility.
+
+```
+service: teslemetry.stream_fields
+data:
+  device_id: 0d462c0c4c0b064b1a91cdbd1ffcbd31
+  fields:
+    BatteryLevel:
+      interval_seconds: 60
+```
+
+## Events
+When streaming is configured, alerts and errors reported by your vehicles will be sent on the event bus as `teslemetry_alert` and `teselemetry_error`.
+
+```
+event_type: teslemetry_alert
+data:
+  name: VCFRONT_a186_noDriveChgCableCon
+  audiences:
+    - Customer
+  startedAt: "2024-04-07T02:03:17.775Z"
+  endedAt: "2024-04-07T02:03:18.778Z"
+  vin: "LRW3..."
+origin: LOCAL
+time_fired: "2024-04-07T02:03:28.612834+00:00"
+context:
+  id: 01HTV4QPZ42GFHET0JW9SK9RHY
+  parent_id: null
+  user_id: null
+```
+
+
 
 <!---->
 

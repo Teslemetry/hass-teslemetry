@@ -842,6 +842,62 @@
       },
       "name": "Navigate to coordinates"
     },
+    "set_scheduled_charging": {
+      "description": "Sets a time at which charging should be completed.",
+      "fields": {
+        "device_id": {
+          "description": "Vehicle to schedule.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "description": "Enable or disable scheduled charging.",
+          "name": "Enable"
+        },
+        "time": {
+          "description": "Time to start charging.",
+          "name": "Time"
+        }
+      },
+      "name": "Set scheduled charging"
+    },
+    "set_scheduled_departure": {
+      "description": "Sets a time at which departure should be completed.",
+      "fields": {
+        "departure_time": {
+          "description": "Time to be preconditioned by.",
+          "name": "Departure time"
+        },
+        "device_id": {
+          "description": "Vehicle to schedule.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "description": "Enable or disable scheduled departure.",
+          "name": "Enable"
+        },
+        "end_off_peak_time": {
+          "description": "Time to complete charging by.",
+          "name": "End off peak time"
+        },
+        "off_peak_charging_enabled": {
+          "description": "Enable off peak charging.",
+          "name": "Off peak charging enabled"
+        },
+        "off_peak_charging_weekdays_only": {
+          "description": "Enable off peak charging on weekdays only.",
+          "name": "Off peak charging weekdays only"
+        },
+        "preconditioning_enabled": {
+          "description": "Enable preconditioning.",
+          "name": "Preconditioning enabled"
+        },
+        "preconditioning_weekdays_only": {
+          "description": "Enable preconditioning on weekdays only.",
+          "name": "Preconditioning weekdays only"
+        }
+      },
+      "name": "Set scheduled departure"
+    },
     "navigation_request": {
       "description": "Set vehicle navigation to the provided address.",
       "fields": {
@@ -875,53 +931,6 @@
         }
       },
       "name": "Navigate to Supercharger"
-    },
-    "set_scheduled_charging": {
-      "description": "Sets a time at which charging should be completed.",
-      "fields": {
-        "device_id": {
-          "description": "Vehicle to schedule.",
-          "name": "Vehicle"
-        },
-        "enable": {
-          "name": "Enable"
-        },
-        "time": {
-          "name": "Time"
-        }
-      },
-      "name": "Set scheduled charging"
-    },
-    "set_scheduled_departure": {
-      "description": "Sets a time at which departure should be completed.",
-      "fields": {
-        "departure_time": {
-          "name": "Departure time"
-        },
-        "device_id": {
-          "description": "Vehicle to schedule.",
-          "name": "Vehicle"
-        },
-        "enable": {
-          "name": "Enable"
-        },
-        "end_off_peak_time": {
-          "name": "End off peak time"
-        },
-        "off_peak_charging_enabled": {
-          "name": "Off peak charging enabled"
-        },
-        "off_peak_charging_weekdays_only": {
-          "name": "Off peak charging weekdays only"
-        },
-        "preconditioning_enabled": {
-          "name": "Preconditioning enabled"
-        },
-        "preconditioning_weekdays_only": {
-          "name": "Preconditioning weekdays only"
-        }
-      },
-      "name": "Set scheduled departure"
     },
     "stream_fields": {
       "description": "Set the fields streamed from a vehicle.",

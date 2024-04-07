@@ -183,7 +183,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
 
         # Convert time to minutes since minute
         if "time" in call.data:
-            (hours,minutes,seconds) = call.data["time"].split(":")
+            (hours,minutes,*seconds) = call.data["time"].split(":")
             time = int(hours)*60 + int(minutes)
         elif call.data["enable"]:
             raise ServiceValidationError("Time required to enable scheduled charging")
@@ -222,7 +222,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
         preconditioning_enabled = call.data.get("preconditioning_enabled",False)
         preconditioning_weekdays_only = call.data.get("preconditioning_weekdays_only", False)
         if "departure_time" in call.data:
-            (hours,minutes,seconds) = call.data["departure_time"].split(":")
+            (hours,minutes,*seconds) = call.data["departure_time"].split(":")
             departure_time = int(hours)*60 + int(minutes)
         elif preconditioning_enabled:
             raise ServiceValidationError("Departure time required to enable preconditioning")
@@ -233,7 +233,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
         off_peak_charging_enabled = call.data.get("off_peak_charging_enabled",False)
         off_peak_charging_weekdays_only = call.data.get("off_peak_charging_weekdays_only", False)
         if "end_off_peak_time" in call.data:
-            (hours,minutes,seconds) = call.data["end_off_peak_time"].split(":")
+            (hours,minutes,*seconds) = call.data["end_off_peak_time"].split(":")
             end_off_peak_time = int(hours)*60 + int(minutes)
         elif off_peak_charging_enabled:
             raise ServiceValidationError("End off peak time required to enable off peak charging")

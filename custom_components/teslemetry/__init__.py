@@ -174,6 +174,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+
+
 async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData):
     """Setup stream for vehicle."""
     LOGGER.debug("Stream Starting Up")
@@ -181,13 +183,33 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
         async with rate_limit:
             await vehicle.stream.get_config()
 
+            def handle_alerts(event:dict):
+                """Handle stream alerts."""
+                if alerts := event.get("alerts"):
+                    for alert in alerts:
+                        if alert['startedAt'] <= vehicle.last_alert:
+                            break
+                        alert['vin'] = vehicle.vin
+                        hass.bus.fire("teslemetry_alert", alert)
+                    vehicle.last_alert = alerts[0]['startedAt']
+
+            def handle_errors(event:dict):
+                """Handle stream errors."""
+                if errors := event.get("errors"):
+                    for error in errors:
+                        if error['startedAt'] <= vehicle.last_error:
+                            break
+                        error['vin'] = vehicle.vin
+                        hass.bus.fire("teslemetry_error", error)
+                    vehicle.last_error = errors[0]['startedAt']
+
             vehicle.remove_listeners = (
                 vehicle.stream.async_add_listener(
-                    lambda x: hass.bus.fire("teslemetry_alert", x),
+                    handle_alerts,
                     {"vin": vehicle.vin, "alerts": None},
                 ),
                 vehicle.stream.async_add_listener(
-                    lambda x: hass.bus.fire("teslemetry_error", x),
+                    handle_errors,
                     {"vin": vehicle.vin, "errors": None},
                 ),
             )
