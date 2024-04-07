@@ -68,7 +68,7 @@ The services are all documented inside Home Assistant as well, so its recommende
 | end_off_peak_time               | Time to complete charging by (HH:MM)      | 5:00                             |
 
 ### teslemetry.stream_fields
-The stream fields service replaces the fields in your streaming configuration, and uses the same structure as the [Tesla Fleet API](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create) for ensure future compatibility.
+The stream fields service replaces the fields in your streaming configuration, and uses the same structure as the [Tesla Fleet API](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create) to ensure future compatibility.
 
 ```
 service: teslemetry.stream_fields
