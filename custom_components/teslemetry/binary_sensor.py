@@ -29,6 +29,7 @@ from .entity import (
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 from .helpers import auto_type
 
+
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
@@ -63,6 +64,12 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_preconditioning_enabled",
         streaming_key=TelemetryField.PRECONDITIONING_ENABLED,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="climate_state_is_preconditioning",
+        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),

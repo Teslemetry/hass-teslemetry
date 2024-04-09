@@ -90,12 +90,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
-        key="climate_state_is_preconditioning",
+        key="climate_state_defrost_mode",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        on_func=lambda api: api.set_preconditioning_max(on=True),
-        off_func=lambda api: api.set_preconditioning_max(on=False),
+        on_func=lambda api: api.set_preconditioning_max(on=True, manual_override=False),
+        off_func=lambda api: api.set_preconditioning_max(
+            on=False, manual_override=False
+        ),
         scopes=[Scope.VEHICLE_CMDS],
-    )
+    ),
 )
 
 VEHICLE_CHARGE_DESCRIPTION = TeslemetrySwitchEntityDescription(

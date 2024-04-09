@@ -1,6 +1,12 @@
 {
   "entity": {
     "binary_sensor": {
+      "climate_state_is_preconditioning": {
+        "state": {
+          "off": "mdi:hvac-off",
+          "on": "mdi:hvac"
+        }
+      },
       "vehicle_state_is_user_present": {
         "state": {
           "off": "mdi:account-remove-outline",
@@ -245,6 +251,9 @@
       },
       "climate_state_auto_steering_wheel_heat": {
         "default": "mdi:steering"
+      },
+      "climate_state_defrost_mode": {
+        "default": "mdi:snowflake-melt"
       },
       "components_disallow_charge_from_grid_with_solar_installed": {
         "state": {

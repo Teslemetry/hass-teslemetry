@@ -51,6 +51,9 @@
       "climate_state_cabin_overheat_protection_actively_cooling": {
         "name": "Cabin overheat protection actively cooling"
       },
+      "climate_state_is_preconditioning": {
+        "name": "Preconditioning"
+      },
       "components_grid_services_enabled": {
         "name": "Grid services enabled"
       },
@@ -801,8 +804,8 @@
       "climate_state_auto_steering_wheel_heat": {
         "name": "Auto steering wheel heater"
       },
-      "climate_state_is_preconditioning": {
-        "name": "Preconditioning"
+      "climate_state_defrost_mode": {
+        "name": "Defrost"
       },
       "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Allow charging from grid"
@@ -841,6 +844,40 @@
         }
       },
       "name": "Navigate to coordinates"
+    },
+    "navigation_request": {
+      "description": "Set vehicle navigation to the provided address.",
+      "fields": {
+        "address": {
+          "name": "Address"
+        },
+        "device_id": {
+          "description": "Vehicle to share to.",
+          "name": "Vehicle"
+        },
+        "order": {
+          "description": "Order for this destination if specifying multiple destinations.",
+          "name": "Order"
+        }
+      },
+      "name": "Navigate to address"
+    },
+    "navigation_sc_request": {
+      "description": "Set vehicle navigation to the specified supercharger.",
+      "fields": {
+        "device_id": {
+          "description": "Vehicle to share to.",
+          "name": "Vehicle"
+        },
+        "id": {
+          "name": "Supercharger ID"
+        },
+        "order": {
+          "description": "Order for this destination if specifying multiple destinations.",
+          "name": "Order"
+        }
+      },
+      "name": "Navigate to Supercharger"
     },
     "set_scheduled_charging": {
       "description": "Sets a time at which charging should be completed.",
@@ -897,40 +934,6 @@
         }
       },
       "name": "Set scheduled departure"
-    },
-    "navigation_request": {
-      "description": "Set vehicle navigation to the provided address.",
-      "fields": {
-        "address": {
-          "name": "Address"
-        },
-        "device_id": {
-          "description": "Vehicle to share to.",
-          "name": "Vehicle"
-        },
-        "order": {
-          "description": "Order for this destination if specifying multiple destinations.",
-          "name": "Order"
-        }
-      },
-      "name": "Navigate to address"
-    },
-    "navigation_sc_request": {
-      "description": "Set vehicle navigation to the specified supercharger.",
-      "fields": {
-        "device_id": {
-          "description": "Vehicle to share to.",
-          "name": "Vehicle"
-        },
-        "id": {
-          "name": "Supercharger ID"
-        },
-        "order": {
-          "description": "Order for this destination if specifying multiple destinations.",
-          "name": "Order"
-        }
-      },
-      "name": "Navigate to Supercharger"
     },
     "stream_fields": {
       "description": "Set the fields streamed from a vehicle.",
