@@ -1,9 +1,19 @@
 {
   "config": {
+    "abort": {
+      "reauth_successful": "Re-Authentisierung war erfolgreich"
+    },
     "error": {
       "subscription_required": "Anmeldung auf {short_url} erforderlich"
     },
     "step": {
+      "reauth_confirm": {
+        "data": {
+          "access_token": "Zugangs-Token"
+        },
+        "description": "Zugangs-Token von {url}",
+        "title": "Re-Authentisieren"
+      },
       "user": {
         "data": {
           "access_token": "Zugangs-Token"
@@ -14,17 +24,14 @@
   },
   "entity": {
     "binary_sensor": {
+      "backup_capable": {
+        "name": "USV"
+      },
       "charge_state_battery_heater_on": {
         "name": "Batterieheizung"
       },
-      "charge_state_charge_enable_request": {
-        "name": "Ladeaufforderung"
-      },
-      "charge_state_charge_port_door_open": {
-        "name": "Ladeanschlussklappe"
-      },
-      "charge_state_charging_state": {
-        "name": "Ladevorgang"
+      "charge_state_charger_phases": {
+        "name": "AC mehrphasig"
       },
       "charge_state_conn_charge_cable": {
         "name": "Ladekabel"
@@ -38,14 +45,41 @@
       "charge_state_trip_charging": {
         "name": "Laden entlang der Route"
       },
-      "climate_state_cabin_overheat_protection": {
-        "name": "\u00dcberhitzungsschutz Innenraum"
-      },
       "climate_state_cabin_overheat_protection_actively_cooling": {
         "name": "Aktiver \u00dcberhitzungsschutz Innenraum"
       },
+      "components_grid_services_enabled": {
+        "name": "Netz verf\u00fcgbar"
+      },
+      "grid_services_active": {
+        "name": "Netzbetrieb"
+      },
       "state": {
         "name": "Verbindungsstatus"
+      },
+      "stream_automaticblindspotcamera": {
+        "name": "AutomaticBlindSpotCamera"
+      },
+      "stream_automaticemergencybrakingoff": {
+        "name": "AutomaticEmergencyBrakingOff"
+      },
+      "stream_blindspotcollisionwarningchime": {
+        "name": "BlindSpotCollisionWarningChime"
+      },
+      "stream_bmsfullchargecomplete": {
+        "name": "BmsFullchargecomplete"
+      },
+      "stream_brakepedal": {
+        "name": "BrakePedal"
+      },
+      "stream_chargeenablerequest": {
+        "name": "ChargeEnableRequest"
+      },
+      "stream_chargeportcoldweathermode": {
+        "name": "ChargePortColdWeatherMode"
+      },
+      "stream_servicemode": {
+        "name": "ServiceMode"
       },
       "vehicle_state_dashcam_state": {
         "name": "Dashcam"
@@ -106,11 +140,17 @@
       "honk": {
         "name": "Hupe"
       },
+      "refresh": {
+        "name": "Aktualisieren"
+      },
       "wake": {
         "name": "Aufwecken"
       }
     },
     "climate": {
+      "climate_state_cabin_overheat_protection": {
+        "name": "Innenraum \u00dcberhitzungsschutz"
+      },
       "driver_temp": {
         "name": "Klima",
         "state_attributes": {
@@ -136,7 +176,7 @@
         "name": "Kofferraum"
       },
       "windows": {
-        "name": "Fester (Spalt)"
+        "name": "Fenster"
       }
     },
     "device_tracker": {
@@ -172,6 +212,9 @@
       }
     },
     "number": {
+      "backup_reserve_percent": {
+        "name": "USV Reserve"
+      },
       "charge_state_charge_current_request": {
         "name": "Maximaler AC-Ladestrom"
       },
@@ -245,9 +288,36 @@
           "medium": "Mittel",
           "off": "Aus"
         }
+      },
+      "climate_state_steering_wheel_heat_level": {
+        "name": "Lenkradheizung",
+        "state": {
+          "high": "Hoch",
+          "low": "Niedrig",
+          "off": "Aus"
+        }
+      },
+      "components_customer_preferred_export_rule": {
+        "name": "Energie-Export erlaubt",
+        "state": {
+          "battery_ok": "Batterie",
+          "never": "Niemals",
+          "pv_only": "Nur Solar"
+        }
+      },
+      "default_real_mode": {
+        "name": "Betriebsmodus",
+        "state": {
+          "autonomous": "Autonom",
+          "backup": "USV",
+          "self_consumption": "Eigenverbrauch"
+        }
       }
     },
     "sensor": {
+      "battery_power": {
+        "name": "Batterieleistung"
+      },
       "charge_state_battery_level": {
         "name": "Batterie"
       },
@@ -280,14 +350,32 @@
           "stopped": "Gestoppt"
         }
       },
+      "charge_state_conn_charge_cable": {
+        "name": "AC Ladeger\u00e4t"
+      },
       "charge_state_est_battery_range": {
         "name": "Reichweite (Vorhersage)"
+      },
+      "charge_state_fast_charger_type": {
+        "name": "DC Ladeger\u00e4t"
       },
       "charge_state_ideal_battery_range": {
         "name": "Reichweite (ideal)"
       },
       "charge_state_minutes_to_full_charge": {
+        "name": "Ladezeit"
+      },
+      "charge_state_minutes_to_full_charge_timestamp": {
         "name": "Ladeende"
+      },
+      "charge_state_scheduled_charging_mode": {
+        "name": "Geplantes Laden"
+      },
+      "charge_state_scheduled_charging_start_time": {
+        "name": "Geplanter Ladestart"
+      },
+      "charge_state_scheduled_departure_time": {
+        "name": "Geplante Abfahrtszeit"
       },
       "charge_state_usable_battery_level": {
         "name": "Batterie (verf\u00fcgbar)"
@@ -311,6 +399,9 @@
         "name": "Entfernung zum Ziel"
       },
       "drive_state_active_route_minutes_to_arrival": {
+        "name": "Ankunft in"
+      },
+      "drive_state_active_route_minutes_to_arrival_timestamp": {
         "name": "Ankunftszeit"
       },
       "drive_state_active_route_traffic_minutes_delay": {
@@ -331,8 +422,317 @@
       "drive_state_speed": {
         "name": "Geschwindigkeit"
       },
+      "energy_left": {
+        "name": "Energie (verbleibend)"
+      },
+      "generator_power": {
+        "name": "Generatorleistung"
+      },
+      "grid_power": {
+        "name": "Netzleistung"
+      },
+      "grid_services_power": {
+        "name": "GridServicesPower"
+      },
+      "island_status": {
+        "name": "Inselstatus",
+        "state": {
+          "on_grid": "Netz"
+        }
+      },
+      "load_power": {
+        "name": "Last"
+      },
+      "percentage_charged": {
+        "name": "Prozent geladen"
+      },
+      "solar_power": {
+        "name": "Leistung (Solar)"
+      },
+      "stream_bmsstate": {
+        "name": "BMSState"
+      },
+      "stream_brakepedalpos": {
+        "name": "BrakePedalPos"
+      },
+      "stream_brickvoltagemax": {
+        "name": "BrickVoltageMax"
+      },
+      "stream_brickvoltagemin": {
+        "name": "BrickVoltageMin"
+      },
+      "stream_cartype": {
+        "name": "CarType"
+      },
+      "stream_chargecurrentrequestmax": {
+        "name": "ChargeCurrentRequestMax"
+      },
+      "stream_chargeport": {
+        "name": "ChargePort"
+      },
+      "stream_cruisefollowdistance": {
+        "name": "CruiseFollowDistance"
+      },
+      "stream_cruisesetspeed": {
+        "name": "CruiseSetSpeed"
+      },
+      "stream_cruisestate": {
+        "name": "CruiseState"
+      },
+      "stream_dcchargingenergyin": {
+        "name": "DCChargingEnergyIn"
+      },
+      "stream_dcchargingpower": {
+        "name": "DCChargingPower"
+      },
+      "stream_dcdcenable": {
+        "name": "DCDCEnable"
+      },
+      "stream_destinationlocation": {
+        "name": "DestinationLocation"
+      },
+      "stream_diaxlespeedf": {
+        "name": "DiAxleSpeedF"
+      },
+      "stream_diaxlespeedr": {
+        "name": "DiAxleSpeedR"
+      },
+      "stream_diaxlespeedrel": {
+        "name": "DiAxleSpeedREL"
+      },
+      "stream_diaxlespeedrer": {
+        "name": "DiAxleSpeedRER"
+      },
+      "stream_diheatsinktf": {
+        "name": "DiHeatsinkTF"
+      },
+      "stream_diheatsinktr": {
+        "name": "DiHeatsinkTR"
+      },
+      "stream_diheatsinktrel": {
+        "name": "DiHeatsinkTREL"
+      },
+      "stream_diheatsinktrer": {
+        "name": "DiHeatsinkTRER"
+      },
+      "stream_dimotorcurrentf": {
+        "name": "DiMotorCurrentF"
+      },
+      "stream_dimotorcurrentr": {
+        "name": "DiMotorCurrentR"
+      },
+      "stream_dimotorcurrentrel": {
+        "name": "DiMotorCurrentREL"
+      },
+      "stream_dimotorcurrentrer": {
+        "name": "DiMotorCurrentRER"
+      },
+      "stream_dislavetorquecmd": {
+        "name": "DiSlaveTorqueCmd"
+      },
+      "stream_distatef": {
+        "name": "DiStateF"
+      },
+      "stream_distater": {
+        "name": "DiStateR"
+      },
+      "stream_distaterel": {
+        "name": "DiStateREL"
+      },
+      "stream_distaterer": {
+        "name": "DiStateRER"
+      },
+      "stream_distatortempf": {
+        "name": "DiStatorTempF"
+      },
+      "stream_distatortempr": {
+        "name": "DiStatorTempR"
+      },
+      "stream_distatortemprel": {
+        "name": "DiStatorTempREL"
+      },
+      "stream_distatortemprer": {
+        "name": "DiStatorTempRER"
+      },
+      "stream_ditorqueactualf": {
+        "name": "DiTorqueActualF"
+      },
+      "stream_ditorqueactualr": {
+        "name": "DiTorqueActualR"
+      },
+      "stream_ditorqueactualrel": {
+        "name": "DiTorqueActualREL"
+      },
+      "stream_ditorqueactualrer": {
+        "name": "DiTorqueActualRER"
+      },
+      "stream_ditorquemotor": {
+        "name": "DiTorquemotor"
+      },
+      "stream_divbatf": {
+        "name": "DiVBatF"
+      },
+      "stream_divbatr": {
+        "name": "DiVBatR"
+      },
+      "stream_divbatrel": {
+        "name": "DiVBatREL"
+      },
+      "stream_divbatrer": {
+        "name": "DiVBatRER"
+      },
+      "stream_doorstate": {
+        "name": "DoorState"
+      },
+      "stream_driverail": {
+        "name": "DriveRail"
+      },
+      "stream_driverseatbelt": {
+        "name": "DriverSeatBelt"
+      },
+      "stream_driverseatoccupied": {
+        "name": "DriverSeatOccupied"
+      },
+      "stream_emergencylanedepartureavoidance": {
+        "name": "EmergencyLaneDepartureAvoidance"
+      },
+      "stream_energyremaining": {
+        "name": "Energie verf\u00fcgbar"
+      },
+      "stream_fastchargerpresent": {
+        "name": "FastChargerPresent"
+      },
+      "stream_forwardcollisionwarning": {
+        "name": "ForwardCollisionWarning"
+      },
+      "stream_gpsheading": {
+        "name": "GpsHeading"
+      },
+      "stream_gpsstate": {
+        "name": "GpsState"
+      },
+      "stream_guestmodeenabled": {
+        "name": "GuestModeEnabled"
+      },
+      "stream_guestmodemobileaccessstate": {
+        "name": "GuestModeMobileAccessState"
+      },
+      "stream_hvil": {
+        "name": "Hvil"
+      },
+      "stream_isolationresistance": {
+        "name": "IsolationResistance"
+      },
+      "stream_lanedepartureavoidance": {
+        "name": "LaneDepartureAvoidance"
+      },
+      "stream_lateralacceleration": {
+        "name": "LateralAcceleration"
+      },
+      "stream_lifetimeenergygainedregen": {
+        "name": "LifetimeEnergyGainedRegen"
+      },
+      "stream_lifetimeenergyused": {
+        "name": "LifetimeEnergyUsed"
+      },
+      "stream_lifetimeenergyuseddrive": {
+        "name": "LifetimeEnergyUsedDrive"
+      },
+      "stream_longitudinalacceleration": {
+        "name": "LongitudinalAcceleration"
+      },
+      "stream_moduletempmax": {
+        "name": "Modultemperatur (max)"
+      },
+      "stream_moduletempmin": {
+        "name": "Modultemperatur (min)"
+      },
+      "stream_notenoughpowertoheat": {
+        "name": "NotEnoughPowerToHeat"
+      },
+      "stream_numbrickvoltagemax": {
+        "name": "NumBrickVoltageMax"
+      },
+      "stream_numbrickvoltagemin": {
+        "name": "NumBrickVoltageMin"
+      },
+      "stream_nummoduletempmax": {
+        "name": "NumModuleTempMax"
+      },
+      "stream_nummoduletempmin": {
+        "name": "NumModuleTempMin"
+      },
+      "stream_originlocation": {
+        "name": "OriginLocation"
+      },
+      "stream_packcurrent": {
+        "name": "PackCurrent"
+      },
+      "stream_packvoltage": {
+        "name": "PackVoltage"
+      },
+      "stream_pairedphonekeyandkeyfobqty": {
+        "name": "PairedPhoneKeyAndKeyFobQty"
+      },
+      "stream_passengerseatbelt": {
+        "name": "PassengerSeatBelt"
+      },
+      "stream_pedalposition": {
+        "name": "PedalPosition"
+      },
+      "stream_pintodriveenabled": {
+        "name": "PinToDriveEnabled"
+      },
+      "stream_ratedrange": {
+        "name": "RatedRange"
+      },
+      "stream_routelastupdated": {
+        "name": "RouteLastUpdated"
+      },
+      "stream_routeline": {
+        "name": "RouteLine"
+      },
+      "stream_soc": {
+        "name": "Soc"
+      },
+      "stream_speedlimitwarning": {
+        "name": "SpeedLimitWarning"
+      },
+      "stream_superchargersessiontripplanner": {
+        "name": "SuperchargerSessionTripPlanner"
+      },
+      "stream_trim": {
+        "name": "Trim"
+      },
+      "stream_vehiclename": {
+        "name": "VehicleName"
+      },
+      "stream_version": {
+        "name": "Version"
+      },
+      "total_pack_energy": {
+        "name": "Total pack energy"
+      },
+      "vehicle_config_exterior_color": {
+        "name": "Farbe (au\u00dfen)"
+      },
+      "vehicle_config_roof_color": {
+        "name": "Farbe (Dach)"
+      },
       "vehicle_state_odometer": {
         "name": "Kilometerz\u00e4hler"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_fl": {
+        "name": "Messzeitpunkt Reifendruck vorne links"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_fr": {
+        "name": "Messzeitpunkt Reifendruck vorne rechts"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_rl": {
+        "name": "Messzeitpunkt Reifendruck hinten links"
+      },
+      "vehicle_state_tpms_last_seen_pressure_time_rr": {
+        "name": "Messzeitpunkt Reifendruck hinten rechts"
       },
       "vehicle_state_tpms_pressure_fl": {
         "name": "Reifendruck vorne links"
@@ -348,6 +748,38 @@
       },
       "version": {
         "name": "Version"
+      },
+      "vin": {
+        "name": "Fahrzeug",
+        "state_attributes": {
+          "model": "Modell",
+          "vin": "VIN"
+        }
+      },
+      "vpp_backup_reserve_percent": {
+        "name": "VPP Reserve"
+      },
+      "wall_connector_fault_state": {
+        "name": "Fehlerstatus"
+      },
+      "wall_connector_power": {
+        "name": "Leistung"
+      },
+      "wall_connector_state": {
+        "name": "Status",
+        "state": {
+          "booting": "Hochfahren",
+          "charging": "L\u00e4dt",
+          "charging_finished": "Geladen",
+          "charging_reduced": "L\u00e4dt (reduzierte Leistung)",
+          "connected": "Verbunden",
+          "error": "Fehler",
+          "negotiating": "Verbindet",
+          "not_connected": "Getrennt",
+          "ready": "Bereit",
+          "scheduled": "Geplantes Laden",
+          "waiting_car": "Wartet auf Fahrzeug"
+        }
       }
     },
     "switch": {
@@ -363,8 +795,14 @@
       "climate_state_auto_steering_wheel_heat": {
         "name": "Automatische Lenkradheizung"
       },
-      "climate_state_steering_wheel_heater": {
-        "name": "Lenkradheizung"
+      "climate_state_is_preconditioning": {
+        "name": "Vorklimatisieren"
+      },
+      "components_disallow_charge_from_grid_with_solar_installed": {
+        "name": "Laden aus dem Netz"
+      },
+      "storm_mode_enabled": {
+        "name": "Sturmmodus"
       },
       "vehicle_state_sentry_mode": {
         "name": "W\u00e4chter-Modus"
@@ -377,6 +815,131 @@
       "vehicle_state_software_update_status": {
         "name": "Update"
       }
+    }
+  },
+  "services": {
+    "navigation_gps_request": {
+      "description": "Setze Fahrzeug-Navigationsziel auf GPS-Koordinaten.",
+      "fields": {
+        "device_id": {
+          "description": "Fahrzeug, das das Navigationsziel erhalten soll.",
+          "name": "Fahrzeug"
+        },
+        "gps": {
+          "description": "Ziel (GPS-Koordinaten).",
+          "name": "Ziel"
+        },
+        "order": {
+          "description": "Nummer des Zwischenstopps.",
+          "name": "Nummer"
+        }
+      },
+      "name": "Navigiere zu GPS"
+    },
+    "navigation_request": {
+      "description": "Setze Fahrzeug-Navigationsziel auf Adresse (Freitext).",
+      "fields": {
+        "address": {
+          "name": "Adresse"
+        },
+        "device_id": {
+          "description": "Fahrzeug, das das Navigationsziel erhalten soll.",
+          "name": "Fahrzeug"
+        },
+        "order": {
+          "description": "Nummer des Zwischenstopps.",
+          "name": "Nummer"
+        }
+      },
+      "name": "Navigiere zu Adresse"
+    },
+    "navigation_sc_request": {
+      "description": "Setze Fahrzeug-Navigationsziel auf Supercharger.",
+      "fields": {
+        "device_id": {
+          "description": "Fahrzeug, das das Navigationsziel erhalten soll.",
+          "name": "Fahrzeug"
+        },
+        "id": {
+          "description": "Tesla-interne Nummer des Superchargers.",
+          "name": "Supercharger ID"
+        },
+        "order": {
+          "description": "Nummer des Zwischenstopps.",
+          "name": "Nummer"
+        }
+      },
+      "name": "Navigiere zu Supercharger"
+    },
+    "set_scheduled_charging": {
+      "description": "Setzt die Zeit, zu der mit Laden begonnen wird.",
+      "fields": {
+        "device_id": {
+          "description": "Fahrzeug, dessen Ladevorgang geplant wird.",
+          "name": "Fahrzeug"
+        },
+        "enable": {
+          "description": "Geplantes Laden aktivieren.",
+          "name": "Aktiv"
+        },
+        "time": {
+          "description": "Ladestart.",
+          "name": "Uhrzeit"
+        }
+      },
+      "name": "Laden planen"
+    },
+    "set_scheduled_departure": {
+      "description": "Setzt eine geplante Abfahrtszeit.",
+      "fields": {
+        "departure_time": {
+          "description": "Zeit, zu der das Fahrzeug bereit zur Abfahrt ist.",
+          "name": "Abfahrt"
+        },
+        "device_id": {
+          "description": "Fahrzeug, dessen Abfahrtszeit geplant wird.",
+          "name": "Fahrzeug"
+        },
+        "enable": {
+          "description": "Abfahrtszeit aktiv.",
+          "name": "Aktiv"
+        },
+        "end_off_peak_time": {
+          "description": "Zeit, zu der der Nebentarif beginnt.",
+          "name": "Nebentarif Ende"
+        },
+        "off_peak_charging_enabled": {
+          "description": "Ob ein Zeitraum angegeben wird, zu dem ein verg\u00fcnstigter Nebentarif gilt.",
+          "name": "Nebentarif verwenden"
+        },
+        "off_peak_charging_weekdays_only": {
+          "description": "Nebentarif nur unter der Woche verwenden.",
+          "name": "Nebentarif wochentags"
+        },
+        "preconditioning_enabled": {
+          "description": "Vorklimatisieren aktiv.",
+          "name": "Vorklimatisieren"
+        },
+        "preconditioning_weekdays_only": {
+          "description": "Nur unter der Woche vorklimatisieren.",
+          "name": "Vorklimatisieren wochentags"
+        }
+      },
+      "name": "Abfahrt planen"
+    },
+    "stream_fields": {
+      "description": "Setzt die vom Fahrzeug gestreamten Telemetriefelder.",
+      "fields": {
+        "device_id": {
+          "description": "Fahrzeug, das konfiguriert wird.",
+          "name": "Fahrzeug"
+        },
+        "fields": {
+          "description": "Felder, die gestreamt werden.",
+          "name": "Felder"
+        }
+      },
+      "name": "Streamingfelder"
     }
   }
 }
