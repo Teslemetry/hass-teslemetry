@@ -1,4 +1,5 @@
 """Update platform for Teslemetry integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -88,7 +89,8 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
             self._attr_in_progress = self.get(
                 "vehicle_state_software_update_install_perc"
             )
-        self._attr_in_progress = False
+        else:
+            self._attr_in_progress = False
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
