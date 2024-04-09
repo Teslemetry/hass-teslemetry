@@ -171,7 +171,7 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_is_on = self._value
+        self._attr_is_on = bool(self._value)
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
