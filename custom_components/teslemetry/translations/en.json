@@ -446,7 +446,8 @@
       "island_status": {
         "name": "Island status",
         "state": {
-          "on_grid": "On grid"
+          "on_grid": "On grid",
+          "island_status_unknown": "Unknown"
         }
       },
       "load_power": {
