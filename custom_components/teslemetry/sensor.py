@@ -53,6 +53,9 @@ ChargeStates = {
     "Complete": "complete",
     "Disconnected": "disconnected",
     "NoPower": "no_power",
+    "Idle": "stopped", #streaming
+    "QualifyLineConfig": "starting", #streaming
+    "Enable": "charging", #streaming
 }
 
 WallConnectorStates = {
@@ -86,7 +89,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_charging_state",
         streaming_key=TelemetryField.CHARGE_STATE,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        options=list(ChargeStates.values()),
+        options=list(set(ChargeStates.values())),
         device_class=SensorDeviceClass.ENUM,
         value_fn=lambda value: ChargeStates.get(cast(str, value)),
     ),
