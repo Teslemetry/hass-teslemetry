@@ -11,6 +11,7 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
     TeslaFleetError,
+    Forbidden,
 )
 import voluptuous as vol
 
@@ -47,6 +48,8 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             return {CONF_ACCESS_TOKEN: "invalid_access_token"}
         except SubscriptionRequired:
             return {"base": "subscription_required"}
+        except Forbidden:
+            return {"base": "forbidden"}
         except ClientConnectionError:
             return {"base": "cannot_connect"}
         except TeslaFleetError as e:
@@ -73,9 +76,7 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_reauth(
-        self, entry_data: Mapping[str, Any]
-    ) -> FlowResult:
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Handle reauth on failure."""
         self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_confirm(entry_data)

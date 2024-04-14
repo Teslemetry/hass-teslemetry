@@ -9,6 +9,7 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
     TeslaFleetError,
+    Forbidden,
 )
 from tesla_fleet_api.teslemetry import rate_limit
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
@@ -21,7 +22,6 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
@@ -72,9 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         scopes = calls[0]["scopes"]
         products = calls[1]["response"]
-    except InvalidToken as e:
-        raise ConfigEntryAuthFailed from e
-    except SubscriptionRequired as e:
+    except (InvalidToken, Forbidden, SubscriptionRequired) as e:
         raise ConfigEntryAuthFailed from e
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
@@ -138,9 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Run all coordinator first refreshes
     await asyncio.gather(
-        *(
-            async_setup_stream(hass, vehicle) for vehicle in vehicles
-        ),
+        *(async_setup_stream(hass, vehicle) for vehicle in vehicles),
         *(
             vehicle.coordinator.async_config_entry_first_refresh()
             for vehicle in vehicles
@@ -152,7 +148,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         *(
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
-        )
+        ),
     )
 
     # Setup Platforms
@@ -174,8 +170,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-
-
 async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData):
     """Setup stream for vehicle."""
     LOGGER.debug("Stream Starting Up")
@@ -183,25 +177,25 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
         async with rate_limit:
             await vehicle.stream.get_config()
 
-            def handle_alerts(event:dict):
+            def handle_alerts(event: dict):
                 """Handle stream alerts."""
                 if alerts := event.get("alerts"):
                     for alert in alerts:
-                        if alert['startedAt'] <= vehicle.last_alert:
+                        if alert["startedAt"] <= vehicle.last_alert:
                             break
-                        alert['vin'] = vehicle.vin
+                        alert["vin"] = vehicle.vin
                         hass.bus.fire("teslemetry_alert", alert)
-                    vehicle.last_alert = alerts[0]['startedAt']
+                    vehicle.last_alert = alerts[0]["startedAt"]
 
-            def handle_errors(event:dict):
+            def handle_errors(event: dict):
                 """Handle stream errors."""
                 if errors := event.get("errors"):
                     for error in errors:
-                        if error['startedAt'] <= vehicle.last_error:
+                        if error["startedAt"] <= vehicle.last_error:
                             break
-                        error['vin'] = vehicle.vin
+                        error["vin"] = vehicle.vin
                         hass.bus.fire("teslemetry_error", error)
-                    vehicle.last_error = errors[0]['startedAt']
+                    vehicle.last_error = errors[0]["startedAt"]
 
             vehicle.remove_listeners = (
                 vehicle.stream.async_add_listener(
@@ -220,7 +214,5 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
             vehicle.vin,
         )
     except Exception as e:
-        LOGGER.info(
-            "Vehicle %s is unable to use streaming", vehicle.vin
-        )
+        LOGGER.info("Vehicle %s is unable to use streaming", vehicle.vin)
         LOGGER.debug(e)

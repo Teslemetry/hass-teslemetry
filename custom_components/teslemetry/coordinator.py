@@ -1,10 +1,17 @@
 """Teslemetry Data Coordinator."""
+
 from datetime import timedelta
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import VehicleDataEndpoint
-from tesla_fleet_api.exceptions import TeslaFleetError, VehicleOffline, InvalidToken, SubscriptionRequired
+from tesla_fleet_api.exceptions import (
+    TeslaFleetError,
+    VehicleOffline,
+    InvalidToken,
+    SubscriptionRequired,
+    Forbidden,
+)
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -22,7 +29,7 @@ ENDPOINTS = [
     VehicleDataEndpoint.DRIVE_STATE,
     VehicleDataEndpoint.LOCATION_DATA,
     VehicleDataEndpoint.VEHICLE_STATE,
-    VehicleDataEndpoint.VEHICLE_CONFIG
+    VehicleDataEndpoint.VEHICLE_CONFIG,
 ]
 
 
@@ -64,9 +71,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data
-        except InvalidToken as e:
-            raise ConfigEntryAuthFailed from e
-        except SubscriptionRequired as e:
+        except (InvalidToken, Forbidden, SubscriptionRequired) as e:
             raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
