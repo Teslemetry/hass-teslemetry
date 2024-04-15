@@ -70,6 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             teslemetry.metadata(),
             teslemetry.products(),
         )
+        uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
         products = calls[1]["response"]
     except (InvalidToken, Forbidden, SubscriptionRequired) as e:
@@ -79,6 +80,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except TypeError as e:
         LOGGER.error("Invalid response from Teslemetry", e)
         raise ConfigEntryNotReady from e
+
+    if entry.unique_id is None:
+        LOGGER.debug("Setting unique_id to %s", uid)
+        hass.config_entries.async_update_entry(entry, unique_id=uid)
 
     # Create array of classes
     vehicles: list[TeslemetryVehicleData] = []
