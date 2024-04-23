@@ -1,4 +1,5 @@
 """Climate platform for Teslemetry integration."""
+
 from itertools import chain
 from typing import Any, cast
 
@@ -11,7 +12,12 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, PRECISION_WHOLE, UnitOfTemperature
+from homeassistant.const import (
+    ATTR_TEMPERATURE,
+    PRECISION_HALVES,
+    PRECISION_WHOLE,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
@@ -32,10 +38,16 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
-            (TeslemetryClimateEntity(vehicle, TeslemetryClimateSide.DRIVER, data.scopes)
-            for vehicle in data.vehicles),
-            (TeslemetryCabinOverheatProtectionEntity(vehicle, data.scopes)
-            for vehicle in data.vehicles),
+            (
+                TeslemetryClimateEntity(
+                    vehicle, TeslemetryClimateSide.DRIVER, data.scopes
+                )
+                for vehicle in data.vehicles
+            ),
+            (
+                TeslemetryCabinOverheatProtectionEntity(vehicle, data.scopes)
+                for vehicle in data.vehicles
+            ),
         )
     )
 
@@ -160,6 +172,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
             self._attr_hvac_mode = HVACMode.HEAT_COOL
         self.async_write_ha_state()
 
+
 COP_MODES = {
     "Off": HVACMode.OFF,
     "On": HVACMode.COOL,
@@ -169,8 +182,9 @@ COP_MODES = {
 COP_LEVELS = {
     "Low": 30,
     "Medium": 35,
-    "High":  40,
+    "High": 40,
 }
+
 
 class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEntity):
     """Vehicle Cabin Overheat Protection."""
@@ -199,7 +213,9 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
         )
 
         # Supported Features
-        self._attr_supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        self._attr_supported_features = (
+            ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        )
         if self.get("vehicle_config_cop_user_set_temp_supported"):
             self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
 
@@ -207,8 +223,6 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = ClimateEntityFeature(0)
-
-
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -228,7 +242,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""
-        self._attr_current_temperature = value
+        self._attr_current_temperature = float(value)
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
@@ -266,11 +280,17 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         if hvac_mode == HVACMode.OFF:
-            await self.handle_command(self.api.set_cabin_overheat_protection(on=False, fan_only=False))
+            await self.handle_command(
+                self.api.set_cabin_overheat_protection(on=False, fan_only=False)
+            )
         elif hvac_mode == HVACMode.COOL:
-            await self.handle_command(self.api.set_cabin_overheat_protection(on=True, fan_only=False))
+            await self.handle_command(
+                self.api.set_cabin_overheat_protection(on=True, fan_only=False)
+            )
         elif hvac_mode == HVACMode.FAN_ONLY:
-            await self.handle_command(self.api.set_cabin_overheat_protection(on=True, fan_only=True))
+            await self.handle_command(
+                self.api.set_cabin_overheat_protection(on=True, fan_only=True)
+            )
 
         self._attr_hvac_mode = hvac_mode
         self.async_write_ha_state()

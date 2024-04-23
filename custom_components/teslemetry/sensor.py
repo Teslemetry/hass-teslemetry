@@ -53,9 +53,9 @@ ChargeStates = {
     "Complete": "complete",
     "Disconnected": "disconnected",
     "NoPower": "no_power",
-    "Idle": "stopped", #streaming
-    "QualifyLineConfig": "starting", #streaming
-    "Enable": "charging", #streaming
+    "Idle": "stopped",  # streaming
+    "QualifyLineConfig": "starting",  # streaming
+    "Enable": "charging",  # streaming
 }
 
 WallConnectorStates = {
@@ -64,11 +64,11 @@ WallConnectorStates = {
     2: "not_connected",
     4: "connected",
     5: "scheduled",
-    6: "negotiating", #unseen
-    7: "error", #unseen
-    8: "charging_finished", #seen, unconfirmed
-    9: "waiting_car", #unseen
-    10: "charging_reduced", #unseen
+    6: "negotiating",  # unseen
+    7: "error",  # unseen
+    8: "charging_finished",  # seen, unconfirmed
+    9: "waiting_car",  # unseen
+    10: "charging_reduced",  # unseen
 }
 
 ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}
@@ -79,7 +79,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    available_fn : Callable[[StateType], StateType | datetime] = lambda x: x is not None
+    available_fn: Callable[[StateType], StateType | datetime] = lambda x: x is not None
     streaming_key: TelemetryField | None = None
     timestamp_key: TeslemetryTimestamp | None = None
 
@@ -1116,7 +1116,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
         self._attr_available = True
-        self._attr_native_value = self.entity_description.value_fn(value)
+        self._attr_native_value = self.entity_description.value_fn(auto_type(value))
 
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
