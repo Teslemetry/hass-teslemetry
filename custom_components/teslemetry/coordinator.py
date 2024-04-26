@@ -110,10 +110,9 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
         # Convert Wall Connectors from array to dict
-        if wall_connectors := data.get("wall_connectors"):
-            data["wall_connectors"] = {wc["din"]: wc for wc in wall_connectors}
-        else:
-            data["wall_connectors"] = {}
+        data["wall_connectors"] = {
+            wc["din"]: wc for wc in (data.get("wall_connectors") or [])
+        }
 
         return data
 
