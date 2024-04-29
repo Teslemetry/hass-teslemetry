@@ -1,6 +1,6 @@
 """Teslemetry Data Coordinator."""
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
@@ -50,6 +50,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
     updated_once = False
+    last_active = False
 
     def __init__(
         self, hass: HomeAssistant, api: VehicleSpecific, product: dict
@@ -63,9 +64,15 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.api = api
         self.data = flatten(product)
+        self.pre2021 = product["vin"][9] <= "L"
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
+
+        if last_active:
+            if(datetime.now()-last_active).total_seconds() > (15*60):
+                return
+
         try:
             data = (await self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
         except VehicleOffline:
@@ -77,6 +84,19 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(e.message) from e
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
+
+        if(self.pre2021):
+            # Handle pre-2021 vehicles which cannot sleep by themselves
+            if data["charge_state"]["charging_state"] == "Charging" or data["drive_state"]["shift_state"] or data["vehicle_state"]["sentry_mode"]:
+                last_active = datetime.now()
+            else:
+                elapsed = (datetime.now() - last_active).total_seconds()
+                if elapsed > (30*60):
+                    # Reset polling
+                    self.update_interval(VEHICLE_INTERVAL)
+                elif elapsed > (15*60):
+                    # Stop polling for 15 minutes
+                    self.update_interval(timedelta(minutes=15))
 
         self.updated_once = True
         return flatten(data)
