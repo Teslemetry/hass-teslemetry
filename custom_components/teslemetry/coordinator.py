@@ -20,6 +20,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from .const import LOGGER, TeslemetryState
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
+VEHICLE_WAIT = timedelta(minutes=15)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 
@@ -50,7 +51,8 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
     updated_once = False
-    last_active = False
+    pre2021: bool
+    last_active: datetime
 
     def __init__(
         self, hass: HomeAssistant, api: VehicleSpecific, product: dict
@@ -65,18 +67,18 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api = api
         self.data = flatten(product)
         self.pre2021 = product["vin"][9] <= "L"
+        self.last_active = datetime.now()
+        if (self.pre2021):
+            LOGGER.info("Teslemetry will try let {} sleep".format(product["vin"]))
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
-
-        if last_active:
-            if(datetime.now()-last_active).total_seconds() > (15*60):
-                return
 
         try:
             data = (await self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
+            self.update_interval = VEHICLE_INTERVAL
             return self.data
         except (InvalidToken, Forbidden, SubscriptionRequired) as e:
             raise ConfigEntryAuthFailed from e
@@ -88,15 +90,14 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if(self.pre2021):
             # Handle pre-2021 vehicles which cannot sleep by themselves
             if data["charge_state"]["charging_state"] == "Charging" or data["drive_state"]["shift_state"] or data["vehicle_state"]["sentry_mode"]:
-                last_active = datetime.now()
+                self.last_active = datetime.now()
+                self.update_interval = VEHICLE_INTERVAL
             else:
-                elapsed = (datetime.now() - last_active).total_seconds()
-                if elapsed > (30*60):
-                    # Reset polling
-                    self.update_interval(VEHICLE_INTERVAL)
-                elif elapsed > (15*60):
+                elapsed = (datetime.now() - self.last_active)
+                if elapsed > timedelta(minutes=15):
                     # Stop polling for 15 minutes
-                    self.update_interval(timedelta(minutes=15))
+                    LOGGER.info("Starting sleep period")
+                    self.update_interval = VEHICLE_WAIT
 
         self.updated_once = True
         return flatten(data)
