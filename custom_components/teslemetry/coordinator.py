@@ -66,7 +66,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.api = api
         self.data = flatten(product)
-        self.pre2021 = product["vin"][9] <= "L"
+        self.pre2021 = True or product["vin"][9] <= "L"
         self.last_active = datetime.now()
         if (self.pre2021):
             LOGGER.info("Teslemetry will try let {} sleep".format(product["vin"]))
@@ -89,15 +89,29 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if(self.pre2021):
             # Handle pre-2021 vehicles which cannot sleep by themselves
-            if data["charge_state"]["charging_state"] == "Charging" or data["drive_state"]["shift_state"] or data["vehicle_state"]["sentry_mode"]:
+            LOGGER.info("THIS {} {} {}".format(data["charge_state"].get("charging_state"), data["drive_state"].get("shift_state"), data["vehicle_state"].get("sentry_mode")))
+            if data["charge_state"].get("charging_state") == "Charging" or data["drive_state"].get("shift_state") or data["vehicle_state"].get("sentry_mode"):
+                # Vehicle is active, reset timer
+                LOGGER.info("Vehicle is active")
                 self.last_active = datetime.now()
                 self.update_interval = VEHICLE_INTERVAL
             else:
                 elapsed = (datetime.now() - self.last_active)
-                if elapsed > timedelta(minutes=15):
+                if elapsed > timedelta(minutes=20):
+                    # Vehicle is awake for a reason, reset timer
+                    LOGGER.info("Starting sleep period")
+                    self.last_active = datetime.now()
+                    self.update_interval = VEHICLE_WAIT
+                elif elapsed > timedelta(minutes=15):
                     # Stop polling for 15 minutes
                     LOGGER.info("Starting sleep period")
                     self.update_interval = VEHICLE_WAIT
+
+                    # Signal to the backend that a sleep should now be starting for debugging purposes
+                    try:
+                        await self.api.service_data()
+                    except Exception as e:
+                        pass
 
         self.updated_once = True
         return flatten(data)
