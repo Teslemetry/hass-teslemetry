@@ -89,8 +89,8 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if(self.pre2021):
             # Handle pre-2021 vehicles which cannot sleep by themselves
-            LOGGER.info("THIS {} {} {}".format(data["charge_state"].get("charging_state"), data["drive_state"].get("shift_state"), data["vehicle_state"].get("sentry_mode")))
-            if data["charge_state"].get("charging_state") == "Charging" or data["drive_state"].get("shift_state") or data["vehicle_state"].get("sentry_mode"):
+            LOGGER.info("THIS {} {} {}".format(data["charge_state"].get("charging_state"), data["drive_state"].get("is_user_present"), data["vehicle_state"].get("sentry_mode")))
+            if data["charge_state"].get("charging_state") == "Charging" or data["drive_state"].get("is_user_present") or data["vehicle_state"].get("sentry_mode"):
                 # Vehicle is active, reset timer
                 LOGGER.info("Vehicle is active")
                 self.last_active = datetime.now()
