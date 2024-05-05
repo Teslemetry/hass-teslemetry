@@ -49,33 +49,64 @@ def compare_keys(a, b, parent=""):
 used = []
 streaming_used = []
 domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
-
-# Check for missing
-for domain, descriptions in (
+domain_names = {
+    'binary_sensor': "Binary sensor",
+    'device_tracker': "Device tracker",
+    'button': "Button",
+    'cover': "Cover",
+    'climate': "Climate",
+    'number': "Number",
+    'media_player': "Media player",
+    'lock': "Lock",
+    'select': "Select",
+    'sensor': "Sensor",
+    'switch': "Switch",
+    'update': "Update"
+}
+# Iterate over all entities
+output = []
+for domain, type, descriptions in (
     (
         "binary_sensor",
+        "Vehicle",
         chain(
             BINARY_VEHICLE_DESCRIPTIONS,
-            BINARY_ENERGY_LIVE_DESCRIPTIONS,
-            BINARY_ENERGY_INFO_DESCRIPTIONS,
             BINARY_VEHICLE_STREAM_DESCRIPTIONS,
         ),
     ),
-    ("button", BUTTON_DESCRIPTIONS),
-    ("number", chain(NUMBER_VEHICLE_DESCRIPTIONS, NUMBER_ENERGY_INFO_DESCRIPTIONS)),
-    ("select", SELECT_SEAT_HEATER_DESCRIPTIONS),
+    (
+        "binary_sensor",
+        "Energy Site",
+        chain(
+            BINARY_ENERGY_LIVE_DESCRIPTIONS,
+            BINARY_ENERGY_INFO_DESCRIPTIONS,
+        ),
+    ),
+    ("button", "Vehicle", BUTTON_DESCRIPTIONS),
+    ("number", "Vehicle", NUMBER_VEHICLE_DESCRIPTIONS),
+    ("number", "Energy Site", NUMBER_ENERGY_INFO_DESCRIPTIONS),
+    ("select", "Vehicle", SELECT_SEAT_HEATER_DESCRIPTIONS),
     (
         "sensor",
+        "Vehicle",
         chain(
             SENSOR_VEHICLE_DESCRIPTIONS,
             SENSOR_VEHICLE_TIME_DESCRIPTIONS,
-            SENSOR_ENERGY_INFO_DESCRIPTIONS,
-            SENSOR_ENERGY_LIVE_DESCRIPTIONS,
-            SENSOR_WALL_CONNECTOR_DESCRIPTIONS,
             SENSOR_VEHICLE_STREAM_DESCRIPTIONS,
+        )
+    ),(
+        "sensor",
+        "Energy Site",
+        chain(
+            SENSOR_ENERGY_INFO_DESCRIPTIONS,
+            SENSOR_ENERGY_LIVE_DESCRIPTIONS
         ),
+    ),(
+        "sensor",
+        "Wall Connector",
+        SENSOR_WALL_CONNECTOR_DESCRIPTIONS,
     ),
-    ("switch", SWITCH_VEHICLE_DESCRIPTIONS),
+    ("switch", "Vehicle", SWITCH_VEHICLE_DESCRIPTIONS),
 ):
     for description in descriptions:
         if isinstance(description.key, TelemetryField):
@@ -84,29 +115,71 @@ for domain, descriptions in (
         else:
             key = description.key
             translation_key = description.key
-        # if key not in strings["entity"][domain]:
+        #if key not in strings["entity"][domain]:
         #    print(f"No string for {domain} {key}")
         if translation_key not in en["entity"][domain]:
             print(f"ISSUE: No en for {domain} {translation_key}")
         else:
             used.append((domain, translation_key))
 
+        method = "Polling"
+
         if (
             hasattr(description, "streaming_key")
             and description.streaming_key is not None
         ):
-            streaming_used.append(description.streaming_key.value)
-            print(
-                f"['{description.streaming_key.value}','{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')}','Polling & Streaming'],"
-            )
-        if isinstance(description.key, TelemetryField):
-            if description.key.value in streaming_used:
-                print(f"DUPLICATE: {description.key.value}")
-            else:
-                streaming_used.append(description.key.value)
-            print(
-                f"['{description.key.value}','{domain}.*_{en['entity'][domain][translation_key]['name'].lower().replace(' ','_')}','Streaming'],"
-            )
+            method = "Both"
+
+        elif isinstance(description.key, TelemetryField):
+            method = "Streaming"
+
+        enabled = "Yes"
+        if description.entity_registry_enabled_default == False:
+            enabled = "No"
+
+        output.append(
+            f"|{type}|{domain_names[domain]}|{en['entity'][domain][translation_key]['name']}|{method}|{enabled}|"
+        )
+
+extras = [
+    ("Vehicle","button","refresh","Polling","Yes"),
+    ("Energy site","select","default_real_mode","Polling","Yes"),
+    ("Energy site","select","components_customer_preferred_export_rule","Polling","Yes"),
+    ("Vehicle","sensor","charge_state_minutes_to_full_charge_timestamp","Polling","Yes"),
+    ("Vehicle","sensor","drive_state_active_route_minutes_to_arrival_timestamp","Polling","Yes"),
+    ("Vehicle","switch","charge_state_user_charge_enable_request","Polling","Yes"),
+    ("Vehicle","select","climate_state_steering_wheel_heat_level","Polling","Yes"),
+    ("Energy site","switch","storm_mode_enabled","Polling","Yes"),
+    ("Energy site","switch","components_disallow_charge_from_grid_with_solar_installed","Polling","Yes"),
+    ("Wall connector","sensor","vin","Polling","Yes"),
+    ("Vehicle","climate","driver_temp","Polling^1","Yes"),
+    ("Vehicle","climate","climate_state_cabin_overheat_protection","Both^1","Yes"),
+    ("Vehicle","cover","windows","Polling","Yes"),
+    ("Vehicle","cover","charge_state_charge_port_door_open","Both","Yes"),
+    ("Vehicle","cover","vehicle_state_ft","Polling","Yes"),
+    ("Vehicle","cover","vehicle_state_rt","Polling","Yes"),
+    ("Vehicle","device_tracker","location","Both","Yes"),
+    ("Vehicle","device_tracker","route","Polling","Yes"),
+    ("Vehicle","lock","vehicle_state_locked","Both","Yes"),
+    ("Vehicle","lock","charge_state_charge_port_latch","Both","Yes"),
+    ("Vehicle","lock","vehicle_state_speed_limit_mode_active","Both","Yes"),
+    ("Vehicle","media_player","media","Polling","Yes"),
+    ("Vehicle","update","vehicle_state_software_update_status","Both^2","Yes"),
+
+
+]
+
+for type, domain, key, method, enabled in extras:
+    output.append(
+        f"|{type}|{domain_names[domain]}|{en['entity'][domain][key]['name']}|{method}|{enabled}|"
+    )
+output.sort()
+# write output to file
+with open("documentation.md", "w") as f:
+    f.write("|Device|Domain|Name|Method|Enabled|\n")
+    f.write("|---|---|---|---|---|\n")
+    f.write("\n".join(output))
+    f.write("\n\n^1 Only inside temperature is streamable\n^2 Only version is streamable\n")
 
 # Check for unused
 for domain in en["entity"]:
