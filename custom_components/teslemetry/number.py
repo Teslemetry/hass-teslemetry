@@ -23,6 +23,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.icon import icon_for_battery_level
+from homeassistant.util.unit_conversion import SpeedConverter
+from homeassistant.util.unit_system import METRIC_SYSTEM
 
 from .const import DOMAIN, TeslemetryTimestamp
 from .entity import (
@@ -77,20 +79,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         func=lambda api, value: api.set_charge_limit(int(value)),
         scopes=[Scope.VEHICLE_CHARGING_CMDS, Scope.VEHICLE_CMDS],
     ),
-    TeslemetryNumberEntityDescription(
-        key="vehicle_state_speed_limit_mode_current_limit_mph",
-        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
-        streaming_key=TelemetryField.CURRENT_LIMIT_MPH,
-        native_min_value=50,
-        native_max_value=120,
-        native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
-        device_class=NumberDeviceClass.SPEED,
-        mode=NumberMode.BOX,
-        min_key="vehicle_state_speed_limit_mode_min_limit_mph",
-        max_key="vehicle_state_speed_limit_mode_max_limit_mph",
-        func=lambda api, value: api.speed_limit_set_limit(value),
-        scopes=[Scope.VEHICLE_CMDS],
-    ),
 )
 
 ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
@@ -127,6 +115,13 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
+            (  # Add speed limit entities
+                TeslemetrySpeedNumberEntity(
+                    hass,
+                    vehicle,
+                    data.scopes,
+                )
+                for vehicle in data.vehicles),
             (  # Add vehicle entities
                 TeslemetryVehicleNumberEntity(
                     vehicle,
@@ -149,7 +144,6 @@ async def async_setup_entry(
             ),
         )
     )
-
 
 class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
     """Number entity for current charge."""
@@ -192,6 +186,71 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         await self.handle_command(self.entity_description.func(self.api, value))
         self._attr_native_value = value
         self.async_write_ha_state()
+
+
+class TeslemetrySpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
+    """Number entity for current charge."""
+
+    # This class is almost certainly going to be rejected by the HA core team.
+    device_class=NumberDeviceClass.SPEED,
+    mode=NumberMode.BOX,
+    PRECISION = 1
+
+
+    def __init__(
+        self,
+        hass,
+        data: TeslemetryVehicleData,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Number entity."""
+        self.hass = hass
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+
+
+
+        # Handle Metric
+        if self.hass.config.units is METRIC_SYSTEM:
+            self.native_unit_of_measurement = UnitOfSpeed.KILOMETERS_PER_HOUR
+            self.convert_to = SpeedConverter.converter_factory(UnitOfSpeed.MILES_PER_HOUR, UnitOfSpeed.KILOMETERS_PER_HOUR)
+            self.convert_from = SpeedConverter.converter_factory(UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR)
+        else:
+            self.native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
+            self.convert_to: Callable = lambda x: x
+            self.convert_from: Callable = lambda x: x
+
+        super().__init__(
+            data, "vehicle_state_speed_limit_mode_current_limit_mph", TeslemetryTimestamp.VEHICLE_STATE, TelemetryField.CURRENT_LIMIT_MPH
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        if self._value is None:
+            self._attr_native_value = None
+        else:
+            self._attr_native_value = round(self.convert_to(self._value),self.PRECISION)
+        self._attr_native_min_value = round(self.convert_to(self.get(
+            "vehicle_state_speed_limit_mode_min_limit_mph",
+            50,
+        )),self.PRECISION)
+        self._attr_native_max_value = round(self.convert_to(self.get(
+            "vehicle_state_speed_limit_mode_max_limit_mph",
+            120,
+        )),self.PRECISION)
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        self._attr_native_value = round(self.convert_to(value),self.PRECISION)
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.speed_limit_set_limit(round(self.convert_from(value),4)))
+        self._attr_native_value = value
+        self.async_write_ha_state()
+
+
 
 
 class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberEntity):
