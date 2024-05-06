@@ -143,6 +143,12 @@
               "keep": "Keep mode",
               "off": "Normal"
             }
+          },
+          "fan_mode": {
+            "state": {
+              "bioweapon": "Bioweapon mode",
+              "off": "Normal"
+            }
           }
         }
       }
