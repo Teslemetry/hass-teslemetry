@@ -161,6 +161,12 @@
               "keep": "Halten",
               "off": "Standard"
             }
+          },
+          "fan_mode": {
+            "state": {
+              "bioweapon": "Biowaffenmodus",
+              "off": "Standard"
+            }
           }
         }
       }
