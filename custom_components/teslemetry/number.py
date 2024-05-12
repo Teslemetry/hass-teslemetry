@@ -26,7 +26,7 @@ from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.util.unit_conversion import SpeedConverter
 from homeassistant.util.unit_system import METRIC_SYSTEM
 
-from .const import DOMAIN, TeslemetryTimestamp
+from .const import TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
@@ -61,7 +61,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.CURRENT,
         mode=NumberMode.AUTO,
         max_key="charge_state_charge_current_request_max",
-        func=lambda api, value: api.set_charging_amps(int(value)),
+        func=lambda api, value: api.set_charging_amps(value),
         scopes=[Scope.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetryNumberEntityDescription(
@@ -76,7 +76,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         mode=NumberMode.AUTO,
         min_key="charge_state_charge_limit_soc_min",
         max_key="charge_state_charge_limit_soc_max",
-        func=lambda api, value: api.set_charge_limit(int(value)),
+        func=lambda api, value: api.set_charge_limit(value),
         scopes=[Scope.VEHICLE_CHARGING_CMDS, Scope.VEHICLE_CMDS],
     ),
 )
@@ -181,6 +181,7 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
+        value = int(value)
         self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.func(self.api, value))
@@ -206,8 +207,6 @@ class TeslemetrySpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         """Initialize the Number entity."""
         self.hass = hass
         self.scoped = Scope.VEHICLE_CMDS in scopes
-
-
 
         # Handle Metric
         if self.hass.config.units is METRIC_SYSTEM:
@@ -284,6 +283,7 @@ class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberE
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
+        value = int(value)
         self.raise_for_scope()
         await self.handle_command(self.entity_description.func(self.api, value))
         self._attr_native_value = value

@@ -36,8 +36,8 @@ async def handle_command(command) -> dict[str, Any]:
         result = await command
         LOGGER.debug("Command result: %s", result)
     except TeslaFleetError as e:
-        LOGGER.debug("Command error: %s", e.message)
-        raise ServiceValidationError(f"Teslemetry command failed, {e.message}") from e
+        LOGGER.info("Command error: %s", e.message)
+        raise HomeAssistantError(f"Teslemetry command failed, {e.message}") from e
     return result
 
 async def handle_vehicle_command(command) -> dict[str, Any]:
@@ -46,19 +46,21 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
     if (response := result.get("response")) is None:
         if message := result.get("error"):
             # No response with error
-            LOGGER.info("Command failure: %s", message)
-            raise ServiceValidationError(message)
+            LOGGER.info("Command error: %s", message)
+            raise HomeAssistantError(message)
         # No response without error (unexpected)
         LOGGER.error("Unknown response: %s", response)
-        raise ServiceValidationError("Unknown response")
-    if (message := response.get("result")) is not True:
+        raise HomeAssistantError("Unknown response")
+    if (response.get("result")) is not True:
         if message := response.get("reason"):
+            if message == "already_set":
+                return result
             # Result of false with reason
             LOGGER.info("Command failure: %s", message)
-            raise ServiceValidationError(message)
+            raise HomeAssistantError(message)
         # Result of false without reason (unexpected)
         LOGGER.error("Unknown response: %s", response)
-        raise ServiceValidationError("Unknown response")
+        raise HomeAssistantError("Unknown response")
     # Response with result of true
     return result
 
