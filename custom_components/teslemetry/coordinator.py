@@ -66,9 +66,8 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.api = api
         self.data = flatten(product)
-        self.pre2021 = product["vin"][9] <= "L"
         self.last_active = datetime.now()
-        if (self.pre2021):
+        if (self.api.pre2021):
             LOGGER.info("Teslemetry will let {} sleep".format(product["vin"]))
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -87,7 +86,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
-        if(self.pre2021):
+        if(self.api.pre2021):
             # Handle pre-2021 vehicles which cannot sleep by themselves
             if data["charge_state"].get("charging_state") == "Charging" or data["vehicle_state"].get("is_user_present") or data["vehicle_state"].get("sentry_mode"):
                 # Vehicle is active, reset timer
