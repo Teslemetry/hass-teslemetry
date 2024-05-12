@@ -53,7 +53,7 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
         raise HomeAssistantError("Unknown response")
     if (response.get("result")) is not True:
         if message := response.get("reason"):
-            if message == "already_set":
+            if message in ("already_set","not_charging","requested"):
                 return result
             # Result of false with reason
             LOGGER.info("Command failure: %s", message)
