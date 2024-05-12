@@ -1037,47 +1037,47 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
         chain(
             (  # Add vehicles
                 TeslemetryVehicleSensorEntity(vehicle, description)
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
             ),
             (  # Add vehicles time sensors
                 TeslemetryVehicleTimeSensorEntity(vehicle, description)
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_TIME_DESCRIPTIONS
             ),
             (  # Add vehicle streaming
                 TeslemetryStreamSensorEntity(vehicle, description)
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_STREAM_DESCRIPTIONS
             ),
             (  # Add energy site live
                 TeslemetryEnergyLiveSensorEntity(energysite, description)
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 for description in ENERGY_LIVE_DESCRIPTIONS
                 if description.key in energysite.live_coordinator.data
             ),
             (  # Add wall connectors
                 TeslemetryWallConnectorSensorEntity(energysite, din, description)
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 for din in energysite.live_coordinator.data.get("wall_connectors", {})
                 for description in WALL_CONNECTOR_DESCRIPTIONS
             ),
             (  # Add wall connector connected vehicle
                 TeslemetryWallConnectorVehicleSensorEntity(
-                    energysite, din, data.vehicles
+                    energysite, din, entry.runtime_data.vehicles
                 )
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 for din in energysite.live_coordinator.data.get("wall_connectors", {})
             ),
             (  # Add energy site info
                 TeslemetryEnergyInfoSensorEntity(energysite, description)
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
                 if description.key in energysite.info_coordinator.data
             ),

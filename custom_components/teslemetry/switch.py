@@ -113,32 +113,32 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry Switch platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
         chain(
             (
-                TeslemetryVehicleSwitchEntity(vehicle, description, data.scopes)
-                for vehicle in data.vehicles
+                TeslemetryVehicleSwitchEntity(vehicle, description, entry.runtime_data.scopes)
+                for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
             ),
             (
                 TeslemetryChargeSwitchEntity(
-                    vehicle, VEHICLE_CHARGE_DESCRIPTION, data.scopes
+                    vehicle, VEHICLE_CHARGE_DESCRIPTION, entry.runtime_data.scopes
                 )
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryStormModeSwitchEntity(energysite, data.scopes)
-                for energysite in data.energysites
+                TeslemetryStormModeSwitchEntity(energysite, entry.runtime_data.scopes)
+                for energysite in entry.runtime_data.energysites
                 if energysite.info_coordinator.data.get("storm_mode_capable")
             ),
             (
                 TeslemetryChargeFromGridSwitchEntity(
                     energysite,
-                    data.scopes,
+                    entry.runtime_data.scopes,
                 )
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 if energysite.info_coordinator.data.get("components_battery")
                 and energysite.info_coordinator.data.get("components_solar")
             ),

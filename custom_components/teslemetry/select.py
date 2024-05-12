@@ -105,25 +105,25 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry select platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
 
-    scoped = Scope.VEHICLE_CMDS in data.scopes
+
+    scoped = Scope.VEHICLE_CMDS in entry.runtime_data.scopes
 
     async_add_entities(
         chain(
             (
                 TeslemetrySeatHeaterSelectEntity(vehicle, description, scoped)
                 for description in SEAT_HEATER_DESCRIPTIONS
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryOperationSelectEntity(energysite, data.scopes)
-                for energysite in data.energysites
+                TeslemetryOperationSelectEntity(energysite, entry.runtime_data.scopes)
+                for energysite in entry.runtime_data.energysites
                 if energysite.info_coordinator.data.get("components_battery")
             ),
             (
-                TeslemetryExportRuleSelectEntity(energysite, data.scopes)
-                for energysite in data.energysites
+                TeslemetryExportRuleSelectEntity(energysite, entry.runtime_data.scopes)
+                for energysite in entry.runtime_data.energysites
                 if energysite.info_coordinator.data.get("components_battery")
                 and energysite.info_coordinator.data.get("components_solar")
             ),

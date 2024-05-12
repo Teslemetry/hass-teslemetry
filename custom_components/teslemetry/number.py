@@ -111,7 +111,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
         chain(
@@ -119,25 +119,25 @@ async def async_setup_entry(
                 TeslemetrySpeedNumberEntity(
                     hass,
                     vehicle,
-                    data.scopes,
+                    entry.runtime_data.scopes,
                 )
-                for vehicle in data.vehicles),
+                for vehicle in entry.runtime_data.vehicles),
             (  # Add vehicle entities
                 TeslemetryVehicleNumberEntity(
                     vehicle,
                     description,
-                    data.scopes,
+                    entry.runtime_data.scopes,
                 )
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
             ),
             (  # Add energy site entities
                 TeslemetryEnergyInfoNumberSensorEntity(
                     energysite,
                     description,
-                    data.scopes,
+                    entry.runtime_data.scopes,
                 )
-                for energysite in data.energysites
+                for energysite in entry.runtime_data.energysites
                 for description in ENERGY_INFO_DESCRIPTIONS
                 if description.requires is None
                 or energysite.info_coordinator.data.get(description.requires)

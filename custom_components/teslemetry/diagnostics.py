@@ -30,16 +30,15 @@ ENERGY_INFO_REDACT = ["installation_date"]
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
     vehicles = [
         {
             "data": async_redact_data(x.coordinator.data, VEHICLE_REDACT),
             "stream": {"config": x.stream.config, "connected": x.stream.connected},
         }
-        for x in data.vehicles
+        for x in entry.runtime_data.vehicles
     ]
     energysites = [
         {
@@ -50,4 +49,4 @@ async def async_get_config_entry_diagnostics(
     ]
 
     # Return only the relevant children
-    return {"vehicles": vehicles, "energysites": energysites, "scopes": data.scopes}
+    return {"vehicles": vehicles, "energysites": energysites, "scopes": entry.runtime_data.scopes}

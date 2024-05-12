@@ -18,7 +18,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry device tracker platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
         klass(vehicle)
@@ -26,7 +26,7 @@ async def async_setup_entry(
             TeslemetryDeviceTrackerLocationEntity,
             TeslemetryDeviceTrackerRouteEntity,
         )
-        for vehicle in data.vehicles
+        for vehicle in entry.runtime_data.vehicles
     )
 
 

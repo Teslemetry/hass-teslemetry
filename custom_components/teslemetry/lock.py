@@ -23,16 +23,16 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
-        klass(vehicle, Scope.VEHICLE_CMDS in data.scopes)
+        klass(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
         for klass in (
             TeslemetryVehicleLockEntity,
             TeslemetryCableLockEntity,
             TeslemetrySpeedLimitEntity,
         )
-        for vehicle in data.vehicles
+        for vehicle in entry.runtime_data.vehicles
     )
 
 

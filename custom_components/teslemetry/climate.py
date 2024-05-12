@@ -34,19 +34,19 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry Climate platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
         chain(
             (
                 TeslemetryClimateEntity(
-                    vehicle, TeslemetryClimateSide.DRIVER, data.scopes
+                    vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
                 )
-                for vehicle in data.vehicles
+                for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryCabinOverheatProtectionEntity(vehicle, data.scopes)
-                for vehicle in data.vehicles
+                TeslemetryCabinOverheatProtectionEntity(vehicle, entry.runtime_data.scopes)
+                for vehicle in entry.runtime_data.vehicles
             ),
         )
     )

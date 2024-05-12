@@ -31,11 +31,11 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry Media platform from a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+
 
     async_add_entities(
-        TeslemetryMediaEntity(vehicle, Scope.VEHICLE_CMDS in data.scopes)
-        for vehicle in data.vehicles
+        TeslemetryMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        for vehicle in entry.runtime_data.vehicles
     )
 
 

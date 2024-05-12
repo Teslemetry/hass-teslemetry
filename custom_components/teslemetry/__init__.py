@@ -157,7 +157,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Setup Platforms
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
+    entry.runtime_data = TeslemetryData(
         vehicles, energysites, scopes
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -167,11 +167,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Teslemetry Config."""
-    for vehicle in hass.data[DOMAIN][entry.entry_id].vehicles:
+    for vehicle in entry.runtime_data.vehicles:
         for remove_listener in vehicle.remove_listeners:
             remove_listener()
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        del entry.runtime_data
     return unload_ok
 
 
