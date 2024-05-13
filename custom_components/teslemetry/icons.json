@@ -217,6 +217,12 @@
       "grid_services_power": {
         "default": "mdi:transmission-tower"
       },
+      "island_status":{
+        "default":"mdi:power-plug-off",
+        "state": {
+          "on_grid":"mdi:power-plug"
+        }
+      },
       "load_power": {
         "default": "mdi:power-plug"
       },
@@ -225,6 +231,9 @@
       },
       "total_pack_energy": {
         "default": "mdi:battery-high"
+      },
+      "version": {
+        "default": "mdi:information-outline"
       },
       "vin": {
         "default": "mdi:car-electric"
