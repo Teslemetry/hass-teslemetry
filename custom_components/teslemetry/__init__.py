@@ -122,9 +122,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api = EnergySpecific(teslemetry.energy, site_id)
             live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
             info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, product)
+
             device = DeviceInfo(
                 identifiers={(DOMAIN, str(site_id))},
-                manufacturer="Tesla Energy",
+                manufacturer="Tesla",
                 configuration_url="https://teslemetry.com/console",
                 name=product.get("site_name", "Energy Site"),
             )
@@ -155,6 +156,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for energysite in energysites
         ),
     )
+
+    # Enrich devices
+    for energysite in energysites:
+        models = set()
+        for gateway in energysite.info_coordinator.data.get("components_gateways", []):
+            if gateway.get("part_name"):
+                models.add(gateway["part_name"])
+        for battery in energysite.info_coordinator.data.get("components_batteries", []):
+            if battery.get("part_name"):
+                models.add(battery["part_name"])
+        if models:
+            energysite.device['model'] = ", ".join(models)
 
     # Setup Platforms
     entry.runtime_data = TeslemetryData(
