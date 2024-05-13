@@ -86,6 +86,8 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
+        self.hass.bus.fire("teslemetry_vehicle_data", data)
+
         if(self.api.pre2021):
             # Handle pre-2021 vehicles which cannot sleep by themselves
             if data["charge_state"].get("charging_state") == "Charging" or data["vehicle_state"].get("is_user_present") or data["vehicle_state"].get("sentry_mode"):
@@ -136,6 +138,8 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
+        self.hass.bus.fire("teslemetry_live_status", data)
+
         # Convert Wall Connectors from array to dict
         data["wall_connectors"] = {
             wc["din"]: wc for wc in (data.get("wall_connectors") or [])
@@ -171,5 +175,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             raise UpdateFailed(e.message) from e
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
+
+        self.hass.bus.fire("teslemetry_site_info", data)
 
         return flatten(data)
