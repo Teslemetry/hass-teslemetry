@@ -277,12 +277,10 @@ class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity)
         """Initialize the operation mode select entity."""
         self.scoped = Scope.ENERGY_CMDS in scopes
         super().__init__(data, "components_customer_preferred_export_rule")
-        print(self._attr_options)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
         self._attr_current_option = self.get(self.key, EnergyExportMode.NEVER.value)
-        print(self._attr_current_option)
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
