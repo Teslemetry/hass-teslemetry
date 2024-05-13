@@ -920,6 +920,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.POWER,
     ),
     SensorEntityDescription(
+        # Tesla may have removed this from the API
         key="energy_left",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -929,6 +930,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
+        # Tesla may have removed this from the API
         key="total_pack_energy",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
