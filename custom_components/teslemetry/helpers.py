@@ -34,33 +34,30 @@ async def handle_command(command) -> dict[str, Any]:
     """Handle a command."""
     try:
         result = await command
-        LOGGER.debug("Command result: %s", result)
     except TeslaFleetError as e:
-        LOGGER.info("Command error: %s", e.message)
         raise HomeAssistantError(f"Teslemetry command failed, {e.message}") from e
+    LOGGER.debug("Command result: %s", result)
     return result
 
+
 async def handle_vehicle_command(command) -> dict[str, Any]:
-    """Handle a vehicle command response"""
+    """Handle a vehicle command."""
     result = await handle_command(command)
     if (response := result.get("response")) is None:
-        if message := result.get("error"):
+        if error := result.get("error"):
             # No response with error
-            LOGGER.info("Command error: %s", message)
-            raise HomeAssistantError(message)
+            raise HomeAssistantError(error)
         # No response without error (unexpected)
-        LOGGER.error("Unknown response: %s", response)
-        raise HomeAssistantError("Unknown response")
-    if (response.get("result")) is not True:
-        if message := response.get("reason"):
-            if message in ("already_set","not_charging","requested"):
+        raise HomeAssistantError(f"Unknown response: {response}")
+    if (result := response.get("result")) is not True:
+        if reason := response.get("reason"):
+            if reason in ("already_set", "not_charging", "requested"):
+                # Reason is acceptable
                 return result
             # Result of false with reason
-            LOGGER.info("Command failure: %s", message)
-            raise HomeAssistantError(message)
+            raise HomeAssistantError(reason)
         # Result of false without reason (unexpected)
-        LOGGER.error("Unknown response: %s", response)
-        raise HomeAssistantError("Unknown response")
+        raise HomeAssistantError("Command failed with no reason")
     # Response with result of true
     return result
 
