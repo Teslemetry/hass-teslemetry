@@ -138,4 +138,4 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         """Send previous track command."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.handle_command(self.api.media_previous_track())
+        await self.handle_command(self.api.media_prev_track())
