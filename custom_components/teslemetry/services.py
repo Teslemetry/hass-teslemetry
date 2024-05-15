@@ -66,7 +66,7 @@ def async_get_vehicle_for_entry(
 ) -> TeslemetryVehicleData:
     """Get the vehicle data for a config entry."""
     assert device.serial_number is not None
-    for vehicle in hass.data[DOMAIN][config.entry_id].vehicles:
+    for vehicle in config.runtime_data.vehicles:
         if vehicle.vin == device.serial_number:
             return vehicle
     raise ServiceValidationError(f"No vehicle data for device ID: {device.id}")
