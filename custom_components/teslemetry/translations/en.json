@@ -818,8 +818,8 @@
       "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Allow charging from grid"
       },
-      "storm_mode_enabled": {
-        "name": "Storm mode"
+      "user_settings_storm_mode_enabled": {
+        "name": "Storm watch"
       },
       "vehicle_state_sentry_mode": {
         "name": "Sentry mode"

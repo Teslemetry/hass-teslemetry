@@ -131,7 +131,7 @@ async def async_setup_entry(
             (
                 TeslemetryStormModeSwitchEntity(energysite, entry.runtime_data.scopes)
                 for energysite in entry.runtime_data.energysites
-                if energysite.info_coordinator.data.get("storm_mode_capable")
+                if energysite.info_coordinator.data.get("components_storm_mode_capable")
             ),
             (
                 TeslemetryChargeFromGridSwitchEntity(
@@ -210,7 +210,7 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
 class TeslemetryStormModeSwitchEntity(
     TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
 ):
-    """Entity class for Storm Mode switch."""
+    """Entity class for Storm Watch switch."""
 
     def __init__(
         self,
@@ -218,7 +218,7 @@ class TeslemetryStormModeSwitchEntity(
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(data, "storm_mode_enabled")
+        super().__init__(data, "user_settings_storm_mode_enabled")
         self.scoped = Scope.ENERGY_CMDS in scopes
 
     def _async_update_attrs(self) -> None:
