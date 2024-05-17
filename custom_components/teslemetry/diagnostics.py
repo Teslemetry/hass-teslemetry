@@ -45,7 +45,7 @@ async def async_get_config_entry_diagnostics(
             "live": async_redact_data(x.live_coordinator.data, ENERGY_LIVE_REDACT),
             "info": async_redact_data(x.info_coordinator.data, ENERGY_INFO_REDACT),
         }
-        for x in data.energysites
+        for x in entry.runtime_data.energysites
     ]
 
     # Return only the relevant children
