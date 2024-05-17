@@ -116,13 +116,20 @@ async def async_setup_entry(
     async_add_entities(
         chain(
             (  # Add speed limit entities
-                TeslemetrySpeedNumberEntity(
+                TeslemetryImperialSpeedNumberEntity(
                     hass,
                     vehicle,
                     entry.runtime_data.scopes,
                 )
-                for vehicle in entry.runtime_data.vehicles),
-            (  # Add vehicle entities
+                for vehicle in entry.runtime_data.vehicles
+            ),(  # Add speed limit entities
+                TeslemetryMetricSpeedNumberEntity(
+                    hass,
+                    vehicle,
+                    entry.runtime_data.scopes,
+                )
+                for vehicle in entry.runtime_data.vehicles
+            ),(  # Add vehicle entities
                 TeslemetryVehicleNumberEntity(
                     vehicle,
                     description,
@@ -130,8 +137,7 @@ async def async_setup_entry(
                 )
                 for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
-            ),
-            (  # Add energy site entities
+            ),(  # Add energy site entities
                 TeslemetryEnergyInfoNumberSensorEntity(
                     energysite,
                     description,
