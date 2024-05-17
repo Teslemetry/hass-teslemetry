@@ -73,11 +73,12 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
 
+        self.update_interval = VEHICLE_INTERVAL
+
         try:
             data = (await self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
-            self.update_interval = VEHICLE_INTERVAL
             return self.data
         except (InvalidToken, Forbidden, SubscriptionRequired) as e:
             raise ConfigEntryAuthFailed from e
@@ -101,7 +102,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     # Vehicle is awake for a reason, reset timer
                     LOGGER.debug("Ending sleep period")
                     self.last_active = datetime.now()
-                    self.update_interval = VEHICLE_WAIT
                 elif elapsed > timedelta(minutes=15):
                     # Stop polling for 15 minutes
                     LOGGER.debug("Starting sleep period")
