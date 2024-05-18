@@ -36,11 +36,11 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_auth(self, user_input: Mapping[str, Any]) -> dict[str, str]:
         """Reusable Auth Helper."""
-        user_input[CONF_ACCESS_TOKEN] = user_input[CONF_ACCESS_TOKEN].strip()
+        access_token = user_input.get(CONF_ACCESS_TOKEN,"").strip()
 
         teslemetry = Teslemetry(
             session=async_get_clientsession(self.hass),
-            access_token=user_input[CONF_ACCESS_TOKEN],
+            access_token=access_token,
         )
         try:
             metadata = await teslemetry.metadata()
@@ -81,7 +81,7 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Handle reauth on failure."""
         self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        return await self.async_step_reauth_confirm(entry_data)
+        return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: Mapping[str, Any] | None = None
@@ -90,7 +90,14 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
 
         errors: dict[str, str] | None = None
 
+        if user_input is None:
+            user_input = self._entry.data
+
+        LOGGER.info("confirm")
+        LOGGER.info(user_input)
         if user_input and not (errors := await self.async_auth(user_input)):
+            LOGGER.info("PASS")
+            LOGGER.info(errors)
             if self._entry:
                 self.hass.config_entries.async_update_entry(
                     self._entry,
@@ -102,6 +109,8 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="reauth_successful")
             return self.async_create_entry(title="Teslemetry", data=user_input)
 
+        LOGGER.info("FAIL")
+        LOGGER.info(errors)
         return self.async_show_form(
             step_id="reauth_confirm",
             description_placeholders=DESCRIPTION_PLACEHOLDERS,
