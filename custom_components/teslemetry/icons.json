@@ -211,6 +211,12 @@
       "energy_left": {
         "default": "mdi:battery"
       },
+      "event_alerts": {
+        "default": "mdi:chat-alert"
+      },
+      "event_errors": {
+        "default": "mdi:alert"
+      },
       "generator_power": {
         "default": "mdi:generator-stationary"
       },

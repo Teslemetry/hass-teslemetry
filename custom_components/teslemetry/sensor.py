@@ -1083,6 +1083,14 @@ async def async_setup_entry(
                 for description in ENERGY_INFO_DESCRIPTIONS
                 if description.key in energysite.info_coordinator.data
             ),
+            (  # Add alert event sensor
+                TeslemetryVehicleEventEntity(vehicle, "alerts")
+                for vehicle in entry.runtime_data.vehicles
+            ),
+            (  # Add error event sensor
+                TeslemetryVehicleEventEntity(vehicle, "errors")
+                for vehicle in entry.runtime_data.vehicles
+            )
         )
     )
 
@@ -1288,3 +1296,38 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
         """Update the attributes of the sensor."""
         self._attr_available = not self.exactly(None)
         self._attr_native_value = self._value
+
+class TeslemetryVehicleEventEntity(SensorEntity):
+    """Parent class for Teslemetry Vehicle Stream entities."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self, data: TeslemetryVehicleData, key: str
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+
+        self.key = key
+        self._attr_translation_key = f"event_{key}"
+        self.stream = data.stream
+        self.vin = data.vin
+
+        self._attr_unique_id = f"{data.vin}-event_{key}"
+        self._attr_device_info = data.device
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        if self.stream.server:
+            self.async_on_remove(
+                self.stream.async_add_listener(
+                    self._handle_stream_update,
+                    {"vin": self.vin, self.key: None},
+                )
+            )
+
+    def _handle_stream_update(self, data: dict[str, list]) -> None:
+        """Handle updated data from the stream."""
+        print(data)
+        self._attr_native_value = data[self.key][0]['name']
+        self.async_write_ha_state()

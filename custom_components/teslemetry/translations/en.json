@@ -7,7 +7,7 @@
       "cannot_connect": "Failed to connect",
       "invalid_access_token": "Invalid access token",
       "subscription_required": "Subscription required, please visit {short_url}",
-      "forbidden": "Access has been revoked, please visit {short_url}",
+      "forbidden": "Access has been revoked, please visit {short_url}/login",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -443,6 +443,12 @@
       },
       "energy_left": {
         "name": "Energy left"
+      },
+      "event_alerts": {
+        "name": "Latest alert"
+      },
+      "event_errors": {
+        "name": "Latest error"
       },
       "generator_power": {
         "name": "Generator power"
