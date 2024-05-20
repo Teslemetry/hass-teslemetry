@@ -1187,6 +1187,7 @@ class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
+        self._attr_available = self.stream.connected
         self._attr_native_value = self.entity_description.value_fn(value)
 
 
@@ -1328,6 +1329,6 @@ class TeslemetryVehicleEventEntity(SensorEntity):
 
     def _handle_stream_update(self, data: dict[str, list]) -> None:
         """Handle updated data from the stream."""
-        print(data)
+        self._attr_available = self.stream.connected
         self._attr_native_value = data[self.key][0]['name']
         self.async_write_ha_state()
