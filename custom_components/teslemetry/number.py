@@ -94,7 +94,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         requires="components_battery",
     ),
     TeslemetryNumberEntityDescription(
-        key="off_grid_vehicle_charging_reserve",
+        key="off_grid_vehicle_charging_reserve_percent",
         native_step=PRECISION_WHOLE,
         native_min_value=0,
         native_max_value=100,

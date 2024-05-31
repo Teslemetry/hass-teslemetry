@@ -4,7 +4,7 @@
       "reauth_successful": "Re-Authentisierung war erfolgreich"
     },
     "error": {
-      "subscription_required": "Anmeldung auf {short_url} erforderlich"
+      "subscription_required": "Anmeldung auf {console_url} erforderlich"
     },
     "step": {
       "reauth_confirm": {

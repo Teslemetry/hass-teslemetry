@@ -6,7 +6,7 @@
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_access_token": "[%key:common::config_flow::error::invalid_access_token%]",
-      "subscription_required": "Subscription required, please visit {short_url}",
+      "subscription_required": "Subscription required, please visit {console_url}",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "step": {

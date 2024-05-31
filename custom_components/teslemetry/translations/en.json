@@ -6,8 +6,9 @@
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_access_token": "Invalid access token",
-      "subscription_required": "Subscription required, please visit {short_url}",
-      "forbidden": "Access has been revoked, please visit {short_url}/login",
+      "subscription_required": "Subscription required, please visit {console_url}",
+      "login_required": "Tesla login required, please visit {login_url}",
+      "forbidden": "Access has been revoked, please visit {login_url}",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -23,6 +24,23 @@
           "access_token": "Access token"
         },
         "description": "Enter an access token from {url}."
+      }
+    }
+  },
+  "issues":{
+    "subscription_required": {
+      "title": "An active subscription is required",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "init An active subscription is required",
+            "description": "Please visit teslemetry.com/console and reactivate your subscription."
+          },
+          "confirm": {
+            "title": "An active subscription is required",
+            "description": "Please visit teslemetry.com/console and reactivate your subscription."
+          }
+        }
       }
     }
   },
@@ -234,7 +252,7 @@
       "charge_state_charge_limit_soc": {
         "name": "Charge limit"
       },
-      "off_grid_vehicle_charging_reserve": {
+      "off_grid_vehicle_charging_reserve_percent": {
         "name": "Off grid reserve"
       },
       "vehicle_state_speed_limit_mode_current_limit_mph": {
