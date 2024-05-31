@@ -12,6 +12,7 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
     Forbidden,
+    LoginRequired,
 )
 import voluptuous as vol
 
@@ -23,7 +24,8 @@ from .const import DOMAIN, LOGGER
 
 TESLEMETRY_SCHEMA = vol.Schema({vol.Required(CONF_ACCESS_TOKEN): str})
 DESCRIPTION_PLACEHOLDERS = {
-    "short_url": "teslemetry.com/console",
+    "console_url": "teslemetry.com/console",
+    "login_url": "teslemetry.com/login",
     "url": "[teslemetry.com/console](https://teslemetry.com/console)",
 }
 
@@ -46,12 +48,8 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             metadata = await teslemetry.metadata()
         except InvalidToken:
             return {CONF_ACCESS_TOKEN: "invalid_access_token"}
-        except SubscriptionRequired:
-            return {"base": "subscription_required"}
-        except Forbidden:
-            return {"base": "forbidden"}
-        except ClientConnectionError:
-            return {"base": "cannot_connect"}
+        except (SubscriptionRequired,LoginRequired,Forbidden,ClientConnectionError) as e:
+            return {"base": e.key}
         except TeslaFleetError as e:
             LOGGER.error(str(e))
             return {"base": "unknown"}
@@ -93,11 +91,8 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is None:
             user_input = self._entry.data
 
-        LOGGER.info("confirm")
         LOGGER.info(user_input)
         if user_input and not (errors := await self.async_auth(user_input)):
-            LOGGER.info("PASS")
-            LOGGER.info(errors)
             if self._entry:
                 self.hass.config_entries.async_update_entry(
                     self._entry,
@@ -109,8 +104,6 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="reauth_successful")
             return self.async_create_entry(title="Teslemetry", data=user_input)
 
-        LOGGER.info("FAIL")
-        LOGGER.info(errors)
         return self.async_show_form(
             step_id="reauth_confirm",
             description_placeholders=DESCRIPTION_PLACEHOLDERS,

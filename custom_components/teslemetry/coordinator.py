@@ -11,13 +11,14 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
     Forbidden,
+    LoginRequired
 )
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryAuthFailed
-
-from .const import LOGGER, TeslemetryState
+from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
+from .const import LOGGER, TeslemetryState, DOMAIN
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
 VEHICLE_WAIT = timedelta(minutes=15)
@@ -55,7 +56,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     last_active: datetime
 
     def __init__(
-        self, hass: HomeAssistant, api: VehicleSpecific, product: dict
+        self, hass: HomeAssistant, api: VehicleSpecific, entry_id: str, product: dict
     ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
@@ -65,6 +66,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=VEHICLE_INTERVAL,
         )
         self.api = api
+
         self.data = flatten(product)
         self.last_active = datetime.now()
         if (self.api.pre2021):
@@ -76,12 +78,25 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.update_interval = VEHICLE_INTERVAL
 
         try:
+            #raise SubscriptionRequired
             data = (await self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data
-        except (InvalidToken, Forbidden, SubscriptionRequired) as e:
+        except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
+        except (SubscriptionRequired,Forbidden,LoginRequired) as e:
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                e.key,
+                data=entry_id,
+                is_fixable=False,
+                is_persistent=False,
+                severity=IssueSeverity.ERROR,
+                translation_key=e.key
+            )
+            raise UpdateFailed(e.message) from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
@@ -114,7 +129,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site live status from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific, uid: str, ) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
         super().__init__(
             hass,
@@ -123,6 +138,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             update_interval=ENERGY_LIVE_INTERVAL,
         )
         self.api = api
+
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update energy site data using Teslemetry API."""
@@ -151,7 +167,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific, uid: str, product: dict) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
             hass,
@@ -160,6 +176,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             update_interval=ENERGY_INFO_INTERVAL,
         )
         self.api = api
+
         self.data = product
 
     async def _async_update_data(self) -> dict[str, Any]:

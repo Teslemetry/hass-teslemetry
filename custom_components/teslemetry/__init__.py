@@ -94,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
-            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, api, entry.entry_id, product)
             stream = TeslemetryStream(
                 session, access_token, vin=vin, parse_timestamp=True
             )
@@ -120,8 +120,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
-            live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
-            info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, product)
+            live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api, entry.entry_id)
+            info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, entry.entry_id, product)
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, str(site_id))},
