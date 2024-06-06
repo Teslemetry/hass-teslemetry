@@ -56,7 +56,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     last_active: datetime
 
     def __init__(
-        self, hass: HomeAssistant, api: VehicleSpecific, entry_id: str, product: dict
+        self, hass: HomeAssistant, api: VehicleSpecific, product: dict
     ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
@@ -90,7 +90,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.hass,
                 DOMAIN,
                 e.key,
-                data=entry_id,
+                data=self.config_entry.entry_id,
                 is_fixable=False,
                 is_persistent=False,
                 severity=IssueSeverity.ERROR,
