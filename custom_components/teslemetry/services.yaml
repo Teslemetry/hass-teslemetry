@@ -140,3 +140,45 @@ set_scheduled_departure:
       required: false
       selector:
         time:
+
+valet_mode:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    enable:
+      required: true
+      selector:
+        boolean:
+    pin:
+      required: true
+      selector:
+        number:
+          min: 1000
+          max: 9999
+          mode: box
+
+speed_limit:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+          entity:
+            domain: button
+    enable:
+      required: true
+      selector:
+        boolean:
+    pin:
+      required: true
+      selector:
+        number:
+          min: 1000
+          max: 9999
+          mode: box

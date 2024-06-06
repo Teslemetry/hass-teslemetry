@@ -322,6 +322,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
         valet_mode,
         schema=vol.Schema(
             {
+                vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(ENABLE): cv.boolean,
                 vol.Required(PIN): All(cv.positive_int, Range(min=1000, max=9999)),
             }
@@ -355,6 +356,7 @@ def async_register_services(hass: HomeAssistant) -> bool:
         speed_limit,
         schema=vol.Schema(
             {
+                vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(ENABLE): cv.boolean,
                 vol.Required(PIN): All(cv.positive_int, Range(min=1000, max=9999)),
             }
