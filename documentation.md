@@ -1,4 +1,4 @@
-|Type|Domain|Name|Method|Enabled|
+|Device|Domain|Name|Method|Enabled|
 |---|---|---|---|---|
 |Energy Site|Binary sensor|Backup capable|Polling|Yes|
 |Energy Site|Binary sensor|Grid services active|Polling|Yes|
@@ -20,7 +20,7 @@
 |Energy site|Select|Allow export|Polling|Yes|
 |Energy site|Select|Operation mode|Polling|Yes|
 |Energy site|Switch|Allow charging from grid|Polling|Yes|
-|Energy site|Switch|Storm mode|Polling|Yes|
+|Energy site|Switch|Storm watch|Polling|Yes|
 |Vehicle|Binary sensor|AutomaticBlindSpotCamera|Streaming|No|
 |Vehicle|Binary sensor|AutomaticEmergencyBrakingOff|Streaming|No|
 |Vehicle|Binary sensor|Battery heater|Both|No|
@@ -59,7 +59,7 @@
 |Vehicle|Button|Keyless driving|Polling|Yes|
 |Vehicle|Button|Play fart|Polling|Yes|
 |Vehicle|Button|Wake|Polling|Yes|
-|Vehicle|Climate|Cabin overheat protection|Polling^1|Yes|
+|Vehicle|Climate|Cabin overheat protection|Both^1|Yes|
 |Vehicle|Climate|Climate|Polling^1|Yes|
 |Vehicle|Cover|Charge port door|Both|Yes|
 |Vehicle|Cover|Frunk|Polling|Yes|
@@ -73,7 +73,6 @@
 |Vehicle|Media player|Media Player|Polling|Yes|
 |Vehicle|Number|Charge current|Both|Yes|
 |Vehicle|Number|Charge limit|Both|Yes|
-|Vehicle|Number|Speed limit|Both|Yes|
 |Vehicle|Select|Seat heater front left|Both|Yes|
 |Vehicle|Select|Seat heater front right|Both|Yes|
 |Vehicle|Select|Seat heater rear center|Both|No|

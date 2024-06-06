@@ -5,10 +5,10 @@
     },
     "error": {
       "cannot_connect": "Failed to connect",
-      "invalid_access_token": "Invalid access token",
-      "subscription_required": "Subscription required, please visit {console_url}",
-      "login_required": "Tesla login required, please visit {login_url}",
       "forbidden": "Access has been revoked, please visit {login_url}",
+      "invalid_access_token": "Invalid access token",
+      "login_required": "Tesla login required, please visit {login_url}",
+      "subscription_required": "Subscription required, please visit {console_url}",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -24,23 +24,6 @@
           "access_token": "Access token"
         },
         "description": "Enter an access token from {url}."
-      }
-    }
-  },
-  "issues":{
-    "subscription_required": {
-      "title": "An active subscription is required",
-      "fix_flow": {
-        "step": {
-          "init": {
-            "title": "init An active subscription is required",
-            "description": "Please visit teslemetry.com/console and reactivate your subscription."
-          },
-          "confirm": {
-            "title": "An active subscription is required",
-            "description": "Please visit teslemetry.com/console and reactivate your subscription."
-          }
-        }
       }
     }
   },
@@ -179,17 +162,17 @@
       "driver_temp": {
         "name": "Climate",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "bioweapon": "Bioweapon mode",
+              "off": "Normal"
+            }
+          },
           "preset_mode": {
             "state": {
               "camp": "Camp mode",
               "dog": "Dog mode",
               "keep": "Keep mode",
-              "off": "Normal"
-            }
-          },
-          "fan_mode": {
-            "state": {
-              "bioweapon": "Bioweapon mode",
               "off": "Normal"
             }
           }
@@ -255,10 +238,10 @@
       "off_grid_vehicle_charging_reserve_percent": {
         "name": "Off grid reserve"
       },
-      "vehicle_state_speed_limit_mode_current_limit_mph": {
+      "vehicle_state_speed_limit_mode_current_limit_kph": {
         "name": "Speed limit"
       },
-      "vehicle_state_speed_limit_mode_current_limit_kph": {
+      "vehicle_state_speed_limit_mode_current_limit_mph": {
         "name": "Speed limit"
       }
     },
@@ -480,8 +463,8 @@
       "island_status": {
         "name": "Island status",
         "state": {
-          "on_grid": "On grid",
-          "island_status_unknown": "Unknown"
+          "island_status_unknown": "Unknown",
+          "on_grid": "On grid"
         }
       },
       "load_power": {
@@ -861,6 +844,23 @@
       }
     }
   },
+  "issues": {
+    "subscription_required": {
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "description": "Please visit teslemetry.com/console and reactivate your subscription.",
+            "title": "An active subscription is required"
+          },
+          "init": {
+            "description": "Please visit teslemetry.com/console and reactivate your subscription.",
+            "title": "init An active subscription is required"
+          }
+        }
+      },
+      "title": "An active subscription is required"
+    }
+  },
   "services": {
     "navigation_gps_request": {
       "description": "Set vehicle navigation to the provided latitude/longitude coordinates.",
@@ -970,6 +970,24 @@
       },
       "name": "Set scheduled departure"
     },
+    "speed_limit": {
+      "description": "Activate the speed limit of the vehicle.",
+      "fields": {
+        "device_id": {
+          "description": "Vehicle to limit.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "description": "Enable or disable speed limit.",
+          "name": "Enable"
+        },
+        "pin": {
+          "description": "4 digit PIN.",
+          "name": "PIN"
+        }
+      },
+      "name": "Set speed limit"
+    },
     "stream_fields": {
       "description": "Set the fields streamed from a vehicle.",
       "fields": {
@@ -983,6 +1001,24 @@
         }
       },
       "name": "Stream fields"
+    },
+    "valet_mode": {
+      "description": "Activate the valet mode of the vehicle.",
+      "fields": {
+        "device_id": {
+          "description": "Vehicle to limit.",
+          "name": "Vehicle"
+        },
+        "enable": {
+          "description": "Enable or disable valet mode.",
+          "name": "Enable"
+        },
+        "pin": {
+          "description": "4 digit PIN.",
+          "name": "PIN"
+        }
+      },
+      "name": "Set valet mode"
     }
   }
 }

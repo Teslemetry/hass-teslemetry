@@ -149,7 +149,7 @@ extras = [
     ("Vehicle","sensor","drive_state_active_route_minutes_to_arrival_timestamp","Polling","Yes"),
     ("Vehicle","switch","charge_state_user_charge_enable_request","Polling","Yes"),
     ("Vehicle","select","climate_state_steering_wheel_heat_level","Polling","Yes"),
-    ("Energy site","switch","storm_mode_enabled","Polling","Yes"),
+    ("Energy site","switch","user_settings_storm_mode_enabled","Polling","Yes"),
     ("Energy site","switch","components_disallow_charge_from_grid_with_solar_installed","Polling","Yes"),
     ("Wall connector","sensor","vin","Polling","Yes"),
     ("Vehicle","climate","driver_temp","Polling^1","Yes"),
@@ -193,7 +193,7 @@ for domain in en["entity"]:
                 "drive_state_active_route_minutes_to_arrival_timestamp",
                 "charge_state_user_charge_enable_request",
                 "climate_state_steering_wheel_heat_level",
-                "storm_mode_enabled",
+                "user_settings_storm_mode_enabled",
                 "components_disallow_charge_from_grid_with_solar_installed",
                 "vin",
             ):

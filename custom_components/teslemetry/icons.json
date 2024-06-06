@@ -64,17 +64,17 @@
     "climate": {
       "driver_temp": {
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "bioweapon": "mdi:biohazard",
+              "off": "mdi:power"
+            }
+          },
           "preset_mode": {
             "state": {
               "camp": "mdi:tent",
               "dog": "mdi:dog",
               "keep": "mdi:fan",
-              "off": "mdi:power"
-            }
-          },
-          "fan_mode": {
-            "state": {
-              "bioweapon": "mdi:biohazard",
               "off": "mdi:power"
             }
           }
@@ -109,10 +109,10 @@
       }
     },
     "number": {
-      "vehicle_state_speed_limit_mode_current_limit_mph": {
+      "vehicle_state_speed_limit_mode_current_limit_kph": {
         "default": "mdi:car-speed-limiter"
       },
-      "vehicle_state_speed_limit_mode_current_limit_kph": {
+      "vehicle_state_speed_limit_mode_current_limit_mph": {
         "default": "mdi:car-speed-limiter"
       }
     },
@@ -226,10 +226,10 @@
       "grid_services_power": {
         "default": "mdi:transmission-tower"
       },
-      "island_status":{
-        "default":"mdi:power-plug-off",
+      "island_status": {
+        "default": "mdi:power-plug-off",
         "state": {
-          "on_grid":"mdi:power-plug"
+          "on_grid": "mdi:power-plug"
         }
       },
       "load_power": {
@@ -296,6 +296,8 @@
   "services": {
     "navigation_gps_request": "mdi:crosshairs-gps",
     "set_scheduled_charging": "mdi:timeline-clock-outline",
-    "set_scheduled_departure": "mdi:home-clock"
+    "set_scheduled_departure": "mdi:home-clock",
+    "speed_limit": "mdi:car-speed-limiter",
+    "valet_mode": "mdi:speedometer-slow"
   }
 }

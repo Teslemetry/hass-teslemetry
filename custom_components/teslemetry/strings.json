@@ -136,17 +136,17 @@
       "driver_temp": {
         "name": "[%key:component::climate::title%]",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "bioweapon": "Bioweapon mode",
+              "off": "Normal"
+            }
+          },
           "preset_mode": {
             "state": {
               "camp": "Camp mode",
               "dog": "Dog mode",
               "keep": "Keep mode",
-              "off": "Normal"
-            }
-          },
-          "fan_mode": {
-            "state": {
-              "bioweapon": "Bioweapon mode",
               "off": "Normal"
             }
           }
@@ -206,10 +206,10 @@
       "charge_state_charge_limit_soc": {
         "name": "Charge limit"
       },
-      "vehicle_state_speed_limit_mode_current_limit_mph": {
+      "vehicle_state_speed_limit_mode_current_limit_kph": {
         "name": "Speed limit"
       },
-      "vehicle_state_speed_limit_mode_current_limit_kph": {
+      "vehicle_state_speed_limit_mode_current_limit_mph": {
         "name": "Speed limit"
       }
     },
@@ -830,7 +830,7 @@
       "components_disallow_charge_from_grid_with_solar_installed": {
         "name": "Prevent charging from grid"
       },
-      "storm_mode_enabled": {
+      "user_settings_storm_mode_enabled": {
         "name": "Storm mode"
       },
       "vehicle_state_sentry_mode": {

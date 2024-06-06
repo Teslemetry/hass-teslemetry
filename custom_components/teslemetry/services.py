@@ -4,6 +4,7 @@ import logging
 import voluptuous as vol
 import time
 from tesla_fleet_api.exceptions import TeslaFleetError
+from voluptuous import All, Range
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -37,6 +38,7 @@ TIMESTAMP = "timestamp"
 FIELDS = "fields"
 ENABLE = "enable"
 TIME = "time"
+PIN = "pin"
 
 def async_get_device_for_service_call(
     hass: HomeAssistant, call: ServiceCall
@@ -294,6 +296,67 @@ def async_register_services(hass: HomeAssistant) -> bool:
             {
                 vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(FIELDS): dict,
+            }
+        ),
+    )
+
+    async def valet_mode(call: ServiceCall) -> None:
+        """Configure fleet telemetry."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        try:
+            await wake_up_vehicle(vehicle)
+            await handle_vehicle_command(vehicle.api.set_valet_mode(
+                call.data.get("enable"),
+                call.data.get("pin","")
+            ))
+
+        except TeslaFleetError as e:
+            raise HomeAssistantError from e
+
+    hass.services.async_register(
+        DOMAIN,
+        "valet_mode",
+        valet_mode,
+        schema=vol.Schema(
+            {
+                vol.Required(ENABLE): cv.boolean,
+                vol.Required(PIN): All(cv.positive_int, Range(min=1000, max=9999)),
+            }
+        ),
+    )
+
+    async def speed_limit(call: ServiceCall) -> None:
+        """Configure fleet telemetry."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        vehicle = async_get_vehicle_for_entry(hass, device, config)
+
+        try:
+            await wake_up_vehicle(vehicle)
+            enable = call.data.get("enable")
+            if (enable is True):
+                await handle_vehicle_command(vehicle.api.speed_limit_activate(
+                    call.data.get("pin")
+                ))
+            elif (enable is False):
+                await handle_vehicle_command(vehicle.api.speed_limit_deactivate(
+                    call.data.get("pin")
+                ))
+
+        except TeslaFleetError as e:
+            raise HomeAssistantError from e
+
+    hass.services.async_register(
+        DOMAIN,
+        "speed_limit",
+        speed_limit,
+        schema=vol.Schema(
+            {
+                vol.Required(ENABLE): cv.boolean,
+                vol.Required(PIN): All(cv.positive_int, Range(min=1000, max=9999)),
             }
         ),
     )
