@@ -1002,6 +1002,20 @@
       },
       "name": "Stream fields"
     },
+    "time_of_use": {
+      "description": "Update the time of use settings for the energy site.",
+      "fields": {
+        "device_id": {
+          "description": "Energy Site to configure.",
+          "name": "Energy Site"
+        },
+        "tou_settings": {
+          "description": "See https://developer.tesla.com/docs/fleet-api#time_of_use_settings for details.",
+          "name": "Settings"
+        }
+      },
+      "name": "Time of use settings"
+    },
     "valet_mode": {
       "description": "Activate the valet mode of the vehicle.",
       "fields": {

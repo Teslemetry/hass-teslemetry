@@ -298,6 +298,7 @@
     "set_scheduled_charging": "mdi:timeline-clock-outline",
     "set_scheduled_departure": "mdi:home-clock",
     "speed_limit": "mdi:car-speed-limiter",
-    "valet_mode": "mdi:speedometer-slow"
+    "valet_mode": "mdi:speedometer-slow",
+    "time_of_use": "mdi:clock-time-eight-outline"
   }
 }

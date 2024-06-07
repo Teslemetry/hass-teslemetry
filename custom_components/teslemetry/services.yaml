@@ -79,6 +79,18 @@ stream_fields:
       selector:
         object:
 
+time_of_use:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: teslemetry
+    tou_settings:
+      required: true
+      selector:
+        object:
+
 set_scheduled_charging:
   fields:
     device_id:

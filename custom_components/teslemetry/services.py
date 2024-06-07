@@ -24,7 +24,7 @@ from homeassistant.helpers import (
 
 
 from .const import DOMAIN
-from .models import TeslemetryVehicleData
+from .models import TeslemetryVehicleData, TeslemetryEnergyData
 from .helpers import wake_up_vehicle, handle_vehicle_command
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,6 +39,7 @@ FIELDS = "fields"
 ENABLE = "enable"
 TIME = "time"
 PIN = "pin"
+TOU_SETTINGS = "tou_settings"
 
 def async_get_device_for_service_call(
     hass: HomeAssistant, call: ServiceCall
@@ -72,6 +73,16 @@ def async_get_vehicle_for_entry(
         if vehicle.vin == device.serial_number:
             return vehicle
     raise ServiceValidationError(f"No vehicle data for device ID: {device.id}")
+
+def async_get_energy_site_for_entry(
+    hass: HomeAssistant, device: dr.DeviceEntry, config: ConfigEntry
+) -> TeslemetryEnergyData:
+    """Get the vehicle data for a config entry."""
+    assert device.serial_number is not None
+    for site in config.runtime_data.energy_sites:
+        if site.id == device.serial_number:
+            return site
+    raise ServiceValidationError(f"No energy site for device ID: {device.id}")
 
 
 def async_register_services(hass: HomeAssistant) -> bool:
@@ -359,6 +370,33 @@ def async_register_services(hass: HomeAssistant) -> bool:
                 vol.Required(CONF_DEVICE_ID): cv.string,
                 vol.Required(ENABLE): cv.boolean,
                 vol.Required(PIN): All(cv.positive_int, Range(min=1000, max=9999)),
+            }
+        ),
+    )
+
+    async def time_of_use(call: ServiceCall) -> None:
+        """Configure time of use settings."""
+        device = async_get_device_for_service_call(hass, call)
+        config = async_get_config_for_device(hass, device)
+        site = async_get_energy_site_for_entry(hass, device, config)
+
+        try:
+            resp = await site.api.set_time_of_use(
+                call.data.get(TOU_SETTINGS)
+            )
+        except Exception as e:
+            raise HomeAssistantError from e
+        if "error" in resp:
+            raise ServiceValidationError(resp["error"])
+
+    hass.services.async_register(
+        DOMAIN,
+        "time_of_use",
+        time_of_use,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Required(TOU_SETTINGS): dict,
             }
         ),
     )
