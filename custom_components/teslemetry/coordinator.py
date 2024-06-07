@@ -129,7 +129,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site live status from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific, uid: str, ) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
         super().__init__(
             hass,
@@ -146,8 +146,6 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         try:
             data = (await self.api.live_status())["response"]
         except InvalidToken as e:
-            raise ConfigEntryAuthFailed from e
-        except SubscriptionRequired as e:
             raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
@@ -167,7 +165,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific, uid: str, product: dict) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
             hass,
@@ -185,8 +183,6 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         try:
             data = (await self.api.site_info())["response"]
         except InvalidToken as e:
-            raise ConfigEntryAuthFailed from e
-        except SubscriptionRequired as e:
             raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
