@@ -18,9 +18,10 @@ from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
+
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, LOGGER, MODELS
@@ -85,6 +86,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         LOGGER.debug("Setting unique_id to %s", uid)
         hass.config_entries.async_update_entry(entry, unique_id=uid)
 
+    device_registry = async_get_device_registry(hass)
+
     # Create array of classes
     vehicles: list[TeslemetryVehicleData] = []
     energysites: list[TeslemetryEnergyData] = []
@@ -107,6 +110,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 serial_number=vin,
             )
 
+            device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
+
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
@@ -128,7 +133,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 manufacturer="Tesla",
                 configuration_url="https://teslemetry.com/console",
                 name=product.get("site_name", "Energy Site"),
+                serial_number=str(site_id),
             )
+
+            device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
 
             energysites.append(
                 TeslemetryEnergyData(
@@ -159,7 +167,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Enrich devices
     for energysite in energysites:
-        models = set()
+        models = set(
+            "Brett",
+        )
         for gateway in energysite.info_coordinator.data.get("components_gateways", []):
             if gateway.get("part_name"):
                 models.add(gateway["part_name"])
