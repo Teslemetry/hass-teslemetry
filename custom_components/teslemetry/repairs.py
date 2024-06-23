@@ -6,11 +6,7 @@ from homeassistant import data_entry_flow
 from homeassistant.components.repairs import ConfirmRepairFlow, RepairsFlow
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.core import HomeAssistant
-from tesla_fleet_api.exceptions import (
-    SubscriptionRequired,
-    Forbidden,
-    LoginRequired
-)
+from tesla_fleet_api.exceptions import TeslaFleetError
 
 class SubscriptionRepairFlow(RepairsFlow):
     """Handler for an issue fixing flow."""
@@ -20,16 +16,26 @@ class SubscriptionRepairFlow(RepairsFlow):
     ) -> data_entry_flow.FlowResult:
         """Handle the first step of a fix flow."""
 
-        return await (self.async_step_confirm())
+        return self.async_show_form(step_id="confirm")
 
     async def async_step_confirm(
         self, user_input: dict[str, str] | None = None
     ) -> data_entry_flow.FlowResult:
         """Handle the confirm step of a fix flow."""
-        if user_input is not None:
-            return self.async_create_entry(title="Fixed", data={})
 
-        return self.async_show_form(step_id="confirm", data_schema=vol.Schema({}))
+        print(self.key)
+
+        for vehicle in self.entry.runtime_data.vehicles:
+            if vehicle.vin == self.key:
+                try:
+                    await self.entry.runtime_data.teslemetry.test()
+                except TeslaFleetError:
+                    # Not fixed
+                    return self.async_show_form(step_id="confirm")
+
+                # Fixed
+                await self.hass.config_entries.async_reload(self.entry.entry_id)
+                return self.async_create_entry(data={})
 
 
 async def async_create_fix_flow(
@@ -37,9 +43,9 @@ async def async_create_fix_flow(
     issue_id: str,
 ) -> RepairsFlow:
     """Create flow."""
-    if(issue_id == SubscriptionRequired.key):
+    if(issue_id == "subscription_required"):
         return SubscriptionRepairFlow()
-    elif(issue_id == Forbidden.key):
+    elif(issue_id == "unauthorized missing scopes"):
         return SubscriptionRepairFlow()
-    elif(issue_id == LoginRequired.key):
+    elif(issue_id == "login_required"):
         return SubscriptionRepairFlow()

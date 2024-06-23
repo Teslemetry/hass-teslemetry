@@ -89,12 +89,13 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async_create_issue(
                 self.hass,
                 DOMAIN,
-                e.key,
+                self.api.vin,
                 data=self.config_entry.entry_id,
                 is_fixable=False,
                 is_persistent=False,
                 severity=IssueSeverity.ERROR,
-                translation_key=e.key
+                translation_key=e.key.lower()
+                #translation_placeholders={"error": e.message}
             )
             raise UpdateFailed(e.message) from e
         except TeslaFleetError as e:

@@ -851,15 +851,13 @@
           "confirm": {
             "description": "Please visit teslemetry.com/console and reactivate your subscription.",
             "title": "An active subscription is required"
-          },
-          "init": {
-            "description": "Please visit teslemetry.com/console and reactivate your subscription.",
-            "title": "init An active subscription is required"
           }
         }
       },
       "title": "An active subscription is required"
-    }
+    },
+    "unauthorized missing scopes":{},
+    "login_required": {}
   },
   "services": {
     "navigation_gps_request": {

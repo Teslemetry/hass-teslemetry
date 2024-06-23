@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from homeassistant.util import dt as dt_util
-
+from tesla_fleet_api import Teslemetry
 import asyncio
 from dataclasses import dataclass
 
@@ -27,6 +27,7 @@ class TeslemetryData:
     vehicles: list[TeslemetryVehicleData]
     energysites: list[TeslemetryEnergyData]
     scopes: list[Scope]
+    teslemetry: Teslemetry
 
 
 @dataclass

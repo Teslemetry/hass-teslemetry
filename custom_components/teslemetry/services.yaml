@@ -4,9 +4,8 @@ navigation_gps_request:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     gps:
       required: true
       example: '{"latitude": -27.9699373, "longitude": 153.4081865}'
@@ -25,9 +24,8 @@ navigation_sc_request:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     id:
       required: true
       selector:
@@ -44,9 +42,8 @@ navigation_request:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     type:
       required: true
       selector:
@@ -70,9 +67,8 @@ stream_fields:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            - integration: teslemetry
     fields:
       required: true
       example: '{"BatteryLevel":{"interval_seconds":60}}'
@@ -85,7 +81,8 @@ time_of_use:
       required: true
       selector:
         device:
-          integration: teslemetry
+          filter:
+            - integration: teslemetry
     tou_settings:
       required: true
       selector:
@@ -97,9 +94,8 @@ set_scheduled_charging:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     enable:
       required: true
       default: true
@@ -116,9 +112,8 @@ set_scheduled_departure:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     enable:
       required: false
       default: true
@@ -159,9 +154,8 @@ valet_mode:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     enable:
       required: true
       selector:
@@ -180,9 +174,8 @@ speed_limit:
       required: true
       selector:
         device:
-          integration: teslemetry
-          entity:
-            domain: button
+          filter:
+            integration: teslemetry
     enable:
       required: true
       selector:

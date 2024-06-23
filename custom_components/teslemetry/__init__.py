@@ -74,7 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
         products = calls[1]["response"]
-    except (InvalidToken, Forbidden, SubscriptionRequired) as e:
+    except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
@@ -167,9 +167,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Enrich devices
     for energysite in energysites:
-        models = set(
-            "Brett",
-        )
         for gateway in energysite.info_coordinator.data.get("components_gateways", []):
             if gateway.get("part_name"):
                 models.add(gateway["part_name"])
@@ -181,7 +178,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup Platforms
     entry.runtime_data = TeslemetryData(
-        vehicles, energysites, scopes
+        vehicles, energysites, scopes, teslemetry
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
