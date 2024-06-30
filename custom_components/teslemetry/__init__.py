@@ -82,11 +82,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         LOGGER.error("Invalid response from Teslemetry", e)
         raise ConfigEntryNotReady from e
 
-
-    print(teslemetry.server)
-    teslemetry.server = "https://temp.teslemetry.com"
-    print(teslemetry.server)
-
     if entry.unique_id is None:
         LOGGER.debug("Setting unique_id to %s", uid)
         hass.config_entries.async_update_entry(entry, unique_id=uid)
