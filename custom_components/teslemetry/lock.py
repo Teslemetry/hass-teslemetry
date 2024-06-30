@@ -55,7 +55,7 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update entity value from stream."""
-        self._attr_is_locked = value
+        self._attr_is_locked = value == "true"
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""

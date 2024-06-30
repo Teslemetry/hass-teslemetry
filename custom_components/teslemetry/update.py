@@ -94,7 +94,8 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_installed_version = value
+        if (value != " "):
+            self._attr_installed_version = value
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any

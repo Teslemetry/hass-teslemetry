@@ -183,7 +183,7 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_native_value = value
+        self._attr_native_value = float(value)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""

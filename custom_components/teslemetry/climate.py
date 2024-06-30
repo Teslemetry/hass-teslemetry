@@ -114,7 +114,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""
-        self._attr_current_temperature = value
+        self._attr_current_temperature = float(value)
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""

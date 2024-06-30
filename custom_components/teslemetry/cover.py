@@ -111,7 +111,7 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_closed = not value
+        self._attr_is_closed = not auto_type(value)
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""

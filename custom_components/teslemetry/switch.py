@@ -175,7 +175,7 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_on = value
+        self._attr_is_on = value == "true"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""

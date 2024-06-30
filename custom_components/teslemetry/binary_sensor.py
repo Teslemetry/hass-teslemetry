@@ -334,7 +334,7 @@ class TeslemetryStreamBinarySensorEntity(
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_native_value = self.entity_description.value_fn(value)
+        self._attr_native_value = self.entity_description.value_fn(auto_type(value))
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
