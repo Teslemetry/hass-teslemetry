@@ -167,7 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Enrich devices
     for energysite in energysites:
-        models = []
+        models = set()
         for gateway in energysite.info_coordinator.data.get("components_gateways", []):
             if gateway.get("part_name"):
                 models.add(gateway["part_name"])
