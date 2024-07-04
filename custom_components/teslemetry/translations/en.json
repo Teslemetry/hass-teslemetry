@@ -191,6 +191,9 @@
       },
       "windows": {
         "name": "Vent windows"
+      },
+      "vehicle_state_sun_roof_state": {
+        "name": "Sun roof"
       }
     },
     "device_tracker": {
