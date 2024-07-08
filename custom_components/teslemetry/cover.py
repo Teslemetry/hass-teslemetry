@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import WindowCommand, Trunk, Scope, TelemetryField
+from tesla_fleet_api.const import WindowCommand, Trunk, Scope, TelemetryField, SunRoofCommand
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -206,7 +206,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
     """Cover entity for the sunroof."""
 
     _attr_device_class = CoverDeviceClass.WINDOW
-    _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
+    _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -231,7 +231,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
         """Open sunroof."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.handle_command(self.api.sun_roof_control("vent"))
+        await self.handle_command(self.api.sun_roof_control(SunRoofCommand.VENT))
         self._attr_is_closed = False
         self.async_write_ha_state()
 
@@ -239,6 +239,14 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
         """Close sunroof."""
         self.raise_for_scope()
         await self.wake_up_if_asleep()
-        await self.handle_command(self.api.sun_roof_control("close"))
+        await self.handle_command(self.api.sun_roof_control(SunRoofCommand.CLOSE))
         self._attr_is_closed = True
+        self.async_write_ha_state()
+
+    async def async_stop_cover(self, **kwargs: Any) -> None:
+        """Close sunroof."""
+        self.raise_for_scope()
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.sun_roof_control(SunRoofCommand.STOP))
+        self._attr_is_closed = False
         self.async_write_ha_state()
