@@ -12,6 +12,7 @@ from typing import cast
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
+    RestoreSensor,
     SensorEntityDescription,
     SensorStateClass,
 )
@@ -43,6 +44,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
     TeslemetryWallConnectorEntity,
 )
+from .const import TeslemetryState
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import auto_type, ignore_drop
 
@@ -1095,7 +1097,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
+class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -1110,6 +1112,14 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         super().__init__(
             data, description.key, description.timestamp_key, description.streaming_key
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if self.coordinator.data.get('state') == TeslemetryState.OFFLINE:
+
+            if (sensor_data := await self.async_get_last_sensor_data()) is not None:
+                self._attr_native_value = sensor_data.native_value
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
@@ -1171,7 +1181,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         self._attr_native_value = self._get_timestamp(int(value))
 
 
-class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
+class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
     """Base class for Teslemetry vehicle streaming sensors."""
 
     entity_description: TeslemetryStreamSensorEntityDescription
@@ -1184,6 +1194,13 @@ class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
         """Initialize the sensor."""
         self.entity_description = description
         super().__init__(data, description.key)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+
+        if (sensor_data := await self.async_get_last_sensor_data()) is not None:
+            self._attr_native_value = sensor_data.native_value
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
@@ -1298,7 +1315,7 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
         self._attr_available = not self.exactly(None)
         self._attr_native_value = self._value
 
-class TeslemetryVehicleEventEntity(SensorEntity):
+class TeslemetryVehicleEventEntity(RestoreSensor):
     """Parent class for Teslemetry Vehicle Stream entities."""
 
     _attr_has_entity_name = True
@@ -1315,6 +1332,13 @@ class TeslemetryVehicleEventEntity(SensorEntity):
 
         self._attr_unique_id = f"{data.vin}-event_{key}"
         self._attr_device_info = data.device
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+
+        if (sensor_data := await self.async_get_last_sensor_data()) is not None:
+            self._attr_native_value = sensor_data.native_value
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
