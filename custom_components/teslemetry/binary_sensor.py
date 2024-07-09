@@ -18,6 +18,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryState, TeslemetryTimestamp
 from .entity import (
@@ -281,7 +282,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
+class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity, RestoreEntity):
     """Base class for Teslemetry vehicle binary sensors."""
 
     entity_description: TeslemetryBinarySensorEntityDescription
@@ -296,6 +297,12 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         super().__init__(
             data, description.key, description.timestamp_key, description.streaming_key
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            self._state = state.state == "on"
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
@@ -317,7 +324,7 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
 
 
 class TeslemetryStreamBinarySensorEntity(
-    TeslemetryVehicleStreamEntity, BinarySensorEntity
+    TeslemetryVehicleStreamEntity, BinarySensorEntity, RestoreEntity
 ):
     """Base class for Teslemetry vehicle streaming sensors."""
 
@@ -332,9 +339,15 @@ class TeslemetryStreamBinarySensorEntity(
         self.entity_description = description
         super().__init__(data, description.key)
 
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            self._attr_is_on = state.state == "on"
+
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_native_value = self.entity_description.value_fn(auto_type(value))
+        self._attr_is_on = self.entity_description.value_fn(auto_type(value))
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
