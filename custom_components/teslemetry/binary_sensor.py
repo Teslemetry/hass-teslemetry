@@ -14,7 +14,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -302,7 +302,7 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         """Handle entity which will be added."""
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._attr_is_on = state.state == "on"
+            self._attr_is_on = state.state == STATE_ON
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
@@ -343,7 +343,7 @@ class TeslemetryStreamBinarySensorEntity(
         """Handle entity which will be added."""
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._attr_is_on = state.state == "on"
+            self._attr_is_on = state.state == STATE_ON
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
