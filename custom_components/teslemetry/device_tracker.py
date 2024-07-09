@@ -8,6 +8,7 @@ from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
 from .entity import TeslemetryVehicleEntity
@@ -30,7 +31,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
+class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity, RestoreEntity):
     """Base class for Teslemetry Tracker Entities."""
 
     _attr_entity_category = None
@@ -42,6 +43,13 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
     ) -> None:
         """Initialize the device tracker."""
         super().__init__(vehicle, self.key, self.timestamp_key, self.streaming_key)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None and self._attr_latitude is None and self._attr_longitude is None:
+            self._attr_latitude = state.attributes.get('latitude')
+            self._attr_longitude = state.attributes.get('longitude')
 
     @property
     def latitude(self) -> float | None:
