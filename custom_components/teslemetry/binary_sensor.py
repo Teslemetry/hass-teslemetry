@@ -302,7 +302,7 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         """Handle entity which will be added."""
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._state = state.state == "on"
+            self._attr_is_on = state.state == "on"
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
