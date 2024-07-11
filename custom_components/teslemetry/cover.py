@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, TeslemetryCoverStates, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
-
+from .helpers import auto_type
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
