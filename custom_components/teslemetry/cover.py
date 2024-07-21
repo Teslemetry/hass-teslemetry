@@ -14,11 +14,14 @@ from homeassistant.components.cover import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryCoverStates, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 from .helpers import auto_type
+
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -39,7 +42,21 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
+class CoverRestoreEntity(CoverEntity, RestoreEntity):
+    """Base class for cover entities that need to restore state."""
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state == "open"):
+                self._attr_is_closed = False
+            elif (state.state == "closed"):
+                self._attr_is_closed = True
+            self._attr_current_cover_position = state.attributes.get("current_cover_position")
+
+
+class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
     """Cover entity for windows."""
 
     _attr_device_class = CoverDeviceClass.WINDOW
@@ -85,7 +102,7 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
+class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
     """Cover entity for the charge port."""
 
     _attr_device_class = CoverDeviceClass.DOOR
@@ -131,7 +148,7 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
+class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
     """Cover entity for the front trunk."""
 
     _attr_device_class = CoverDeviceClass.DOOR
@@ -160,7 +177,7 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
     # In the future this could be extended to add aftermarket close support through a option flow
 
 
-class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
+class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
     """Cover entity for the rear trunk."""
 
     _attr_device_class = CoverDeviceClass.DOOR
@@ -202,7 +219,7 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverEntity):
             self._attr_is_closed = True
             self.async_write_ha_state()
 
-class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
+class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
     """Cover entity for the sunroof."""
 
     _attr_device_class = CoverDeviceClass.WINDOW

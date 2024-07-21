@@ -16,6 +16,7 @@ from homeassistant.components.select import SelectEntity, SelectEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryHeaterOptions, TeslemetryTimestamp
 from .entity import (
@@ -130,8 +131,18 @@ async def async_setup_entry(
         )
     )
 
+class SelectRestoreEntity(SelectEntity, RestoreEntity):
+    """Base class for Teslemetry Select Entities."""
 
-class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state in self._attr_options):
+                self._attr_current_option = state.state
+
+
+class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectRestoreEntity):
     """Select entity for vehicle seat heater."""
 
     entity_description: SeatHeaterDescription
@@ -184,7 +195,7 @@ class TeslemetrySeatHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryWheelHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
+class TeslemetryWheelHeaterSelectEntity(TeslemetryVehicleEntity, SelectRestoreEntity):
     """Select entity for vehicle steering wheel heater."""
 
     _attr_options = [
@@ -230,7 +241,7 @@ class TeslemetryWheelHeaterSelectEntity(TeslemetryVehicleEntity, SelectEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
+class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectRestoreEntity):
     """Select entity for operation mode select entities."""
 
     _attr_options: list[str] = [
@@ -260,7 +271,7 @@ class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
+class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectRestoreEntity):
     """Select entity for export rules select entities."""
 
     _attr_options: list[str] = [

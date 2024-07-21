@@ -25,6 +25,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.util.unit_conversion import SpeedConverter
 from homeassistant.util.unit_system import METRIC_SYSTEM
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import TeslemetryTimestamp
 from .entity import (
@@ -151,7 +152,17 @@ async def async_setup_entry(
         )
     )
 
-class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
+class NumberRestoreEntity(NumberEntity, RestoreEntity):
+    """Base class for Teslemetry Number Entities."""
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state.isdigit()):
+                self._attr_native_value = float(state.state)
+
+class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription
@@ -194,7 +205,7 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         self._attr_native_value = value
         self.async_write_ha_state()
 
-class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
+class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
     """Number entity for speed limit in MPH."""
 
     device_class = NumberDeviceClass.SPEED
@@ -240,7 +251,7 @@ class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity)
         self.async_write_ha_state()
 
 
-class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
+class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
     """Number entity for speed limit in KMPH."""
 
     device_class = NumberDeviceClass.SPEED
@@ -306,7 +317,7 @@ class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberEntity):
+class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberRestoreEntity):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription

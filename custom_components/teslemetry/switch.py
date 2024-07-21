@@ -16,6 +16,7 @@ from homeassistant.components.switch import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryTimestamp
 from .entity import (
@@ -146,11 +147,20 @@ async def async_setup_entry(
     )
 
 
-class TeslemetrySwitchEntity(SwitchEntity):
+class TeslemetrySwitchEntity(SwitchEntity, RestoreEntity):
     """Base class for all Teslemetry switch entities."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state == "on"):
+                self._attr_is_on = True
+            elif (state.state == "off"):
+                self._attr_is_on = False
 
 
 class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):

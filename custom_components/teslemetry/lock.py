@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.const import ATTR_CODE
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryChargeCableLockStates, TeslemetryTimestamp
 from .entity import (
@@ -35,8 +36,19 @@ async def async_setup_entry(
         for vehicle in entry.runtime_data.vehicles
     )
 
+class LockRestoreEntity(LockEntity, RestoreEntity):
+    """Base class for Teslemetry Lock Entities."""
 
-class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state == "locked"):
+                self._attr_is_locked = True
+            elif (state.state == "unlocked"):
+                self._attr_is_locked = False
+
+class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
     """Lock entity for Teslemetry."""
 
     def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
@@ -74,7 +86,7 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockEntity):
         self.async_write_ha_state()
 
 
-class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
+class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
     """Cable Lock entity for Teslemetry."""
 
     def __init__(
@@ -118,7 +130,7 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockEntity):
         self.async_write_ha_state()
 
 
-class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockEntity):
+class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockRestoreEntity):
     """Speed Limit with PIN entity for Tessie."""
 
     _attr_code_format = r"^\d\d\d\d$"
