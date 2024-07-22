@@ -153,12 +153,19 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
+        # If the data isnt valid, placeholder it for safety
+        if(not isinstance(data, dict)):
+            data = {}
+
         self.hass.bus.fire("teslemetry_live_status", data)
 
         # Convert Wall Connectors from array to dict
-        data["wall_connectors"] = {
-            wc["din"]: wc for wc in (data.get("wall_connectors") or [])
-        }
+        if isinstance(data.get("wall_connectors"),list):
+            data["wall_connectors"] = {
+                wc["din"]: wc for wc in data["wall_connectors"]
+            }
+        else:
+            data["wall_connectors"] = {}
 
         return data
 
@@ -189,6 +196,10 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             raise UpdateFailed(e.message) from e
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
+
+        # If the data isnt valid, placeholder it for safety
+        if(not isinstance(data, dict)):
+            data = {}
 
         self.hass.bus.fire("teslemetry_site_info", data)
 

@@ -123,6 +123,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
+            if(not (
+                product['components']['battery'] or
+                product['components']['solar'] or
+                "wall_connectors" in product['components']
+            )):
+                LOGGER.debug("Skipping Energy Site %s as it has no components", product["energy_site_id"])
+                continue
+
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
             live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
