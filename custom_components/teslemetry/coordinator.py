@@ -11,7 +11,11 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
     Forbidden,
-    LoginRequired
+    LoginRequired,
+    InternalServerError,
+    ServiceUnavailable,
+    GatewayTimeout,
+    DeviceUnexpectedResponse
 )
 
 from homeassistant.core import HomeAssistant
@@ -54,6 +58,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     updated_once = False
     pre2021: bool
     last_active: datetime
+    failures: int = 0
 
     def __init__(
         self, hass: HomeAssistant, api: VehicleSpecific, product: dict
@@ -91,6 +96,11 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except VehicleOffline:
             self.data["state"] = TeslemetryState.OFFLINE
             return self.data
+        except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
+            self.failures += 1
+            if self.failures > 2:
+                raise UpdateFailed("Multiple 5xx failures") from e
+            return self.data
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
         except (SubscriptionRequired,Forbidden,LoginRequired) as e:
@@ -111,6 +121,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
+        self.failures = 0
         self.hass.bus.fire("teslemetry_vehicle_data", data)
 
         if(self.api.pre2021):
@@ -138,6 +149,8 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site live status from the Teslemetry API."""
 
+    failures: int = 0
+
     def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
         super().__init__(
@@ -156,6 +169,11 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             data = (await self.api.live_status())["response"]
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
+        except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
+            self.failures += 1
+            if self.failures > 2:
+                raise UpdateFailed("Multiple 5xx failures") from e
+            return self.data
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
@@ -181,6 +199,8 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""
 
+    failures: int = 0
+
     def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
@@ -200,6 +220,11 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             data = (await self.api.site_info())["response"]
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
+        except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
+            self.failures += 1
+            if self.failures > 2:
+                raise UpdateFailed("Multiple 5xx failures") from e
+            return self.data
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
