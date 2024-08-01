@@ -78,9 +78,9 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
         rd = self.get("vehicle_state_rd_window")
         rp = self.get("vehicle_state_rp_window")
 
-        if fd or fp or rd or rp == TeslemetryCoverStates.OPEN:
+        if (fd or fp or rd or rp) == TeslemetryCoverStates.OPEN:
             self._attr_is_closed = False
-        elif fd and fp and rd and rp == TeslemetryCoverStates.CLOSED:
+        elif (fd or fp or rd or rp) == TeslemetryCoverStates.CLOSED:
             self._attr_is_closed = True
         else:
             self._attr_is_closed = None
