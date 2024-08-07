@@ -23,6 +23,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from .const import LOGGER, TeslemetryState, DOMAIN
+from .helpers import flatten
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
 VEHICLE_WAIT = timedelta(minutes=15)
@@ -39,17 +40,6 @@ ENDPOINTS = [
 ]
 
 
-def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
-    """Flatten the data structure."""
-    result = {}
-    for key, value in data.items():
-        if parent:
-            key = f"{parent}_{key}"
-        if isinstance(value, dict):
-            result.update(flatten(value, key))
-        else:
-            result[key] = value
-    return result
 
 
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -85,7 +75,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             if self.data["state"] != TeslemetryState.ONLINE:
                 response = await self.api.vehicle()
-                LOGGER.debug("Was %s, am now %s",self.data["state"],response["response"].get("state")  )
                 self.data["state"] = response["response"]["state"]
 
             if self.data["state"] != TeslemetryState.ONLINE:

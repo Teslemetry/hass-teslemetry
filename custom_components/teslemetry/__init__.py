@@ -30,6 +30,7 @@ from .coordinator import (
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
+from .helpers import flatten
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_register_services
 
@@ -73,6 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
+        region = calls[0]["region"]
         products = calls[1]["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
@@ -99,8 +101,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
             stream = TeslemetryStream(
-                session, access_token, vin=vin, parse_timestamp=True
+                session, access_token, vin=vin, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
             )
+
+            # Setup AUTO mode
+            def _handle_vehicle_data(data: dict) -> None:
+                """Handle vehicle data from the stream."""
+                LOGGER.debug("Vehicle Data: %s", data)
+                coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
+
+            listener_vehicle_data = stream.async_add_listener(
+                    _handle_vehicle_data,
+                    {"vin": vin, "vehicle_data": None},
+                )
+
+            def _handle_state(data: dict) -> None:
+                """Handle state from the stream."""
+                LOGGER.debug(f"{coordinator.data['state']},{data['state']}")
+                coordinator.data["state"] = data["state"]
+                coordinator.async_set_updated_data(coordinator.data)
+
+            listener_state = stream.async_add_listener(
+                    _handle_state,
+                    {"vin": vin, "state": None},
+                )
+
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
                 manufacturer="Tesla",
@@ -119,7 +144,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     vin=vin,
                     device=device,
-                    remove_listeners=(),
+                    remove_listeners=(listener_vehicle_data, listener_state),
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -159,10 +184,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(async_setup_stream(hass, vehicle) for vehicle in vehicles),
-        *(
-            vehicle.coordinator.async_config_entry_first_refresh()
-            for vehicle in vehicles
-        ),
+        #*(
+        #    vehicle.coordinator.async_config_entry_first_refresh()
+        #    for vehicle in vehicles
+        #),
         *(
             energysite.live_coordinator.async_config_entry_first_refresh()
             for energysite in energysites

@@ -6,6 +6,18 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from tesla_fleet_api.exceptions import TeslaFleetError
 from .const import LOGGER, TeslemetryState
 
+def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
+    """Flatten the data structure."""
+    result = {}
+    for key, value in data.items():
+        if parent:
+            key = f"{parent}_{key}"
+        if isinstance(value, dict):
+            result.update(flatten(value, key))
+        else:
+            result[key] = value
+    return result
+
 
 async def wake_up_vehicle(vehicle):
     """Wake up a vehicle."""
