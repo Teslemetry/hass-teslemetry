@@ -107,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Setup AUTO mode
             def _handle_vehicle_data(data: dict) -> None:
                 """Handle vehicle data from the stream."""
-                LOGGER.debug("Vehicle Data: %s", data)
+                coordinator.updated_once = True
                 coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
 
             listener_vehicle_data = stream.async_add_listener(
