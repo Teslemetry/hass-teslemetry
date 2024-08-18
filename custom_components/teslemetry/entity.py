@@ -13,7 +13,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    LOGGER,
     TeslemetryTimestamp,
     TeslemetryUpdateType,
     STREAMING_GAP,
@@ -297,8 +296,7 @@ class TeslemetryWallConnectorEntity(
     @property
     def _value(self) -> int:
         """Return a specific wall connector value from coordinator data."""
-        return (
-            self.coordinator.data.get("wall_connectors", {})
+        return (self.coordinator.data.get("wall_connectors", {})
             .get(self.din, {})
             .get(self.key)
         )
@@ -306,6 +304,7 @@ class TeslemetryWallConnectorEntity(
     @property
     def has(self) -> bool:
         """Return True if a specific value is in wall connector coordinator data."""
-        return self.key in self.coordinator.data.get("wall_connectors", {}).get(
-            self.din, {}
+        return (self.key in self.coordinator.data
+            .get("wall_connectors", {})
+            .get(self.din, {})
         )
