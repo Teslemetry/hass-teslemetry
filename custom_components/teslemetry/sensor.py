@@ -1248,6 +1248,10 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
+
+        if not self.has():
+            return
+
         self._attr_available = not self.exactly(None)
         self._attr_native_value = self.entity_description.value_fn(self._value)
 
@@ -1275,11 +1279,14 @@ class TeslemetryWallConnectorVehicleSensorEntity(
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_available = not self.exactly(None)
-        value = self._value
-        if value is None:
-            self._attr_native_value = None
+
+        if not self.has():
             return
+
+        if self.exactly(None):
+            self._attr_native_value = "None"
+            return
+
         for vehicle in self._vehicles:
             if vehicle.vin == value:
                 self._attr_native_value = vehicle.device["name"]
@@ -1288,7 +1295,7 @@ class TeslemetryWallConnectorVehicleSensorEntity(
                     "model": vehicle.device["model"],
                 }
                 return
-        self._attr_native_value = value
+        self._attr_native_value = self._value
         self._attr_extra_state_attributes = {
             "vin": value,
             "model": MODELS.get(value[3]),
