@@ -301,21 +301,20 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
             self._attr_is_on = state.state == STATE_ON
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
 
-        if self.coordinator.updated_once:
-            if self._value is None:
-                self._attr_available = False
-                self._attr_is_on = None
-            else:
-                self._attr_available = True
-                self._attr_is_on = self.entity_description.is_on(self._value)
-        else:
+
+
+        if self._value is None:
+            self._attr_available = False
             self._attr_is_on = None
+        else:
+            self._attr_available = True
+            self._attr_is_on = self.entity_description.is_on(self._value)
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value from the stream."""

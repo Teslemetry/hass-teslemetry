@@ -21,6 +21,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, TeslemetryClimateSide, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
@@ -52,7 +53,7 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
+class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity, RestoreEntity):
     """Vehicle Climate Control."""
 
     _attr_precision = PRECISION_HALVES
@@ -69,6 +70,13 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     _attr_preset_modes = ["off", "keep", "dog", "camp"]
     _attr_fan_modes = ["off", "bioweapon"]
     _enable_turn_on_off_backwards_compatibility = False
+
+    # Defaults
+    _attr_hvac_mode = None
+    _attr_current_temperature = None
+    _attr_target_temperature = None
+    _attr_fan_mode = None
+    _attr_preset_mode = None
 
     def __init__(
         self,
@@ -87,6 +95,14 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
             timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
             streaming_key=TelemetryField.INSIDE_TEMP,
         )
+
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
+            self._attr_current_temperature = state.attributes.get('current_temperature')
+            self._attr_target_temperature = state.attributes.get('target_temperature')
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -219,6 +235,13 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
     _attr_hvac_modes = list(COP_MODES.values())
     _enable_turn_on_off_backwards_compatibility = False
     _attr_entity_registry_enabled_default = False
+
+    # Defaults
+    _attr_hvac_mode = None
+    _attr_current_temperature = None
+    _attr_target_temperature = None
+    _attr_fan_mode = None
+    _attr_preset_mode = None
 
     def __init__(
         self,

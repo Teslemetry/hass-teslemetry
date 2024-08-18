@@ -86,7 +86,6 @@ class TeslemetryEntity(
         self.api = api
         self.key = key
         self._attr_translation_key = self.key
-        self._async_update_attrs()
 
     @property
     def available(self) -> bool:
@@ -138,6 +137,7 @@ class TeslemetryEntity(
         self._async_update_attrs()
         self.async_write_ha_state()
 
+
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
         raise NotImplementedError()
@@ -166,7 +166,14 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self.wakelock = data.wakelock
 
         self._attr_device_info = data.device
+        
         super().__init__(data.coordinator, data.api, key)
+
+        if self.coordinator.updated_once or self.key == "state":
+            LOGGER.info(f"DOING FIRST UPDATE of {self.key}")
+            self._async_update_attrs()
+        else:
+            LOGGER.warning(f"SKIPPING INIT ATTRIBUTE UPDATE of {self.key}")
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
@@ -202,7 +209,10 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         ):
             self._updated_by = TeslemetryUpdateType.POLLING
             self._updated_at = timestamp
-            self._async_update_attrs()
+
+            if self.coordinator.updated_once or self.key == "state":
+                self._async_update_attrs()
+
             self._attr_extra_state_attributes = {
                 "updated_by": self._updated_by.value,
                 "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
@@ -231,6 +241,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         self._attr_device_info = data.device
 
         super().__init__(data.live_coordinator, data.api, key)
+        self._async_update_attrs()
 
 
 class TeslemetryEnergyInfoEntity(TeslemetryEntity):
@@ -246,6 +257,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         self._attr_device_info = data.device
 
         super().__init__(data.info_coordinator, data.api, key)
+        self._async_update_attrs()
 
 
 class TeslemetryWallConnectorEntity(
@@ -283,6 +295,7 @@ class TeslemetryWallConnectorEntity(
         )
 
         super().__init__(data.live_coordinator, data.api, key)
+        self._async_update_attrs()
 
     @property
     def _value(self) -> int:

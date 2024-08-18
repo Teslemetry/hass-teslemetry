@@ -45,10 +45,12 @@ async def async_setup_entry(
 class CoverRestoreEntity(CoverEntity, RestoreEntity):
     """Base class for cover entities that need to restore state."""
 
+    _attr_is_closed: bool | None = None
+
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
             if (state.state == "open"):
                 self._attr_is_closed = False
             elif (state.state == "closed"):

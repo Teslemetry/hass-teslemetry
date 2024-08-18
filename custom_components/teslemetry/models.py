@@ -37,12 +37,12 @@ class TeslemetryVehicleData:
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
-    remove_listeners: tuple[callable]
     vin: str
     device: DeviceInfo
     wakelock = asyncio.Lock()
     last_alert: str = dt_util.utcnow().isoformat()
     last_error: str = dt_util.utcnow().isoformat()
+    remove_listeners: tuple[callable] = ()
 
 
 @dataclass

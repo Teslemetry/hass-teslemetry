@@ -36,6 +36,8 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity, Rest
 
     _attr_entity_category = None
     timestamp_key = "drive_state_timestamp"
+    _attr_latitude: float | None = None
+    _attr_longitude: float | None = None
 
     def __init__(
         self,
@@ -47,7 +49,7 @@ class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity, Rest
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and self._attr_latitude is None and self._attr_longitude is None:
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
             self._attr_latitude = state.attributes.get('latitude')
             self._attr_longitude = state.attributes.get('longitude')
 
@@ -99,6 +101,7 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the device tracker."""
+
         self._attr_latitude = self.get("drive_state_active_route_latitude")
         self._attr_longitude = self.get("drive_state_active_route_longitude")
         self._attr_available = not (

@@ -36,7 +36,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
 
-from .const import DOMAIN, TeslemetryTimestamp, MODELS
+from .const import DOMAIN, TeslemetryTimestamp, MODELS, LOGGER
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
@@ -1118,20 +1118,19 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
         await super().async_added_to_hass()
         if self.coordinator.data.get('state') == TeslemetryState.OFFLINE:
 
-            if (sensor_data := await self.async_get_last_sensor_data()) is not None:
+            if (sensor_data := await self.async_get_last_sensor_data()) is not None and not self.coordinator.updated_once:
                 self._attr_native_value = sensor_data.native_value
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        if self.coordinator.updated_once:
-            if self.entity_description.available_fn(self._value):
-                self._attr_available = True
-                self._attr_native_value = self.entity_description.value_fn(self._value)
-            else:
-                self._attr_available = False
-                self._attr_native_value = None
+
+        if self.entity_description.available_fn(self._value):
+            self._attr_available = True
+            self._attr_native_value = self.entity_description.value_fn(self._value)
         else:
+            self._attr_available = False
             self._attr_native_value = None
+
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
@@ -1163,8 +1162,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        if not self.coordinator.updated_once:
-            return None
+
         self._attr_available = self._value is not None and self._value > 0
 
         if (value := self._value) == self._last_value:
@@ -1341,9 +1339,6 @@ class TeslemetryVehicleEventEntity(RestoreSensor):
         if (sensor_data := await self.async_get_last_sensor_data()) is not None:
             self._attr_native_value = sensor_data.native_value
 
-    async def async_added_to_hass(self) -> None:
-        """When entity is added to hass."""
-        await super().async_added_to_hass()
         if self.stream.server:
             self.async_on_remove(
                 self.stream.async_add_listener(

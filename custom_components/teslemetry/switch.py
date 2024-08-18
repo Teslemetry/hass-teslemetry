@@ -147,23 +147,16 @@ async def async_setup_entry(
     )
 
 
-class TeslemetrySwitchEntity(SwitchEntity, RestoreEntity):
+class TeslemetrySwitchEntity(SwitchEntity):
     """Base class for all Teslemetry switch entities."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
 
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
-            if (state.state == "on"):
-                self._attr_is_on = True
-            elif (state.state == "off"):
-                self._attr_is_on = False
 
 
-class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity):
+
+class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity, RestoreEntity):
     """Base class for Teslemetry vehicle switch entities."""
 
     def __init__(
@@ -178,6 +171,15 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         )
         self.entity_description = description
         self.scoped = any(scope in scopes for scope in description.scopes)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
+            if (state.state == "on"):
+                self._attr_is_on = True
+            elif (state.state == "off"):
+                self._attr_is_on = False
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""

@@ -158,7 +158,7 @@ class NumberRestoreEntity(NumberEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
             if (state.state.isdigit()):
                 self._attr_native_value = float(state.state)
 
@@ -317,7 +317,7 @@ class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEn
         self.async_write_ha_state()
 
 
-class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberRestoreEntity):
+class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberEntity):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription

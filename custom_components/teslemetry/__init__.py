@@ -117,7 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             def _handle_state(data: dict) -> None:
                 """Handle state from the stream."""
-                LOGGER.debug(f"{coordinator.data['state']},{data['state']}")
                 coordinator.data["state"] = data["state"]
                 coordinator.async_set_updated_data(coordinator.data)
 
@@ -144,7 +143,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     vin=vin,
                     device=device,
-                    remove_listeners=(listener_vehicle_data, listener_state),
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -184,10 +182,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(async_setup_stream(hass, vehicle) for vehicle in vehicles),
-        #*(
-        #    vehicle.coordinator.async_config_entry_first_refresh()
-        #    for vehicle in vehicles
-        #),
+        *(
+            vehicle.coordinator.async_config_entry_first_refresh()
+            for vehicle in vehicles
+        ),
         *(
             energysite.live_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
@@ -236,7 +234,7 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
         async with rate_limit:
             await vehicle.stream.get_config()
 
-            def handle_alerts(event: dict):
+            def handle_alerts(event: dict) -> None:
                 """Handle stream alerts."""
                 if alerts := event.get("alerts"):
                     for alert in alerts:
@@ -246,7 +244,7 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
                         hass.bus.fire("teslemetry_alert", alert)
                     vehicle.last_alert = alerts[0]["startedAt"]
 
-            def handle_errors(event: dict):
+            def handle_errors(event: dict) -> None:
                 """Handle stream errors."""
                 if errors := event.get("errors"):
                     for error in errors:
@@ -255,6 +253,16 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
                         error["vin"] = vehicle.vin
                         hass.bus.fire("teslemetry_error", error)
                     vehicle.last_error = errors[0]["startedAt"]
+
+            def handle_vehicle_data(data: dict) -> None:
+                """Handle vehicle data from the stream."""
+                vehicle.coordinator.updated_once = True
+                vehicle.coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
+
+            def handle_state(data: dict) -> None:
+                """Handle state from the stream."""
+                vehicle.coordinator.data["state"] = data["state"]
+                vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
 
             vehicle.remove_listeners = (
                 vehicle.stream.async_add_listener(
@@ -265,7 +273,16 @@ async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData
                     handle_errors,
                     {"vin": vehicle.vin, "errors": None},
                 ),
+                vehicle.stream.async_add_listener(
+                    handle_vehicle_data,
+                    {"vin": vehicle.vin, "vehicle_data": None},
+                ),
+                vehicle.stream.async_add_listener(
+                    handle_state,
+                    {"vin": vehicle.vin, "state": None},
+                )
             )
+
     except TeslemetryStreamVehicleNotConfigured:
         LOGGER.warning(
             "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",

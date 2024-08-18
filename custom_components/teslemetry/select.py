@@ -137,7 +137,7 @@ class SelectRestoreEntity(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
             if (state.state in self._attr_options):
                 self._attr_current_option = state.state
 
@@ -241,7 +241,7 @@ class TeslemetryWheelHeaterSelectEntity(TeslemetryVehicleEntity, SelectRestoreEn
         self.async_write_ha_state()
 
 
-class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectRestoreEntity):
+class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
     """Select entity for operation mode select entities."""
 
     _attr_options: list[str] = [
@@ -271,7 +271,7 @@ class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectRestoreE
         self.async_write_ha_state()
 
 
-class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectRestoreEntity):
+class TeslemetryExportRuleSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
     """Select entity for export rules select entities."""
 
     _attr_options: list[str] = [
