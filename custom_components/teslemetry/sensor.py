@@ -1285,6 +1285,7 @@ class TeslemetryWallConnectorVehicleSensorEntity(
 
         if self.exactly(None):
             self._attr_native_value = "None"
+            self._attr_extra_state_attributes = {}
             return
 
         for vehicle in self._vehicles:
