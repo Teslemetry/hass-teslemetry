@@ -166,14 +166,11 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self.wakelock = data.wakelock
 
         self._attr_device_info = data.device
-        
+
         super().__init__(data.coordinator, data.api, key)
 
         if self.coordinator.updated_once or self.key == "state":
-            LOGGER.info(f"DOING FIRST UPDATE of {self.key}")
             self._async_update_attrs()
-        else:
-            LOGGER.warning(f"SKIPPING INIT ATTRIBUTE UPDATE of {self.key}")
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

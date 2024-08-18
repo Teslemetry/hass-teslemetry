@@ -182,10 +182,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(async_setup_stream(hass, vehicle) for vehicle in vehicles),
-        *(
-            vehicle.coordinator.async_config_entry_first_refresh()
-            for vehicle in vehicles
-        ),
+        #*(
+        #    vehicle.coordinator.async_config_entry_first_refresh()
+        #    for vehicle in vehicles
+        #),
         *(
             energysite.live_coordinator.async_config_entry_first_refresh()
             for energysite in energysites

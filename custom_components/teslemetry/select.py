@@ -134,6 +134,8 @@ async def async_setup_entry(
 class SelectRestoreEntity(SelectEntity, RestoreEntity):
     """Base class for Teslemetry Select Entities."""
 
+    _attr_current_option = None
+
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
