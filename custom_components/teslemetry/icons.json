@@ -255,6 +255,9 @@
       },
       "wall_connector_state": {
         "default": "mdi:ev-station"
+      },
+      "stream_sentrymode": {
+        "default": "mdi:shield-car"
       }
     },
     "switch": {

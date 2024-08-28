@@ -885,6 +885,13 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
+        key=TelemetryField.SENTRY_MODE,
+        device_class=SensorDeviceClass.ENUM,
+        options=["Off","Armed", "Idle", "Aware"],
+        entity_registry_enabled_default=False,
+        value_fn=lambda x: x,
+    ),
+    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.SOC,
         device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
