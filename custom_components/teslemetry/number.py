@@ -24,7 +24,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.util.unit_conversion import SpeedConverter
-from homeassistant.util.unit_system import METRIC_SYSTEM
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import TeslemetryTimestamp

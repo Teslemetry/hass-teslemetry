@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryUpdateStatus, TeslemetryTimestamp
+from .const import TeslemetryUpdateStatus, TeslemetryTimestamp
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 

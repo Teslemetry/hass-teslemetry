@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, TeslemetryState, TeslemetryTimestamp
+from .const import TeslemetryState, TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,

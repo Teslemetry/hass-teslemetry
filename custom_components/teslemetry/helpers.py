@@ -2,7 +2,7 @@
 
 import asyncio
 from typing import Any
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from tesla_fleet_api.exceptions import TeslaFleetError
 from .const import LOGGER, TeslemetryState
 

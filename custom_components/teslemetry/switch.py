@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, TeslemetryTimestamp
+from .const import TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,

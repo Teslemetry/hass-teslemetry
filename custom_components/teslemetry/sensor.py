@@ -36,7 +36,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
 
-from .const import DOMAIN, TeslemetryTimestamp, MODELS, LOGGER
+from .const import TeslemetryTimestamp, MODELS
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
