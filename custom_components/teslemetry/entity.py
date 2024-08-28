@@ -15,7 +15,6 @@ from .const import (
     DOMAIN,
     TeslemetryTimestamp,
     TeslemetryUpdateType,
-    STREAMING_GAP,
 )
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
@@ -147,6 +146,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     _updated_at: int = 0
     _updated_by: TeslemetryUpdateType = TeslemetryUpdateType.NONE
+    streaming_gap: int = 0
 
     def __init__(
         self,
@@ -201,7 +201,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         if (
             self._updated_by != TeslemetryUpdateType.STREAMING
             and timestamp > self._updated_at
-            or timestamp > (self._updated_at + STREAMING_GAP)
+            or timestamp > (self._updated_at + self.streaming_gap)
         ):
             self._updated_by = TeslemetryUpdateType.POLLING
             self._updated_at = timestamp
@@ -214,6 +214,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                 "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
             }
             self.async_write_ha_state()
+
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""

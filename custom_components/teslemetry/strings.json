@@ -738,7 +738,7 @@
         "name": "SeatHeaterRight"
       },
       "stream_sentrymode": {
-        "name": "Sentry mode"
+        "name": "Sentry Mode"
       },
       "stream_servicemode": {
         "name": "ServiceMode"

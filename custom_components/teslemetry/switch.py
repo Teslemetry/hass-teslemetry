@@ -38,7 +38,9 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     off_func: Callable
     scopes: list[Scope] | None = None
     timestamp_key: TeslemetryTimestamp | None = None
+    polling_value: Callable[[StateType], StateType] = bool
     streaming_key: TelemetryField | None = None
+    streaming_value: Callable[[StateType], StateType] = lambda x: x == "true"
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
@@ -49,6 +51,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
+        streaming_value=lambda x: x != "Off",
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
@@ -183,11 +186,11 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_is_on = bool(self._value)
+        self._attr_is_on = self.entity_description.polling_value(self._value)
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_on = value == "true"
+        self._attr_is_on = self.entity_description.streaming_value(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""

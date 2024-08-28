@@ -1109,6 +1109,7 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
+    streaming_gap = 60000
 
     def __init__(
         self,
