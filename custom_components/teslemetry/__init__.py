@@ -181,7 +181,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Run all coordinator first refreshes
     await asyncio.gather(
-        *(async_setup_stream(hass, vehicle) for vehicle in vehicles),
+        *(
+            async_setup_stream(hass, teslemetry, vehicle)
+            for vehicle in vehicles
+        ),
         #*(
         #    vehicle.coordinator.async_config_entry_first_refresh()
         #    for vehicle in vehicles
@@ -227,12 +230,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def async_setup_stream(hass: HomeAssistant, vehicle: TeslemetryVehicleData):
+async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicle: TeslemetryVehicleData):
     """Setup stream for vehicle."""
     LOGGER.debug("Stream Starting Up")
     try:
         async with rate_limit:
+            # Ensure the vehicle is configured for streaming
             await vehicle.stream.get_config()
+
+            # Enable server side polling
+            await teslemetry.server_side_polling(vehicle.vin, True)
 
             def handle_alerts(event: dict) -> None:
                 """Handle stream alerts."""
