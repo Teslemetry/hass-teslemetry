@@ -722,6 +722,9 @@
       "stream_routeline": {
         "name": "RouteLine"
       },
+      "stream_sentrymode": {
+        "name": "Sentry Mode"
+      },
       "stream_soc": {
         "name": "Soc"
       },

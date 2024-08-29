@@ -186,6 +186,7 @@
 |Vehicle|Sensor|Scheduled charging mode|Both|No|
 |Vehicle|Sensor|Scheduled charging start time|Both|No|
 |Vehicle|Sensor|Scheduled departure time|Both|No|
+|Vehicle|Sensor|Sentry Mode|Streaming|No|
 |Vehicle|Sensor|Shift state|Both|No|
 |Vehicle|Sensor|Soc|Streaming|No|
 |Vehicle|Sensor|SpeedLimitWarning|Streaming|No|
