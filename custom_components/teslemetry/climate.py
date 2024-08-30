@@ -155,7 +155,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity, RestoreEnt
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
 
-        if temp := kwargs[ATTR_TEMPERATURE]:
+        if temp := kwargs.get(ATTR_TEMPERATURE):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(
@@ -166,7 +166,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity, RestoreEnt
             )
             self._attr_target_temperature = temp
 
-        if mode := kwargs[ATTR_HVAC_MODE]:
+        if mode := kwargs.get(ATTR_HVAC_MODE):
             # Set HVAC mode will call write_ha_state
             await self.async_set_hvac_mode(mode)
         else:
@@ -300,7 +300,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
 
-        if temp := kwargs[ATTR_TEMPERATURE]:
+        if temp := kwargs.get(ATTR_TEMPERATURE):
             if temp == 30:
                 cop_mode = CabinOverheatProtectionTemp.LOW
             elif temp == 35:
@@ -314,7 +314,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
             await self.handle_command(self.api.set_cop_temp(cop_mode))
             self._attr_target_temperature = temp
 
-        if mode := kwargs[ATTR_HVAC_MODE]:
+        if mode := kwargs.get(ATTR_HVAC_MODE):
             # Set HVAC mode will call write_ha_state
             await self.async_set_hvac_mode(mode)
         else:
