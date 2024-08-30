@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryState, TeslemetryTimestamp
+from .const import TeslemetryState, TeslemetryTimestamp, TeslemetryUpdateType
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,
@@ -41,11 +41,6 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
-    TeslemetryBinarySensorEntityDescription(
-        key="state",
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        is_on=lambda x: x == TeslemetryState.ONLINE,
-    ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_battery_heater_on",
         streaming_key=TelemetryField.BATTERY_HEATER_ON,
@@ -261,6 +256,10 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
+            (  # Vehicle State
+                TeslemetryVehicleBinarySensorStateEntity(vehicle)
+                for vehicle in entry.runtime_data.vehicles
+            ),
             (  # Vehicles
                 TeslemetryVehicleBinarySensorEntity(vehicle, description)
                 for vehicle in entry.runtime_data.vehicles
@@ -307,8 +306,6 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
 
-
-
         if self._value is None:
             self._attr_available = False
             self._attr_is_on = None
@@ -320,6 +317,56 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         """Update the value from the stream."""
         self._attr_available = True
         self._attr_is_on = self.entity_description.is_on(auto_type(value))
+
+
+class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySensorEntity, RestoreEntity):
+    """Teslemetry vehicle state binary sensors."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData
+    ) -> None:
+        """Initialize the sensor."""
+        #TeslemetryState.ONLINE
+        super().__init__(data, "state")
+
+    def _handle_stream_update(self, data) -> None:
+        """Handle the data update."""
+        if "vehicle_data" in data:
+            return
+        if data.get("state") is not None:
+            self._attr_is_on = data["state"] == TeslemetryState.ONLINE
+        else:
+            self._attr_is_on = True
+        self._updated_by = TeslemetryUpdateType.STREAMING
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
+            self._attr_is_on = state.state == STATE_ON
+
+        if self.stream.server:
+            self.async_on_remove(
+                self.stream.async_add_listener(
+                    self._handle_stream_update,
+                    {"vin": self.vin},
+                )
+            )
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the binary sensor."""
+
+        if self._value is None:
+            self._attr_available = False
+            self._attr_is_on = None
+        else:
+            self._attr_available = True
+            self._attr_is_on = self._value == TeslemetryState.ONLINE
+
 
 
 class TeslemetryStreamBinarySensorEntity(
