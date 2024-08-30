@@ -49,6 +49,7 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
         | MediaPlayerEntityFeature.VOLUME_SET
     )
+    max_volume: float = MAX_VOLUME
 
     def __init__(
         self,
@@ -63,18 +64,18 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
 
     def _async_update_attrs(self) -> None:
         """Update entity attributes."""
-        max_volume = self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
+        self.max_volume = self.get("vehicle_state_media_info_audio_volume_max", MAX_VOLUME)
         self._attr_state = STATES.get(
             self.get("vehicle_state_media_info_media_playback_status"),
             MediaPlayerState.OFF,
         )
         self._attr_volume_step = (
             1.0
-            / max_volume
+            / self.max_volume
             / self.get("vehicle_state_media_info_audio_volume_increment", 1.0 / 3)
         )
         self._attr_volume_level = (
-            self.get("vehicle_state_media_info_audio_volume", 0) / max_volume
+            self.get("vehicle_state_media_info_audio_volume", 0) / self.max_volume
         )
 
         if duration := self.get("vehicle_state_media_info_now_playing_duration"):
