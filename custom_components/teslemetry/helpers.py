@@ -74,19 +74,23 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
     return result
 
 
-def auto_type(str):
+def auto_type(value) -> int | float | bool | str:
     """Automatically cast a string to a type."""
-    if str.isdigit():
-        return int(str)
+    # If not a string return None
+    if not isinstance(value, str):
+        return None
+
+    if value.isdigit():
+        return int(value)
     try:
-        return float(str)
+        return float(value)
     except ValueError:
         pass
 
-    if str.lower() in ["true", "false"]:
-        return str.lower() == "true"
+    if value.lower() in ["true", "false"]:
+        return value.lower() == "true"
 
-    return str
+    return value
 
 
 def ignore_drop(change: int | float = 1):
