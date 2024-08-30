@@ -337,10 +337,11 @@ class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySe
         if "vehicle_data" in data:
             return
         if data.get("state") is not None:
-            self._attr_is_on = data["state"] == TeslemetryState.ONLINE
+            self.coordinator.data["state"] = data["state"]
         else:
-            self._attr_is_on = True
+            self.coordinator.data["state"] = TeslemetryState.ONLINE
         self._updated_by = TeslemetryUpdateType.STREAMING
+        self._async_update_attrs()
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
