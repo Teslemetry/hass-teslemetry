@@ -334,6 +334,7 @@ class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySe
 
     def _handle_stream_update(self, data) -> None:
         """Handle the data update."""
+        # This is the wrong place to do this logic, move it to the init later
         if "vehicle_data" in data:
             return
         if data.get("state") is not None:
