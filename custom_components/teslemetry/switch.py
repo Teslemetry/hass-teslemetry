@@ -169,11 +169,13 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         scopes: list[Scope],
     ) -> None:
         """Initialize the Switch."""
+
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes)
+
         super().__init__(
             data, description.key, description.timestamp_key, description.streaming_key
         )
-        self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes)
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
