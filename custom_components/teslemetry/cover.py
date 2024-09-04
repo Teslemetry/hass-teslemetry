@@ -115,18 +115,19 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            vehicle,
-            "charge_state_charge_port_door_open",
-            timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-            streaming_key=TelemetryField.CHARGE_PORT,
-        )
         self.scoped = any(
             scope in scopes
             for scope in [Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS]
         )
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
+
+        super().__init__(
+            vehicle,
+            "charge_state_charge_port_door_open",
+            timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+            streaming_key=TelemetryField.CHARGE_PORT,
+        )
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
@@ -161,11 +162,10 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "vehicle_state_ft")
-
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
+        super().__init__(vehicle, "vehicle_state_ft")
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
@@ -190,11 +190,10 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "vehicle_state_rt")
-
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
+        super().__init__(vehicle, "vehicle_state_rt")
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
@@ -233,11 +232,10 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
-        super().__init__(vehicle, "vehicle_state_sun_roof_state")
-
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
+        super().__init__(vehicle, "vehicle_state_sun_roof_state")
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
