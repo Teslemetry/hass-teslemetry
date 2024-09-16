@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import VehicleDataEndpoint
+from tesla_fleet_api.const import VehicleDataEndpoint, TeslaEnergyPeriod
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
     VehicleOffline,
@@ -22,13 +22,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
-from .const import LOGGER, TeslemetryState, DOMAIN
+from .const import LOGGER, TeslemetryState, DOMAIN, ENERGY_HISTORY_FIELDS
 from .helpers import flatten
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
 VEHICLE_WAIT = timedelta(minutes=15)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=30)
+ENERGY_HISTORY_INTERVAL = timedelta(minutes=5)
+
 
 ENDPOINTS = [
     VehicleDataEndpoint.CHARGE_STATE,
@@ -226,3 +228,51 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         self.hass.bus.fire("teslemetry_site_info", data)
 
         return flatten(data)
+
+class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Class to manage fetching energy site info from the Teslemetry API."""
+
+    failures: int = 0
+
+    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
+        """Initialize Teslemetry Energy Info coordinator."""
+        super().__init__(
+            hass,
+            LOGGER,
+            name="Teslemetry Energy History",
+            update_interval=ENERGY_HISTORY_INTERVAL,
+        )
+        self.api = api
+        self.data = {key: 0 for key in ENERGY_HISTORY_FIELDS}
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Update energy site data using Teslemetry API."""
+
+        try:
+            data = (await self.api.energy_history(TeslaEnergyPeriod.DAY))["response"]
+        except InvalidToken as e:
+            raise ConfigEntryAuthFailed from e
+        except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
+            self.failures += 1
+            if self.failures > 2:
+                raise UpdateFailed("Multiple 5xx failures") from e
+            return self.data
+        except TeslaFleetError as e:
+            raise UpdateFailed(e.message) from e
+        except TypeError as e:
+            raise UpdateFailed("Invalid response from Teslemetry") from e
+
+        # If the data isnt valid, placeholder it for safety
+        if(not isinstance(data, dict)):
+            data = {}
+
+        # Add all time periods together
+        output = {key: 0 for key in ENERGY_HISTORY_FIELDS}
+        print(data)
+        for period in data.get("time_series",[]):
+            print(period)
+            for key in ENERGY_HISTORY_FIELDS:
+                print(key, period.get(key))
+                output[key] += period.get(key,0)
+
+        return output

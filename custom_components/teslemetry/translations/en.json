@@ -815,6 +815,60 @@
           "scheduled": "Scheduled",
           "waiting_car": "Waiting for car"
         }
+      },
+      "solar_energy_exported": {
+        "name": "Solar energy exported"
+      },
+      "generator_energy_exported": {
+        "name": "Generator energy exported"
+      },
+      "grid_energy_imported": {
+        "name": "Grid energy imported"
+      },
+      "grid_services_energy_imported": {
+        "name": "Grid services energy imported"
+      },
+      "grid_services_energy_exported": {
+        "name": "Grid services energy exported"
+      },
+      "grid_energy_exported_from_solar": {
+        "name": "Grid energy exported from solar"
+      },
+      "grid_energy_exported_from_generator": {
+        "name": "Grid energy exported from generator"
+      },
+      "grid_energy_exported_from_battery": {
+        "name": "Grid energy exported from battery"
+      },
+      "battery_energy_exported": {
+        "name": "Battery energy exported"
+      },
+      "battery_energy_imported_from_grid": {
+        "name": "Battery energy imported from grid"
+      },
+      "battery_energy_imported_from_solar": {
+        "name": "Battery energy imported from solar"
+      },
+      "battery_energy_imported_from_generator": {
+        "name": "Battery energy imported from generator"
+      },
+      "consumer_energy_imported_from_grid": {
+        "name": "Consumer energy imported from grid"
+      },
+      "consumer_energy_imported_from_solar": {
+        "name": "Consumer energy imported from solar"
+      },
+      "consumer_energy_imported_from_battery": {
+        "name": "Consumer energy imported from battery"
+      },
+      "consumer_energy_imported_from_generator": {
+        "name": "Consumer energy imported from generator"
+      },
+      "total_home_usage": {
+        "name": "Total home usage"
+      },
+      "total_battery_discharge": {
+        "name": "Total battery discharge"
       }
     },
     "switch": {

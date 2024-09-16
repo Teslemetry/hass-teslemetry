@@ -45,7 +45,6 @@
 |Vehicle|Binary sensor|Rear passenger window|Both|Yes|
 |Vehicle|Binary sensor|Scheduled charging pending|Both|No|
 |Vehicle|Binary sensor|ServiceMode|Streaming|No|
-|Vehicle|Binary sensor|Status|Polling|Yes|
 |Vehicle|Binary sensor|Tire pressure warning front left|Polling|No|
 |Vehicle|Binary sensor|Tire pressure warning front right|Polling|No|
 |Vehicle|Binary sensor|Tire pressure warning rear left|Polling|No|

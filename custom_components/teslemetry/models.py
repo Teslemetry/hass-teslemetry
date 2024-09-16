@@ -16,6 +16,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
+    TeslemetryEnergyHistoryCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
 
@@ -52,5 +53,6 @@ class TeslemetryEnergyData:
     api: EnergySpecific
     live_coordinator: TeslemetryEnergySiteLiveCoordinator
     info_coordinator: TeslemetryEnergySiteInfoCoordinator
+    history_coordinator: TeslemetryEnergyHistoryCoordinator
     id: int
     device: DeviceInfo

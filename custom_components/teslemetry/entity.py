@@ -20,6 +20,7 @@ from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
+    TeslemetryEnergyHistoryCoordinator
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import wake_up_vehicle, handle_command, handle_vehicle_command
@@ -65,6 +66,7 @@ class TeslemetryEntity(
         TeslemetryVehicleDataCoordinator
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator
+        | TeslemetryEnergyHistoryCoordinator
     ]
 ):
     """Parent class for all Teslemetry entities."""
@@ -75,7 +77,8 @@ class TeslemetryEntity(
         self,
         coordinator: TeslemetryVehicleDataCoordinator
         | TeslemetryEnergySiteLiveCoordinator
-        | TeslemetryEnergySiteInfoCoordinator,
+        | TeslemetryEnergySiteInfoCoordinator
+        | TeslemetryEnergyHistoryCoordinator,
         api: VehicleSpecific | EnergySpecific,
         key: str,
     ) -> None:
@@ -254,6 +257,21 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         self._attr_device_info = data.device
 
         super().__init__(data.info_coordinator, data.api, key)
+        self._async_update_attrs()
+
+class TeslemetryEnergyHistoryEntity(TeslemetryEntity):
+    """Parent class for Teslemetry Energy History Entities."""
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        key: str,
+    ) -> None:
+        """Initialize common aspects of a Teslemetry Energy History entity."""
+        self._attr_unique_id = f"{data.id}-{key}"
+        self._attr_device_info = data.device
+
+        super().__init__(data.history_coordinator, data.api, key)
         self._async_update_attrs()
 
 
