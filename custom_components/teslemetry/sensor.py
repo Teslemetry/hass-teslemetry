@@ -36,7 +36,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
 
-from .const import TeslemetryIslandStates, TeslemetryTimestamp, MODELS
+from .const import TeslemetryState, TeslemetryTimestamp, MODELS
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
@@ -44,7 +44,6 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
     TeslemetryWallConnectorEntity,
 )
-from .const import TeslemetryState
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import auto_type, ignore_drop
 
