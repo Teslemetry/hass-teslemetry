@@ -36,7 +36,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
 
-from .const import TeslemetryTimestamp, MODELS
+from .const import TeslemetryIslandStates, TeslemetryTimestamp, MODELS
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
@@ -75,6 +75,7 @@ WallConnectorStates = {
 
 ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}
 
+IslandStates = ["on_grid","off_grid","off_grid_intentionally","island_status_unknown"]
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
@@ -1005,7 +1006,11 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = 
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
-    TeslemetryEnergySensorEntityDescription(key="island_status", device_class=SensorDeviceClass.ENUM),
+    TeslemetryEnergySensorEntityDescription(
+        key="island_status",
+        device_class=SensorDeviceClass.ENUM,
+        options=IslandStates
+    ),
 )
 
 

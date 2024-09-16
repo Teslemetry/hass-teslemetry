@@ -467,7 +467,9 @@
         "name": "Island status",
         "state": {
           "island_status_unknown": "Unknown",
-          "on_grid": "On grid"
+          "on_grid": "On grid",
+          "off_grid": "Off grid",
+          "off_grid_intentional": "Off grid intentionally"
         }
       },
       "load_power": {
@@ -862,7 +864,7 @@
       },
       "title": "An active subscription is required"
     },
-    "unauthorized missing scopes":{},
+    "unauthorized missing scopes": {},
     "login_required": {}
   },
   "services": {
