@@ -7,6 +7,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Teslemetry/hacs-teslemetry/issues",
   "loggers": ["tesla_fleet_api", "teslemetry_stream"],
-  "requirements": ["tesla-fleet-api==0.7.6", "teslemetry-stream==0.3.1"],
+  "requirements": ["tesla-fleet-api==0.7.7", "teslemetry-stream==0.3.1"],
   "version": "2.0.6"
 }
