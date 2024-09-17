@@ -21,8 +21,6 @@ class SubscriptionRepairFlow(RepairsFlow):
     ) -> data_entry_flow.FlowResult:
         """Handle the confirm step of a fix flow."""
 
-        print(self.key)
-
         for vehicle in self.entry.runtime_data.vehicles:
             if vehicle.vin == self.key:
                 try:
