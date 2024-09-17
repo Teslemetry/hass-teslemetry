@@ -126,17 +126,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 session, access_token, vin=vin, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
             )
 
-            # Setup AUTO mode
-            listener_vehicle_data = stream.async_add_listener(
-                    HandleVehicleData(coordinator).receive,
-                    {"vin": vin, "vehicle_data": None},
-                )
-
-            listener_state = stream.async_add_listener(
-                    HandleVehicleState(coordinator).receive,
-                    {"vin": vin, "state": None},
-                )
-
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
                 manufacturer="Tesla",
@@ -261,6 +250,7 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
 
             def handle_alerts(event: dict) -> None:
                 """Handle stream alerts."""
+                LOGGER.debug("Streaming received alert from %s", vehicle.vin)
                 if alerts := event.get("alerts"):
                     for alert in alerts:
                         if alert["startedAt"] <= vehicle.last_alert:
@@ -271,6 +261,7 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
 
             def handle_errors(event: dict) -> None:
                 """Handle stream errors."""
+                LOGGER.debug("Streaming received error from %s", vehicle.vin)
                 if errors := event.get("errors"):
                     for error in errors:
                         if error["startedAt"] <= vehicle.last_error:
@@ -281,11 +272,13 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
 
             def handle_vehicle_data(data: dict) -> None:
                 """Handle vehicle data from the stream."""
+                LOGGER.debug("Streaming received vehicle_data from %s", vehicle.vin)
                 vehicle.coordinator.updated_once = True
                 vehicle.coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
 
             def handle_state(data: dict) -> None:
                 """Handle state from the stream."""
+                LOGGER.debug("Streaming received state from %s", vehicle.vin)
                 vehicle.coordinator.data["state"] = data["state"]
                 vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
 
@@ -305,7 +298,7 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                 vehicle.stream.async_add_listener(
                     handle_state,
                     {"vin": vehicle.vin, "state": None},
-                )
+                ),
             )
 
     except TeslemetryStreamVehicleNotConfigured:
