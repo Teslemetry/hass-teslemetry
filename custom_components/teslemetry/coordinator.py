@@ -29,7 +29,7 @@ VEHICLE_INTERVAL = timedelta(seconds=30)
 VEHICLE_WAIT = timedelta(minutes=15)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=30)
-ENERGY_HISTORY_INTERVAL = timedelta(minutes=5)
+ENERGY_HISTORY_INTERVAL = timedelta(seconds=30)
 
 
 ENDPOINTS = [
@@ -59,7 +59,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Vehicle",
+            name=f"Teslemetry Vehicle {api.vin}",
             update_interval=VEHICLE_INTERVAL,
         )
         self.api = api
@@ -67,7 +67,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.data = flatten(product)
         self.last_active = datetime.now()
         if (self.api.pre2021):
-            LOGGER.info("Teslemetry will let {} sleep".format(product["vin"]))
+            LOGGER.info("Teslemetry will let {} sleep".format(api.vin))
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
@@ -147,7 +147,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Energy Site Live",
+            name=f"Teslemetry Energy Site Live {api.energy_site_id}",
             update_interval=ENERGY_LIVE_INTERVAL,
         )
         self.api = api
@@ -197,7 +197,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Energy Site Info",
+            name=f"Teslemetry Energy Site Info {api.energy_site_id}",
             update_interval=ENERGY_INFO_INTERVAL,
         )
         self.api = api
@@ -239,7 +239,7 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             LOGGER,
-            name="Teslemetry Energy History",
+            name=f"Teslemetry Energy History ${api.energy_site_id}",
             update_interval=ENERGY_HISTORY_INTERVAL,
         )
         self.api = api
@@ -268,11 +268,8 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Add all time periods together
         output = {key: 0 for key in ENERGY_HISTORY_FIELDS}
-        print(data)
         for period in data.get("time_series",[]):
-            print(period)
             for key in ENERGY_HISTORY_FIELDS:
-                print(key, period.get(key))
                 output[key] += period.get(key,0)
 
         return output

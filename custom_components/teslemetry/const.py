@@ -36,7 +36,10 @@ ENERGY_HISTORY_FIELDS = [
     "consumer_energy_imported_from_battery",
     "consumer_energy_imported_from_generator",
     "total_home_usage",
-    "total_battery_discharge"
+    "total_battery_charge",
+    "total_battery_discharge",
+    "total_solar_generation",
+    "total_grid_energy_exported",
 ]
 
 class TeslemetryUpdateType(StrEnum):

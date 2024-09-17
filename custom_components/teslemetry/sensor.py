@@ -1049,12 +1049,16 @@ ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(key="version"),
 )
 
-ENERGY_HISTORY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
+
+ENERGY_HISTORY_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = (
+    TeslemetryEnergySensorEntityDescription(
         key=key,
         device_class=SensorDeviceClass.ENERGY,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_registry_enabled_default=(key.startswith("total") or key=="grid_energy_imported"),
+        value_fn=lambda x: x.get(key, 0),
     ) for key in ENERGY_HISTORY_FIELDS
 )
 
