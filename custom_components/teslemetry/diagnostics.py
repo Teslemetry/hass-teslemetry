@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
+from tesla_fleet_api.const import VERSION
 
 VEHICLE_REDACT = [
     "id",
@@ -49,4 +49,4 @@ async def async_get_config_entry_diagnostics(
     ]
 
     # Return only the relevant children
-    return {"vehicles": vehicles, "energysites": energysites, "scopes": entry.runtime_data.scopes}
+    return {"library": VERSION, "vehicles": vehicles, "energysites": energysites, "scopes": entry.runtime_data.scopes}
