@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import VehicleDataEndpoint, TeslaEnergyPeriod
+from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
     VehicleOffline,
@@ -249,7 +249,7 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update energy site data using Teslemetry API."""
 
         try:
-            data = (await self.api.energy_history(TeslaEnergyPeriod.DAY))["response"]
+            data = (await self.api.energy_history("day"))["response"]
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
         except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
