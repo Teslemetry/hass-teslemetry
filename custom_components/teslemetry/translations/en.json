@@ -65,6 +65,9 @@
       "state": {
         "name": "Status"
       },
+      "storm_mode_active": {
+        "name": "Storm watch active"
+      },
       "stream_automaticblindspotcamera": {
         "name": "AutomaticBlindSpotCamera"
       },

@@ -7,6 +7,12 @@
           "on": "mdi:hvac"
         }
       },
+      "storm_mode_active": {
+        "state": {
+          "off": "mdi:weather-sunny",
+          "on": "mdi:weather-lightning"
+        }
+      },
       "vehicle_state_is_user_present": {
         "state": {
           "off": "mdi:account-remove-outline",
