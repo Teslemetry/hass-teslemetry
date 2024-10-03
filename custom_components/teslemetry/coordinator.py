@@ -1,7 +1,9 @@
 """Teslemetry Data Coordinator."""
 
 from datetime import timedelta, datetime
+from time import time
 from typing import Any
+from random import randint
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import VehicleDataEndpoint
@@ -29,7 +31,7 @@ VEHICLE_INTERVAL = timedelta(seconds=30)
 VEHICLE_WAIT = timedelta(minutes=15)
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
 ENERGY_INFO_INTERVAL = timedelta(seconds=30)
-ENERGY_HISTORY_INTERVAL = timedelta(seconds=30)
+ENERGY_HISTORY_INTERVAL = timedelta(minutes=5)
 
 
 ENDPOINTS = [
@@ -201,7 +203,6 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             update_interval=ENERGY_INFO_INTERVAL,
         )
         self.api = api
-
         self.data = product
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -239,11 +240,23 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             LOGGER,
-            name=f"Teslemetry Energy History ${api.energy_site_id}",
+            name=f"Teslemetry Energy History {api.energy_site_id}",
             update_interval=ENERGY_HISTORY_INTERVAL,
         )
         self.api = api
         self.data = {key: 0 for key in ENERGY_HISTORY_FIELDS}
+
+    async def async_config_entry_first_refresh(self) -> None:
+        """Set up the data coordinator."""
+        await super().async_config_entry_first_refresh()
+
+        # Calculate seconds until next 5 minute period plus a random delay
+        delta = randint(310, 330) - (int(time()) % 300)
+        self.logger.debug("Scheduling next %s refresh in %s seconds", self.name, delta)
+        self.refresh_interval = timedelta(seconds=delta)
+        self._schedule_refresh()
+        self.refresh_interval = ENERGY_HISTORY_INTERVAL
+
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update energy site data using Teslemetry API."""
@@ -253,18 +266,16 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
         except (InternalServerError, ServiceUnavailable, GatewayTimeout, DeviceUnexpectedResponse) as e:
+            # Allow the coordinator to be slightly fault tolerant
             self.failures += 1
             if self.failures > 2:
                 raise UpdateFailed("Multiple 5xx failures") from e
+            #self.update_interval(ENERGY_HISTORY_INTERVAL)
             return self.data
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
-
-        # If the data isnt valid, placeholder it for safety
-        if(not isinstance(data, dict)):
-            data = {}
 
         # Add all time periods together
         output = {key: 0 for key in ENERGY_HISTORY_FIELDS}

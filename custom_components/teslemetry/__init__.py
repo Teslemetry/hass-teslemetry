@@ -115,6 +115,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create array of classes
     vehicles: list[TeslemetryVehicleData] = []
     energysites: list[TeslemetryEnergyData] = []
+
+    # Create a single stream instance
+    try:
+        stream = TeslemetryStream(
+            session, access_token, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
+        )
+    except TeslemetryStreamError:
+        LOGGER.warn("Failed to setup Teslemetry streaming", e)
+
     for product in products:
         if "vin" in product and Scope.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
@@ -122,9 +131,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
-            stream = TeslemetryStream(
-                session, access_token, vin=vin, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
-            )
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -240,7 +246,7 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
     try:
         async with rate_limit:
             # Ensure the vehicle is configured for streaming
-            await vehicle.stream.get_config()
+            await vehicle.stream.get_config(vehicle.vin)
 
             try:
                 # Enable server side polling
