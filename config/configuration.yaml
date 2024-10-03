@@ -8,5 +8,5 @@ logger:
   default: info
   logs:
     custom_components.teslemetry: debug
-    tesla_fleet_api: debug
+    tesla_fleet_api: info
     teslemetry_stream: debug
