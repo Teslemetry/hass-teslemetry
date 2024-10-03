@@ -75,8 +75,6 @@ WallConnectorStates = {
 
 ShiftStates = {"P": "p", "D": "d", "R": "r", "N": "n"}
 
-IslandStates = ["on_grid","off_grid","off_grid_intentionally","off_grid_unintentional","island_status_unknown"]
-
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
@@ -1009,7 +1007,13 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = 
     TeslemetryEnergySensorEntityDescription(
         key="island_status",
         device_class=SensorDeviceClass.ENUM,
-        options=IslandStates
+        options=[
+            "on_grid",
+            "off_grid",
+            "off_grid_intentional",
+            "off_grid_unintentional",
+            "island_status_unknown",
+        ]
     ),
 )
 
