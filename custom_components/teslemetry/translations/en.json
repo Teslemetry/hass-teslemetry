@@ -919,6 +919,59 @@
       }
     }
   },
+  "exceptions": {
+    "command_error": {
+      "message": "Command returned error: {error}"
+    },
+    "command_exception": {
+      "message": "Command returned exception: {message}"
+    },
+    "command_no_result": {
+      "message": "Command had no result"
+    },
+    "command_no_response": {
+      "message": "Command had no response"
+    },
+    "command_reason": {
+      "message": "Command was rejected: {reason}"
+    },
+    "invalid_cop_temp": {
+      "message": "Cabin overheat protection does not support that temperature"
+    },
+    "invalid_device": {
+      "message": "Invalid device ID: {device_id}"
+    },
+    "missing_scope": {
+      "message": "Missing required scope: {scope}"
+    },
+    "no_cable": {
+      "message": "Charge cable will lock automatically when connected"
+    },
+    "no_config_entry_for_device": {
+      "message": "No config entry for device ID: {device_id}"
+    },
+    "no_energy_site_data_for_device": {
+      "message": "No energy site data for device ID: {device_id}"
+    },
+    "no_vehicle_data_for_device": {
+      "message": "No vehicle data for device ID: {device_id}"
+    },
+    "set_scheduled_charging_time": {
+      "message": "Time required to complete the operation"
+    },
+    "set_scheduled_departure_off_peak": {
+      "message": "To enable scheduled departure, end off peak time is required."
+    },
+    "set_scheduled_departure_preconditioning": {
+      "message": "Departure time required to enable preconditioning"
+    },
+    "wake_up_failed": {
+      "message": "Failed to wake up vehicle: {message}"
+    },
+    "wake_up_timeout": {
+      "message": "Timed out trying to wake up vehicle"
+    }
+  },
   "issues": {
     "subscription_required": {
       "fix_flow": {

@@ -122,12 +122,14 @@ class TeslemetryEntity(
         """Return True if a specific value is in coordinator data."""
         return (key or self.key) in self.coordinator.data
 
-    def raise_for_scope(self):
+    def raise_for_scope(self, scope: Scope):
         """Raise an error if a scope is not available."""
         if not self.scoped:
-            raise ServiceValidationError(
-                f"Missing required scope: {' or '.join(self.entity_description.scopes)}"
-            )
+             raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="missing_scope",
+                translation_placeholders={"scope": scope},
+             )
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a command."""

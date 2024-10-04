@@ -308,7 +308,10 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
             elif temp == 40:
                 cop_mode = CabinOverheatProtectionTemp.HIGH
             else:
-                raise ServiceValidationError("Invalid temperature")
+                raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_cop_temp",
+            )
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(self.api.set_cop_temp(cop_mode))
