@@ -4,7 +4,7 @@ from typing import Any
 from time import time
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import TelemetryField
+from tesla_fleet_api.const import TelemetryField, Scope
 
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
