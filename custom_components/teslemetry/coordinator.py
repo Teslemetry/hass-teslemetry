@@ -253,9 +253,9 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Calculate seconds until next 5 minute period plus a random delay
         delta = randint(310, 330) - (int(time()) % 300)
         self.logger.debug("Scheduling next %s refresh in %s seconds", self.name, delta)
-        self.refresh_interval = timedelta(seconds=delta)
+        self.update_interval = timedelta(seconds=delta)
         self._schedule_refresh()
-        self.refresh_interval = ENERGY_HISTORY_INTERVAL
+        self.update_interval = ENERGY_HISTORY_INTERVAL
 
 
     async def _async_update_data(self) -> dict[str, Any]:

@@ -1,6 +1,7 @@
 """The Teslemetry integration models."""
 
 from __future__ import annotations
+from collections.abc import Callable
 from homeassistant.util import dt as dt_util
 from tesla_fleet_api import Teslemetry
 import asyncio
@@ -43,7 +44,7 @@ class TeslemetryVehicleData:
     wakelock = asyncio.Lock()
     last_alert: str = dt_util.utcnow().isoformat()
     last_error: str = dt_util.utcnow().isoformat()
-    remove_listeners: tuple[callable] = ()
+    remove_listeners: tuple[Callable] = ()
 
 
 @dataclass
