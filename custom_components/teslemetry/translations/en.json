@@ -476,6 +476,9 @@
           "off_grid_unintentional": "Off grid unintentional"
         }
       },
+      "grid_status": {
+        "name": "Grid status"
+      },
       "load_power": {
         "name": "Load power"
       },
