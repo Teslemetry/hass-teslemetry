@@ -1054,7 +1054,7 @@ ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
 )
 
 
-ENERGY_HISTORY_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = (
+ENERGY_HISTORY_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = tuple(
     TeslemetryEnergySensorEntityDescription(
         key=key,
         device_class=SensorDeviceClass.ENERGY,
@@ -1071,7 +1071,6 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
-
 
     async_add_entities(
         chain(
@@ -1119,8 +1118,7 @@ async def async_setup_entry(
                 TeslemetryEnergyHistorySensorEntity(energysite, description)
                 for energysite in entry.runtime_data.energysites
                 for description in ENERGY_HISTORY_DESCRIPTIONS
-                if energysite.info_coordinator.data.get("components_battery")
-                or energysite.info_coordinator.data.get("components_solar")
+                if energysite.history_coordinator is not None
             ),
             (  # Add alert event sensor
                 TeslemetryVehicleEventEntity(vehicle, "alerts")
@@ -1372,6 +1370,8 @@ class TeslemetryEnergyHistorySensorEntity(TeslemetryEnergyHistoryEntity, SensorE
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
+
+        print(f"TeslemetryEnergyHistorySensorEntity {description.key}")
 
         self.entity_description = description
         super().__init__(data, description.key)

@@ -54,6 +54,6 @@ class TeslemetryEnergyData:
     api: EnergySpecific
     live_coordinator: TeslemetryEnergySiteLiveCoordinator
     info_coordinator: TeslemetryEnergySiteInfoCoordinator
-    history_coordinator: TeslemetryEnergyHistoryCoordinator
     id: int
     device: DeviceInfo
+    history_coordinator: TeslemetryEnergyHistoryCoordinator | None = None

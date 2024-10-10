@@ -179,7 +179,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     api=api,
                     live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
                     info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api, product),
-                    history_coordinator=TeslemetryEnergyHistoryCoordinator(hass, api),
+                    history_coordinator=None,
                     id=site_id,
                     device=device,
                 )
@@ -203,11 +203,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
-        *(
-            energysite.history_coordinator.async_config_entry_first_refresh()
-            for energysite in energysites
-        ),
+
     )
+
+    for energysite in energysites:
+        if energysite.info_coordinator.data.get("components_solar") or energysite.info_coordinator.data.get("components_battery"):
+            history_coordinator = TeslemetryEnergyHistoryCoordinator(hass, energysite.api)
+            energysite.history_coordinator = history_coordinator
+            LOGGER.debug("Setting up history coordinator for %s", energysite.id)
+            hass.async_create_task(history_coordinator.async_config_entry_first_refresh())
+
+
+
 
     # Enrich devices
     for energysite in energysites:
