@@ -153,11 +153,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
-            if(not (
-                product['components']['battery'] or
-                product['components']['solar'] or
-                "wall_connectors" in product['components']
-            )):
+            powerwall = product['components']['battery'] or product['components']['solar']
+            wallconnector = "wall_connectors" in product['components']
+            if(not powerwall and not wallconnector):
                 LOGGER.debug("Skipping Energy Site %s as it has no components", product["energy_site_id"])
                 continue
 
@@ -179,7 +177,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     api=api,
                     live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
                     info_coordinator=TeslemetryEnergySiteInfoCoordinator(hass, api, product),
-                    history_coordinator=None,
+                    history_coordinator=TeslemetryEnergyHistoryCoordinator(hass, api) if powerwall else None,
                     id=site_id,
                     device=device,
                 )
@@ -203,18 +201,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
+        *(
+            energysite.history_coordinator.async_config_entry_first_refresh()
+            for energysite in energysites
+            if energysite.history_coordinator
+        )
 
     )
-
-    for energysite in energysites:
-        if energysite.info_coordinator.data.get("components_solar") or energysite.info_coordinator.data.get("components_battery"):
-            history_coordinator = TeslemetryEnergyHistoryCoordinator(hass, energysite.api)
-            energysite.history_coordinator = history_coordinator
-            LOGGER.debug("Setting up history coordinator for %s", energysite.id)
-            hass.async_create_task(history_coordinator.async_config_entry_first_refresh())
-
-
-
 
     # Enrich devices
     for energysite in energysites:
