@@ -225,7 +225,7 @@ class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
 
 
 class TeslemetryStormModeSwitchEntity(
-    TeslemetryEnergyLiveEntity, TeslemetrySwitchEntity
+    TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
 ):
     """Entity class for Storm Watch switch."""
 
