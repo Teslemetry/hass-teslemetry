@@ -1375,8 +1375,6 @@ class TeslemetryEnergyHistorySensorEntity(TeslemetryEnergyHistoryEntity, SensorE
     ) -> None:
         """Initialize the sensor."""
 
-        print(f"TeslemetryEnergyHistorySensorEntity {description.key}")
-
         self.entity_description = description
         super().__init__(data, description.key)
 
