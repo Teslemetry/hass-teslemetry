@@ -31,6 +31,7 @@ from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
+from .const import TeslemetryState
 from .helpers import flatten
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_register_services
@@ -243,6 +244,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicle: TeslemetryVehicleData):
     """Setup stream for vehicle."""
     LOGGER.debug("Stream Starting Up")
+
+    # This whole section needs to be refacted to match what is being implemented into core
+
     try:
         async with rate_limit:
             # Ensure the vehicle is configured for streaming
@@ -288,6 +292,15 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                 vehicle.coordinator.data["state"] = data["state"]
                 vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
 
+            def handle_connectivity(data: dict) -> None:
+                """Handle status from the stream."""
+                LOGGER.debug("Streaming received connectivity from %s to %s", vehicle.vin, data["status"])
+                if data["status"] == "CONNECTED":
+                    vehicle.coordinator.data["state"] = TeslemetryState.ONLINE
+                elif data["status"] == "DISCONNECTED":
+                    vehicle.coordinator.data["state"] = TeslemetryState.OFFLINE
+                vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
+
             vehicle.remove_listeners = (
                 vehicle.stream.async_add_listener(
                     handle_alerts,
@@ -304,6 +317,10 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                 vehicle.stream.async_add_listener(
                     handle_state,
                     {"vin": vehicle.vin, "state": None},
+                ),
+                vehicle.stream.async_add_listener(
+                    handle_connectivity,
+                    {"vin": vehicle.vin, "status": None},
                 ),
             )
 
