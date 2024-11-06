@@ -113,6 +113,6 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
     def location_name(self) -> str | None:
         """Return a location name for the current location of the device."""
         location = self.get("drive_state_active_route_destination")
-        if location === "Home":
+        if location == "Home":
             return STATE_HOME
         return location
