@@ -21,7 +21,8 @@ from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 from .helpers import auto_type
 
-
+CLOSED = 0
+OPEN = 1
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -81,10 +82,10 @@ class TeslemetryWindowEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
         rp = self.get("vehicle_state_rp_window")
 
         # Any open set to open
-        if TeslemetryCoverStates.OPEN in (fd, fp, rd, rp):
+        if OPEN in (fd, fp, rd, rp):
             self._attr_is_closed = False
         # All closed set to closed
-        elif TeslemetryCoverStates.CLOSED == fd == fp == rd == rp:
+        elif CLOSED == fd == fp == rd == rp:
             self._attr_is_closed = True
         # Otherwise, set to unknown
         else:
@@ -169,7 +170,7 @@ class TeslemetryFrontTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        self._attr_is_closed = self.exactly(TeslemetryCoverStates.CLOSED)
+        self._attr_is_closed = self.exactly(CLOSED)
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
@@ -197,13 +198,7 @@ class TeslemetryRearTrunkEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        value = self._value
-        if value == TeslemetryCoverStates.CLOSED:
-            self._attr_is_closed = True
-        elif value == TeslemetryCoverStates.OPEN:
-            self._attr_is_closed = False
-        else:
-            self._attr_is_closed = None
+        self._attr_is_closed = self.exactly(CLOSED)
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
