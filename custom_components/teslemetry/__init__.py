@@ -318,10 +318,10 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                     handle_state,
                     {"vin": vehicle.vin, "state": None},
                 ),
-                vehicle.stream.async_add_listener(
-                    handle_connectivity,
-                    {"vin": vehicle.vin, "status": None},
-                ),
+                #vehicle.stream.async_add_listener(
+                #    handle_connectivity,
+                #    {"vin": vehicle.vin, "status": None},
+                #),
             )
 
     except TeslemetryStreamVehicleNotConfigured:
