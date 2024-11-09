@@ -69,28 +69,28 @@
         "name": "Storm watch active"
       },
       "stream_automaticblindspotcamera": {
-        "name": "AutomaticBlindSpotCamera"
+        "name": "Automatic Blind Spot Camera"
       },
       "stream_automaticemergencybrakingoff": {
-        "name": "AutomaticEmergencyBrakingOff"
+        "name": "Automatic Emergency Braking Off"
       },
       "stream_blindspotcollisionwarningchime": {
-        "name": "BlindSpotCollisionWarningChime"
+        "name": "Blind Spot Collision Warning Chime"
       },
       "stream_bmsfullchargecomplete": {
-        "name": "BmsFullchargecomplete"
+        "name": "BMS Full Charge"
       },
       "stream_brakepedal": {
-        "name": "BrakePedal"
+        "name": "Brake Pedal"
       },
       "stream_chargeenablerequest": {
-        "name": "ChargeEnableRequest"
+        "name": "Charge Enable Request"
       },
       "stream_chargeportcoldweathermode": {
-        "name": "ChargePortColdWeatherMode"
+        "name": "Charge Port Cold Weather Mode"
       },
       "stream_servicemode": {
-        "name": "ServiceMode"
+        "name": "Service Mode"
       },
       "vehicle_state_dashcam_state": {
         "name": "Dashcam"
@@ -489,265 +489,265 @@
         "name": "Solar power"
       },
       "stream_bmsstate": {
-        "name": "BMSState"
+        "name": "BMS State"
       },
       "stream_brakepedalpos": {
-        "name": "BrakePedalPos"
+        "name": "Brake Pedal Position"
       },
       "stream_brickvoltagemax": {
-        "name": "BrickVoltageMax"
+        "name": "Brick Voltage Max"
       },
       "stream_brickvoltagemin": {
-        "name": "BrickVoltageMin"
+        "name": "Brick Voltage Min"
       },
       "stream_cartype": {
-        "name": "CarType"
+        "name": "Car Type"
       },
       "stream_chargecurrentrequestmax": {
-        "name": "ChargeCurrentRequestMax"
+        "name": "Charge Current Request Max"
       },
       "stream_chargeport": {
-        "name": "ChargePort"
+        "name": "Charge Port"
       },
       "stream_cruisefollowdistance": {
-        "name": "CruiseFollowDistance"
+        "name": "Cruise Distance"
       },
       "stream_cruisesetspeed": {
-        "name": "CruiseSetSpeed"
+        "name": "Cruise Speed"
       },
       "stream_cruisestate": {
-        "name": "CruiseState"
+        "name": "Cruise State"
       },
       "stream_dcchargingenergyin": {
-        "name": "DCChargingEnergyIn"
+        "name": "DC Charging In"
       },
       "stream_dcchargingpower": {
-        "name": "DCChargingPower"
+        "name": "DC Charging Power"
       },
       "stream_dcdcenable": {
-        "name": "DCDCEnable"
+        "name": "DCDC Enable"
       },
       "stream_destinationlocation": {
-        "name": "DestinationLocation"
+        "name": "Destination Location"
       },
       "stream_diaxlespeedf": {
-        "name": "DiAxleSpeedF"
+        "name": "Front DU Axle Speed"
       },
       "stream_diaxlespeedr": {
-        "name": "DiAxleSpeedR"
+        "name": "Rear DU Axle Speed"
       },
       "stream_diaxlespeedrel": {
-        "name": "DiAxleSpeedREL"
+        "name": "Rear Left DU Axle Speed "
       },
       "stream_diaxlespeedrer": {
-        "name": "DiAxleSpeedRER"
+        "name": "Rear Right DU Axle Speed"
       },
       "stream_diheatsinktf": {
-        "name": "DiHeatsinkTF"
+        "name": "Front DI Heatsink Temperature"
       },
       "stream_diheatsinktr": {
-        "name": "DiHeatsinkTR"
+        "name": "Rear DI Heatsink Temperature"
       },
       "stream_diheatsinktrel": {
-        "name": "DiHeatsinkTREL"
+        "name": "Rear Left DI Heatsink Temperature"
       },
       "stream_diheatsinktrer": {
-        "name": "DiHeatsinkTRER"
+        "name": "Rear Right DI Heatsink Temperature"
       },
       "stream_dimotorcurrentf": {
-        "name": "DiMotorCurrentF"
+        "name": "Front DI Current"
       },
       "stream_dimotorcurrentr": {
-        "name": "DiMotorCurrentR"
+        "name": "Rear DI Current"
       },
       "stream_dimotorcurrentrel": {
-        "name": "DiMotorCurrentREL"
+        "name": "Rear Left DI Current"
       },
       "stream_dimotorcurrentrer": {
-        "name": "DiMotorCurrentRER"
+        "name": "Rear Right DI Current"
       },
       "stream_dislavetorquecmd": {
         "name": "DiSlaveTorqueCmd"
       },
       "stream_distatef": {
-        "name": "DiStateF"
+        "name": "Front DI State"
       },
       "stream_distater": {
-        "name": "DiStateR"
+        "name": "Rear DI State"
       },
       "stream_distaterel": {
-        "name": "DiStateREL"
+        "name": "Rear Left DI State"
       },
       "stream_distaterer": {
-        "name": "DiStateRER"
+        "name": "Rear Right DI State"
       },
       "stream_distatortempf": {
-        "name": "DiStatorTempF"
+        "name": "Front DU Stator Temperature"
       },
       "stream_distatortempr": {
-        "name": "DiStatorTempR"
+        "name": "Rear DU Stator Temperature"
       },
       "stream_distatortemprel": {
-        "name": "DiStatorTempREL"
+        "name": "Rear Left DU Stator Temperature"
       },
       "stream_distatortemprer": {
-        "name": "DiStatorTempRER"
+        "name": "Rear Right DU Stator Temperature"
       },
       "stream_ditorqueactualf": {
-        "name": "DiTorqueActualF"
+        "name": "Front DU Torque"
       },
       "stream_ditorqueactualr": {
-        "name": "DiTorqueActualR"
+        "name": "Rear DU Torque"
       },
       "stream_ditorqueactualrel": {
-        "name": "DiTorqueActualREL"
+        "name": "Rear Left DU Torque"
       },
       "stream_ditorqueactualrer": {
-        "name": "DiTorqueActualRER"
+        "name": "Rear Right DU Torque"
       },
       "stream_ditorquemotor": {
         "name": "DiTorquemotor"
       },
       "stream_divbatf": {
-        "name": "DiVBatF"
+        "name": "Front DI Voltage"
       },
       "stream_divbatr": {
-        "name": "DiVBatR"
+        "name": "Rear DI Voltage"
       },
       "stream_divbatrel": {
-        "name": "DiVBatREL"
+        "name": "Rear Left DI Voltage"
       },
       "stream_divbatrer": {
-        "name": "DiVBatRER"
+        "name": "Rear Right DI Voltage"
       },
       "stream_doorstate": {
-        "name": "DoorState"
+        "name": "Door State"
       },
       "stream_driverail": {
-        "name": "DriveRail"
+        "name": "Drive Rail"
       },
       "stream_driverseatbelt": {
-        "name": "DriverSeatBelt"
+        "name": "Driver Seat Belt"
       },
       "stream_driverseatoccupied": {
-        "name": "DriverSeatOccupied"
+        "name": "Driver Seat Occupied"
       },
       "stream_emergencylanedepartureavoidance": {
-        "name": "EmergencyLaneDepartureAvoidance"
+        "name": "Emergency Lane Departure Avoidance"
       },
       "stream_energyremaining": {
-        "name": "EnergyRemaining"
+        "name": "Pack Remaining"
       },
       "stream_fastchargerpresent": {
-        "name": "FastChargerPresent"
+        "name": "Fast Charger Present"
       },
       "stream_forwardcollisionwarning": {
-        "name": "ForwardCollisionWarning"
+        "name": "Forward Collision Warning"
       },
       "stream_gpsheading": {
-        "name": "GpsHeading"
+        "name": "Heading"
       },
       "stream_gpsstate": {
-        "name": "GpsState"
+        "name": "GPS State"
       },
       "stream_guestmodeenabled": {
-        "name": "GuestModeEnabled"
+        "name": "Guest Mode Enabled"
       },
       "stream_guestmodemobileaccessstate": {
-        "name": "GuestModeMobileAccessState"
+        "name": "Guest Mode State"
       },
       "stream_hvil": {
-        "name": "Hvil"
+        "name": "HVIL"
       },
       "stream_isolationresistance": {
-        "name": "IsolationResistance"
+        "name": "Isolation Resistance"
       },
       "stream_lanedepartureavoidance": {
-        "name": "LaneDepartureAvoidance"
+        "name": "Lane Departure Avoidance"
       },
       "stream_lateralacceleration": {
-        "name": "LateralAcceleration"
+        "name": "Lateral Acceleration"
       },
       "stream_lifetimeenergygainedregen": {
-        "name": "LifetimeEnergyGainedRegen"
+        "name": "Lifetime Energy Gained Regen"
       },
       "stream_lifetimeenergyused": {
-        "name": "LifetimeEnergyUsed"
+        "name": "Lifetime Energy Used"
       },
       "stream_lifetimeenergyuseddrive": {
-        "name": "LifetimeEnergyUsedDrive"
+        "name": "Lifetime Energy Used Drive"
       },
       "stream_longitudinalacceleration": {
-        "name": "LongitudinalAcceleration"
+        "name": "Longitudinal Acceleration"
       },
       "stream_moduletempmax": {
-        "name": "ModuleTempMax"
+        "name": "Module Temperature Maximum"
       },
       "stream_moduletempmin": {
-        "name": "ModuleTempMin"
+        "name": "Module Temperature Minimum"
       },
       "stream_notenoughpowertoheat": {
-        "name": "NotEnoughPowerToHeat"
+        "name": "Not Enough Power To Heat"
       },
       "stream_numbrickvoltagemax": {
-        "name": "NumBrickVoltageMax"
+        "name": "Brick Number Voltage Maximum"
       },
       "stream_numbrickvoltagemin": {
-        "name": "NumBrickVoltageMin"
+        "name": "Brick Number Voltage Minimum"
       },
       "stream_nummoduletempmax": {
-        "name": "NumModuleTempMax"
+        "name": "Module Number Temperature Maximum"
       },
       "stream_nummoduletempmin": {
-        "name": "NumModuleTempMin"
+        "name": "Module Number Temperature Minimum"
       },
       "stream_originlocation": {
-        "name": "OriginLocation"
+        "name": "Origin Location"
       },
       "stream_packcurrent": {
-        "name": "PackCurrent"
+        "name": "Pack Current"
       },
       "stream_packvoltage": {
-        "name": "PackVoltage"
+        "name": "Pack Voltage"
       },
       "stream_pairedphonekeyandkeyfobqty": {
-        "name": "PairedPhoneKeyAndKeyFobQty"
+        "name": "Number of paired Keys"
       },
       "stream_passengerseatbelt": {
-        "name": "PassengerSeatBelt"
+        "name": "Passenger Seat Belt"
       },
       "stream_pedalposition": {
-        "name": "PedalPosition"
+        "name": "Pedal Position"
       },
       "stream_pintodriveenabled": {
-        "name": "PinToDriveEnabled"
+        "name": "Pin To Drive Enabled"
       },
       "stream_ratedrange": {
-        "name": "RatedRange"
+        "name": "Rated Range"
       },
       "stream_routelastupdated": {
-        "name": "RouteLastUpdated"
+        "name": "Route Last Updated"
       },
       "stream_routeline": {
-        "name": "RouteLine"
+        "name": "Route Line"
       },
       "stream_sentrymode": {
         "name": "Sentry Mode"
       },
       "stream_soc": {
-        "name": "Soc"
+        "name": "SoC"
       },
       "stream_speedlimitwarning": {
-        "name": "SpeedLimitWarning"
+        "name": "Speed Limit Warning"
       },
       "stream_superchargersessiontripplanner": {
-        "name": "SuperchargerSessionTripPlanner"
+        "name": "Supercharger Session Trip Planner"
       },
       "stream_trim": {
         "name": "Trim"
       },
       "stream_vehiclename": {
-        "name": "VehicleName"
+        "name": "Vehicle Name"
       },
       "stream_version": {
         "name": "Version"
