@@ -285,6 +285,219 @@
       },
       "solar_energy_exported": {
         "default": "mdi:solar-power-variant"
+      },
+      "stream_bmsstate": {
+        "default": "mdi:battery-sync"
+      },
+      "stream_brakepedalpos": {
+        "default": "mdi:car-brake-alert"
+      },
+      "stream_brickvoltagemax": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "stream_brickvoltagemin": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "stream_cartype": {
+        "default": "mdi:car"
+      },
+      "stream_chargeport": {
+        "default": "mdi:ev-plug-tesla"
+      },
+      "stream_cruisefollowdistance": {
+        "default": "mdi:car-cruise-control"
+      },
+      "stream_cruisesetspeed": {
+        "default": "mdi:car-cruise-control"
+      },
+      "stream_cruisestate": {
+        "default": "mdi:car-cruise-control"
+      },
+      "stream_dcchargingenergyin": {
+        "default": "mdi:lightning-bolt"
+      },
+      "stream_dcchargingpower": {
+        "default": "mdi:flash"
+      },
+      "stream_dcdcenable": {
+        "default": "mdi:flash-triangle"
+      },
+      "stream_destinationlocation": {
+        "default": "mdi:map-marker"
+      },
+      "stream_diaxlespeedf": {
+        "default": "mdi:speedometer"
+      },
+      "stream_diaxlespeedr": {
+        "default": "mdi:speedometer"
+      },
+      "stream_diaxlespeedrel": {
+        "default": "mdi:speedometer"
+      },
+      "stream_diaxlespeedrer": {
+        "default": "mdi:speedometer"
+      },
+      "stream_diheatsinktf": {
+        "default": "mdi:radiator"
+      },
+      "stream_diheatsinktr": {
+        "default": "mdi:radiator"
+      },
+      "stream_diheatsinktrel": {
+        "default": "mdi:radiator"
+      },
+      "stream_diheatsinktrer": {
+        "default": "mdi:radiator"
+      },
+      "stream_dimotorcurrentf": {
+        "default": "mdi:current-dc"
+      },
+      "stream_dimotorcurrentr": {
+        "default": "mdi:current-dc"
+      },
+      "stream_dimotorcurrentrel": {
+        "default": "mdi:current-dc"
+      },
+      "stream_dimotorcurrentrer": {
+        "default": "mdi:current-dc"
+      },
+      "stream_distatef": {
+        "default": "mdi:car-info"
+      },
+      "stream_distater": {
+        "default": "mdi:car-info"
+      },
+      "stream_distaterel": {
+        "default": "mdi:car-info"
+      },
+      "stream_distaterer": {
+        "default": "mdi:car-info"
+      },
+      "stream_distatortempf": {
+        "default": "mdi:coolant-temperature"
+      },
+      "stream_distatortempr": {
+        "default": "mdi:coolant-temperature"
+      },
+      "stream_distatortemprel": {
+        "default": "mdi:coolant-temperature"
+      },
+      "stream_distatortemprer": {
+        "default": "mdi:coolant-temperature"
+      },
+      "stream_divbatf": {
+        "default": "mdi:battery-check"
+      },
+      "stream_divbatr": {
+        "default": "mdi:battery-check"
+      },
+      "stream_divbatrel": {
+        "default": "mdi:battery-check"
+      },
+      "stream_divbatrer": {
+        "default": "mdi:battery-check"
+      },
+      "stream_doorstate": {
+        "default": "mdi:car-door"
+      },
+      "stream_driverail": {
+        "default": "mdi:flash-triangle"
+      },
+      "stream_driverseatbelt": {
+        "default": "mdi:seatbelt"
+      },
+      "stream_driverseatoccupied": {
+        "default": "mdi:car-seat"
+      },
+      "stream_emergencylanedepartureavoidance": {
+        "default": "mdi:road-variant"
+      },
+      "stream_energyremaining": {
+        "default": "mdi:lightning-bolt"
+      },
+      "stream_fastchargerpresent": {
+        "default": "mdi:ev-plug-tesla"
+      },
+      "stream_forwardcollisionwarning": {
+        "default": "mdi:car-multiple"
+      },
+      "stream_gpsstate": {
+        "default": "mdi:crosshairs-gps"
+      },
+      "stream_guestmodeenabled": {
+        "default": "mdi:account-clock"
+      },
+      "stream_guestmodemobileaccessstate": {
+        "default": "mdi:account-clock"
+      },
+      "stream_hvil": {
+        "default": "mdi:flash-triangle"
+      },
+      "stream_isolationresistance": {
+        "default": "mdi:resistor"
+      },
+      "stream_lanedepartureavoidance": {
+        "default": "mdi:road-variant"
+      },
+      "stream_lateralacceleration": {
+        "default": "mdi:axis-arrow"
+      },
+      "stream_longitudinalacceleration": {
+        "default": "mdi:axis-arrow"
+      },
+      "stream_moduletempmax": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "stream_moduletempmin": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "stream_notenoughpowertoheat": {
+        "default": "mdi:radiator-off"
+      },
+      "stream_numbrickvoltagemax": {
+        "default": "mdi:battery-plus"
+      },
+      "stream_numbrickvoltagemin": {
+        "default": "mdi:battery-minus"
+      },
+      "stream_nummoduletempmax": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "stream_nummoduletempmin": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "stream_originlocation": {
+        "default": "mdi:map-marker"
+      },
+      "stream_packcurrent": {
+        "default": "mdi:battery-clock"
+      },
+      "stream_packvoltage": {
+        "default": "mdi:sine-wave"
+      },
+      "stream_pairedphonekeyandkeyfobqty": {
+        "default": "mdi:cellphone-key"
+      },
+      "stream_passengerseatbelt": {
+        "default": "mdi:seatbelt"
+      },
+      "stream_pintodriveenabled": {
+        "default": "mdi:car-key"
+      },
+      "stream_ratedrange": {
+        "default": "mdi:arrow-left-right"
+      },
+      "stream_routelastupdated": {
+        "default": "mdi:map-clock"
+      },
+      "stream_routeline": {
+        "default": "mdi:map"
+      },
+      "stream_soc": {
+        "default": "mdi:battery"
+      },
+      "stream_speedlimitwarning": {
+        "default": "mdi:car-speed-limiter"
       }
     },
     "switch": {
