@@ -787,6 +787,7 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         key=TelemetryField.ISOLATION_RESISTANCE,
         value_fn=lambda x: float(x),
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         entity_registry_enabled_default=False,
     ),
     TeslemetryStreamSensorEntityDescription(
