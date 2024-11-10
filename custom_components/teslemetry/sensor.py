@@ -1175,7 +1175,8 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
         self._attr_available = True
-        self._attr_native_value = self.entity_description.value_fn(auto_type(value))
+        if value := auto_type(value) is not None:
+            self._attr_native_value = self.entity_description.value_fn(value)
 
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
