@@ -485,9 +485,6 @@
       "stream_cruisesetspeed": {
         "name": "CruiseSetSpeed"
       },
-      "stream_cruisestate": {
-        "name": "CruiseState"
-      },
       "stream_dcchargingenergyin": {
         "name": "DCChargingEnergyIn"
       },

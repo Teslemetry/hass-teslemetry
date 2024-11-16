@@ -174,7 +174,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
         # If the data isnt valid, placeholder it for safety
         if(not isinstance(data, dict)):
-            data = {}
+            return {}
 
         self.hass.bus.fire("teslemetry_live_status", data)
 

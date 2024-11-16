@@ -443,9 +443,6 @@
       "stream_cruisesetspeed": {
         "name": "CruiseSetSpeed"
       },
-      "stream_cruisestate": {
-        "name": "CruiseState"
-      },
       "stream_currentlimitmph": {
         "name": "CurrentLimitMph"
       },

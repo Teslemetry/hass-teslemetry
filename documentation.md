@@ -98,7 +98,6 @@
 |Vehicle|Sensor|Charging|Both|Yes|
 |Vehicle|Sensor|CruiseFollowDistance|Streaming|No|
 |Vehicle|Sensor|CruiseSetSpeed|Streaming|No|
-|Vehicle|Sensor|CruiseState|Streaming|No|
 |Vehicle|Sensor|DCChargingEnergyIn|Streaming|No|
 |Vehicle|Sensor|DCChargingPower|Streaming|No|
 |Vehicle|Sensor|DCDCEnable|Streaming|No|

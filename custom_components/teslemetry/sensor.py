@@ -523,10 +523,6 @@ VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...]
         native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,  # Might be dynamic
     ),
     TeslemetryStreamSensorEntityDescription(
-        key=TelemetryField.CRUISE_STATE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.DC_CHARGING_ENERGY_IN,
         entity_registry_enabled_default=False,
     ),

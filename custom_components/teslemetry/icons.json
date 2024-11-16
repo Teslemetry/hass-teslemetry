@@ -310,9 +310,6 @@
       "stream_cruisesetspeed": {
         "default": "mdi:car-cruise-control"
       },
-      "stream_cruisestate": {
-        "default": "mdi:car-cruise-control"
-      },
       "stream_dcchargingenergyin": {
         "default": "mdi:lightning-bolt"
       },
