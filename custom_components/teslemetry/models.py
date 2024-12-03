@@ -21,6 +21,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 
+from .helpers import AddStreamFields
 
 @dataclass
 class TeslemetryData:
@@ -41,6 +42,7 @@ class TeslemetryVehicleData:
     stream: TeslemetryStream
     vin: str
     device: DeviceInfo
+    fields: AddStreamFields
     wakelock = asyncio.Lock()
     last_alert: str = dt_util.utcnow().isoformat()
     last_error: str = dt_util.utcnow().isoformat()

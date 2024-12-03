@@ -4,7 +4,7 @@ import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
-from tesla_fleet_api.const import Scope
+from tesla_fleet_api.const import Scope, TelemetryField
 from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
@@ -32,7 +32,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .const import TeslemetryState
-from .helpers import flatten
+from .helpers import flatten, AddStreamFields
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_register_services
 
@@ -72,6 +72,8 @@ class HandleVehicleState:
         """Handle state from the stream."""
         self.coordinator.data["state"] = data["state"]
         self.coordinator.async_set_updated_data(self.coordinator.data)
+
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
@@ -132,6 +134,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            fields = AddStreamFields(stream, vin)
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -144,6 +147,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
 
+            # A function to collect multiple stream field updates before sending them
+
+
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
@@ -151,6 +157,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     vin=vin,
                     device=device,
+                    fields=fields,
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -274,11 +281,11 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                 LOGGER.debug("Streaming received error from %s", vehicle.vin)
                 if errors := event.get("errors"):
                     for error in errors:
-                        if error["startedAt"] <= vehicle.last_error:
+                        if error["createdAt"] <= vehicle.last_error:
                             break
                         error["vin"] = vehicle.vin
                         hass.bus.fire("teslemetry_error", error)
-                    vehicle.last_error = errors[0]["startedAt"]
+                    vehicle.last_error = errors[0]["createdAt"]
 
             def handle_vehicle_data(data: dict) -> None:
                 """Handle vehicle data from the stream."""

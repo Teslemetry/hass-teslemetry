@@ -40,6 +40,7 @@ class TeslemetryVehicleStreamEntity:
         self._attr_translation_key = f"stream_{streaming_key.lower()}"
         self.stream = data.stream
         self.vin = data.vin
+        self.fields = data.fields
 
         self._attr_unique_id = f"{data.vin}-stream_{streaming_key.lower()}"
         self._attr_device_info = data.device
@@ -54,12 +55,47 @@ class TeslemetryVehicleStreamEntity:
                     {"vin": self.vin, "data": {self.streaming_key: None}},
                 )
             )
+            self.hass.async_create_task(self.fields.add(self.streaming_key))
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
         self._async_value_from_stream(data["data"][self.streaming_key])
         self.async_write_ha_state()
 
+
+class TeslemetryVehicleComplexStreamEntity:
+    """Parent class for Teslemetry Vehicle Stream entities with multiple keys."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self, data: TeslemetryVehicleData, key: str, streaming_keys: [TelemetryField]
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        self.streaming_keys = streaming_keys
+
+        self._attr_translation_key = key
+        self.stream = data.stream
+        self.vin = data.vin
+
+        self._attr_unique_id = f"{data.vin}-{key}"
+        self._attr_device_info = data.device
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        if self.stream.server:
+            self.async_on_remove(
+                self.stream.async_add_listener(
+                    self._handle_stream_update,
+                    {"vin": self.vin, "data": ({key: None} for key in self.streaming_keys)},
+                )
+            )
+
+    def _handle_stream_update(self, data: dict[str, Any]) -> None:
+        """Handle updated data from the stream."""
+        self._async_value_from_stream(data["data"])
+        self.async_write_ha_state()
 
 class TeslemetryEntity(
     CoordinatorEntity[
