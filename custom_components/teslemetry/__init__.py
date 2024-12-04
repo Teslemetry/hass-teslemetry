@@ -4,12 +4,10 @@ import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
-from tesla_fleet_api.const import Scope, TelemetryField
+from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     InvalidToken,
-    SubscriptionRequired,
     TeslaFleetError,
-    Forbidden,
 )
 from tesla_fleet_api.teslemetry import rate_limit
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
@@ -100,6 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
         region = calls[0]["region"]
+        vins = calls[0]["vins"]
         products = calls[1]["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
@@ -128,7 +127,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         LOGGER.warn("Failed to setup Teslemetry streaming", e)
 
     for product in products:
-        if "vin" in product and Scope.VEHICLE_DEVICE_DATA in scopes:
+        if "vin" in product and product["vin"] in vins and Scope.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
             product.pop("cached_data", None)
             vin = product["vin"]
@@ -258,6 +257,8 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
         async with rate_limit:
             # Ensure the vehicle is configured for streaming
             await vehicle.stream.get_config(vehicle.vin)
+            if not vehicle.stream.preferTyped:
+                await vehicle.stream.prefer_typed(True, vehicle.vin)
 
             try:
                 # Enable server side polling
