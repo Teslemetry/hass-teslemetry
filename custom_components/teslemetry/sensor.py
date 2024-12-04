@@ -86,14 +86,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
-    TeslemetrySensorEntityDescription(
-        key="charge_state_charging_state",
-        streaming_key=TelemetryField.CHARGE_STATE,
-        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        options=list(set(ChargeStates.values())),
-        device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda value: ChargeStates.get(cast(str, value)),
-    ),
+
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_level",
         streaming_key=TelemetryField.BATTERY_LEVEL,
@@ -469,6 +462,12 @@ class TeslemetryStreamSensorEntityDescription(SensorEntityDescription):
 
 
 VEHICLE_STREAM_DESCRIPTIONS: tuple[TeslemetryStreamSensorEntityDescription, ...] = (
+    TeslemetryStreamSensorEntityDescription(
+        key=TelemetryField.CHARGE_STATE,
+        options=list(set(ChargeStates.values())),
+        device_class=SensorDeviceClass.ENUM,
+        value_fn=lambda value: ChargeStates.get(cast(str, value)),
+    ),
     TeslemetryStreamSensorEntityDescription(
         key=TelemetryField.BMS_STATE,
         entity_registry_enabled_default=False,

@@ -365,7 +365,7 @@
       "charge_state_charger_voltage": {
         "name": "Charger voltage"
       },
-      "charge_state_charging_state": {
+      "stream_charge_state": {
         "name": "Charging",
         "state": {
           "charging": "Charging",
