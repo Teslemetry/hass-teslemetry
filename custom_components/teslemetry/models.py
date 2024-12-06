@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import Scope
 
-from teslemetry_stream import TeslemetryStream
+from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
 
 from homeassistant.helpers.device_registry import DeviceInfo
 
@@ -40,13 +40,14 @@ class TeslemetryVehicleData:
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
+    stream_vehicle: TeslemetryStreamVehicle
     vin: str
     device: DeviceInfo
-    fields: AddStreamFields
+    remove_listener: Callable
     wakelock = asyncio.Lock()
     last_alert: str = dt_util.utcnow().isoformat()
     last_error: str = dt_util.utcnow().isoformat()
-    remove_listeners: tuple[Callable] = ()
+
 
 
 @dataclass

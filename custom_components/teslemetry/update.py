@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import Scope, TelemetryField
+from tesla_fleet_api.const import Scope
+from teslemetry_stream import TelemetryFields
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
@@ -44,7 +45,7 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
             data,
             "vehicle_state_software_update_status",
             timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
-            streaming_key=TelemetryField.VERSION,
+            streaming_key=TelemetryFields.VERSION,
         )
 
     def _async_update_attrs(self) -> None:

@@ -7,8 +7,8 @@ from tesla_fleet_api.const import (
     Seat,
     EnergyExportMode,
     EnergyOperationMode,
-    TelemetryField,
 )
+from teslemetry_stream import TelemetryFields
 
 from dataclasses import dataclass
 
@@ -33,28 +33,28 @@ class SeatHeaterDescription(SelectEntityDescription):
     position: Seat
     avaliable_fn: callable
     timestamp_key: TeslemetryTimestamp | None = None
-    streaming_key: TelemetryField | None = None
+    streaming_key: TelemetryFields | None = None
 
 
 SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     SeatHeaterDescription(
         key="climate_state_seat_heater_left",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryField.SEAT_HEATER_LEFT,
+        streaming_key=TelemetryFields.SEAT_HEATER_LEFT,
         position=Seat.FRONT_LEFT,
         avaliable_fn=lambda _: True,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_right",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryField.SEAT_HEATER_RIGHT,
+        streaming_key=TelemetryFields.SEAT_HEATER_RIGHT,
         position=Seat.FRONT_RIGHT,
         avaliable_fn=lambda _: True,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_left",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryField.SEAT_HEATER_REAR_LEFT,
+        streaming_key=TelemetryFields.SEAT_HEATER_REAR_LEFT,
         position=Seat.REAR_LEFT,
         avaliable_fn=lambda self: not self.exactly(
             "vehicle_config_rear_seat_heaters", 0
@@ -64,7 +64,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_center",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryField.SEAT_HEATER_REAR_CENTER,
+        streaming_key=TelemetryFields.SEAT_HEATER_REAR_CENTER,
         position=Seat.REAR_CENTER,
         avaliable_fn=lambda self: not self.exactly(
             0, "vehicle_config_rear_seat_heaters"
@@ -74,7 +74,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_right",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryField.SEAT_HEATER_REAR_RIGHT,
+        streaming_key=TelemetryFields.SEAT_HEATER_REAR_RIGHT,
         position=Seat.REAR_RIGHT,
         avaliable_fn=lambda self: not self.exactly(
             0, "vehicle_config_rear_seat_heaters"

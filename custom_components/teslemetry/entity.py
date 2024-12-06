@@ -3,18 +3,18 @@
 from typing import Any
 from time import time
 
+from homeassistant.helpers.entity import Entity
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import TelemetryField, Scope
+from tesla_fleet_api.const import Scope
+from teslemetry_stream import TelemetryFields
 
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    TeslemetryTimestamp,
-    TeslemetryUpdateType,
+    TeslemetryPollingKeys,
 )
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
@@ -26,50 +26,53 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import wake_up_vehicle, handle_command, handle_vehicle_command
 
 
-class TeslemetryVehicleStreamEntity:
+class TeslemetryVehicleStreamEntity(Entity):
     """Parent class for Teslemetry Vehicle Stream entities."""
 
     _attr_has_entity_name = True
 
     def __init__(
-        self, data: TeslemetryVehicleData, streaming_key: TelemetryField
+        self, data: TeslemetryVehicleData, key: str, streaming_key: TelemetryFields
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_key = streaming_key
 
-        self._attr_translation_key = f"stream_{streaming_key.lower()}"
         self.stream = data.stream
         self.vin = data.vin
-        self.fields = data.fields
+        self.add_field = data.stream_vehicle.add_field
 
-        self._attr_unique_id = f"{data.vin}-stream_{streaming_key.lower()}"
+        self._attr_translation_key = key
+        self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        if self.stream.server:
-            self.async_on_remove(
-                self.stream.async_add_listener(
-                    self._handle_stream_update,
-                    {"vin": self.vin, "data": {self.streaming_key: None}},
-                )
+        self.async_on_remove(
+            self.stream.async_add_listener(
+                self._handle_stream_update,
+                {"vin": self.vin, "data": {self.streaming_key: None}},
             )
-            self.hass.async_create_task(self.fields.add(self.streaming_key))
+        )
+        self.hass.async_create_task(self.add_field(self.streaming_key))
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
         self._async_value_from_stream(data["data"][self.streaming_key])
         self.async_write_ha_state()
 
+    def _async_value_from_stream(self, value: Any) -> None:
+        """Update the entity with the latest value from the stream."""
+        raise NotImplementedError()
 
-class TeslemetryVehicleComplexStreamEntity:
+
+class TeslemetryVehicleComplexStreamEntity(Entity):
     """Parent class for Teslemetry Vehicle Stream entities with multiple keys."""
 
     _attr_has_entity_name = True
 
     def __init__(
-        self, data: TeslemetryVehicleData, key: str, streaming_keys: [TelemetryField]
+        self, data: TeslemetryVehicleData, key: str, streaming_keys: list[TelemetryFields]
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_keys = streaming_keys
@@ -78,6 +81,7 @@ class TeslemetryVehicleComplexStreamEntity:
         self.stream = data.stream
         self.vin = data.vin
 
+        self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
 
@@ -88,14 +92,19 @@ class TeslemetryVehicleComplexStreamEntity:
             self.async_on_remove(
                 self.stream.async_add_listener(
                     self._handle_stream_update,
-                    {"vin": self.vin, "data": ({key: None} for key in self.streaming_keys)},
+                    {"vin": self.vin, "data": None},
                 )
             )
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
+        data = {key: data["data"][key] for key in self.streaming_keys if key in data["data"]}
         self._async_value_from_stream(data["data"])
         self.async_write_ha_state()
+
+    def _async_value_from_stream(self, value: Any) -> None:
+        """Update the entity with the latest value from the stream."""
+        raise NotImplementedError()
 
 class TeslemetryEntity(
     CoordinatorEntity[
@@ -122,7 +131,6 @@ class TeslemetryEntity(
         super().__init__(coordinator)
         self.api = api
         self.key = key
-        self._attr_translation_key = self.key
 
     @property
     def available(self) -> bool:
@@ -185,77 +193,27 @@ class TeslemetryEntity(
 class TeslemetryVehicleEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle entities."""
 
-    _updated_at: int = 0
-    _updated_by: TeslemetryUpdateType = TeslemetryUpdateType.NONE
-    streaming_gap: int = 0
-
     def __init__(
         self,
         data: TeslemetryVehicleData,
         key: str,
-        timestamp_key: TeslemetryTimestamp | None = None,
-        streaming_key: TelemetryField | None = None,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        self.timestamp_key = timestamp_key
-        self.streaming_key = streaming_key
-        self.stream = data.stream
         self.vin = data.vin
 
-        self._attr_unique_id = f"{data.vin}-{key}"
         self.wakelock = data.wakelock
-
         self._attr_device_info = data.device
+        self._attr_unique_id = f"{data.vin}-{key}"
+        self._attr_translation_key = key
 
         super().__init__(data.coordinator, data.api, key)
 
-        if self.coordinator.updated_once or self.key == "state":
-            self._async_update_attrs()
-
-    async def async_added_to_hass(self) -> None:
-        """When entity is added to hass."""
-        await super().async_added_to_hass()
-        if self.stream.server and self.streaming_key:
-            self.async_on_remove(
-                self.stream.async_add_listener(
-                    self._handle_stream_update,
-                    {"vin": self.vin, "data": {self.streaming_key: None}},
-                )
-            )
-
-    def _handle_stream_update(self, data: dict[str, Any]) -> None:
-        """Handle updated data from the stream."""
-        self._updated_by = TeslemetryUpdateType.STREAMING
-        self._updated_at = data["timestamp"]
-        self._async_value_from_stream(data["data"][self.streaming_key])
-        self._attr_extra_state_attributes = {
-            "updated_by": self._updated_by.value,
-            "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
-        }
-        self.async_write_ha_state()
+        self._async_update_attrs()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        timestamp = (
-            self.timestamp_key and self.get(self.timestamp_key) or int(time() * 1000)
-        )
-        if (
-            self._updated_by != TeslemetryUpdateType.STREAMING
-            and timestamp > self._updated_at
-            or timestamp > (self._updated_at + self.streaming_gap)
-        ):
-            self._updated_by = TeslemetryUpdateType.POLLING
-            self._updated_at = timestamp
-
-            if self.coordinator.updated_once or self.key == "state":
-                self._async_update_attrs()
-
-            self._attr_extra_state_attributes = {
-                "updated_by": self._updated_by.value,
-                "updated_at": dt_util.utc_from_timestamp(self._updated_at / 1000),
-            }
-            self.async_write_ha_state()
-
+        self._async_update_attrs()
+        self.async_write_ha_state()
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if its asleep."""
@@ -277,6 +235,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         """Initialize common aspects of a Teslemetry Energy Site Live entity."""
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
+        self._attr_translation_key = key
 
         super().__init__(data.live_coordinator, data.api, key)
         self._async_update_attrs()
@@ -293,6 +252,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         """Initialize common aspects of a Teslemetry Energy Site Info entity."""
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
+        self._attr_translation_key = key
 
         super().__init__(data.info_coordinator, data.api, key)
         self._async_update_attrs()
@@ -308,6 +268,7 @@ class TeslemetryEnergyHistoryEntity(TeslemetryEntity):
         """Initialize common aspects of a Teslemetry Energy History entity."""
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
+        self._attr_translation_key = key
 
         super().__init__(data.history_coordinator, data.api, key)
         self._async_update_attrs()
@@ -329,6 +290,7 @@ class TeslemetryWallConnectorEntity(
         """Initialize common aspects of a Teslemetry entity."""
         self.din = din
         self._attr_unique_id = f"{data.id}-{din}-{key}"
+        self._attr_translation_key = key
 
         # Find the model from the info coordinator
         model: str | None = None

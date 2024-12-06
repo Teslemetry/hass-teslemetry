@@ -3,7 +3,8 @@
 from itertools import chain
 from typing import Any, cast
 
-from tesla_fleet_api.const import Scope, TelemetryField, CabinOverheatProtectionTemp
+from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
+from teslemetry_stream import TelemetryFields
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
@@ -93,7 +94,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity, RestoreEnt
             data,
             side,
             timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-            streaming_key=TelemetryField.INSIDE_TEMP,
+            streaming_key=TelemetryFields.INSIDE_TEMP,
         )
 
 
@@ -254,7 +255,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
             data,
             "climate_state_cabin_overheat_protection",
             timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-            streaming_key=TelemetryField.INSIDE_TEMP,
+            streaming_key=TelemetryFields.INSIDE_TEMP,
         )
 
         # Supported Features
