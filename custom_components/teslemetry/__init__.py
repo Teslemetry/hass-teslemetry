@@ -274,11 +274,11 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
                 LOGGER.debug("Streaming received error from %s", vehicle.vin)
                 if errors := event.get("errors"):
                     for error in errors:
-                        if error["startedAt"] <= vehicle.last_error:
+                        if error["createdAt"] <= vehicle.last_error:
                             break
                         error["vin"] = vehicle.vin
                         hass.bus.fire("teslemetry_error", error)
-                    vehicle.last_error = errors[0]["startedAt"]
+                    vehicle.last_error = errors[0]["createdAt"]
 
             def handle_vehicle_data(data: dict) -> None:
                 """Handle vehicle data from the stream."""
