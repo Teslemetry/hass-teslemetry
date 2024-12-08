@@ -250,14 +250,6 @@ async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicl
     try:
         async with rate_limit:
             # Ensure the vehicle is configured for streaming
-            await vehicle.stream.get_config(vehicle.vin)
-
-            try:
-                # Enable server side polling
-                await teslemetry.server_side_polling(vehicle.vin, True)
-            except:
-                pass
-
             def handle_alerts(event: dict) -> None:
                 """Handle stream alerts."""
                 LOGGER.debug("Streaming received alert from %s", vehicle.vin)
