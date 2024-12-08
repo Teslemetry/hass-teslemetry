@@ -236,6 +236,11 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
 
     def _async_value_from_stream(self, data) -> None:
         """Update the attributes of the entity."""
+        if (state := data.get(TelemetryFields.HVAC_AC_ENABLED)) is not None:
+            self._attr_hvac_mode = HVACMode.HEAT_COOL if state else HVACMode.OFF
+
+        if (state := data.get(TelemetryFields.HVAC_AUTO_MODE)) is not None:
+            self._attr_hvac_mode = state
         value = self.get("climate_state_is_climate_on")
         if value is None:
             self._attr_hvac_mode = None
@@ -258,9 +263,6 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
             float, self.get("climate_state_max_avail_temp", DEFAULT_MAX_TEMP)
         )
 
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value from the stream."""
-        self._attr_current_temperature = float(value)
 
 COP_MODES = {
     "Off": HVACMode.OFF,
