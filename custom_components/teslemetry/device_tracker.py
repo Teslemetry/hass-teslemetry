@@ -1,7 +1,7 @@
 """Device Tracker platform for Teslemetry integration."""
 from __future__ import annotations
 
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 
 from homeassistant.const import STATE_HOME
 from homeassistant.components.device_tracker import SourceType
@@ -73,7 +73,7 @@ class TeslemetryDeviceTrackerLocationEntity(TeslemetryDeviceTrackerEntity):
     """Vehicle Location Device Tracker Class."""
 
     key = "location"
-    streaming_key = TelemetryFields.LOCATION
+    streaming_key = Signal.LOCATION
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""

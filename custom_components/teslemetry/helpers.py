@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 from teslemetry_stream import TeslemetryStream
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.exceptions import HomeAssistantError
@@ -141,13 +141,13 @@ class AddStreamFields:
     """Handle streaming field updates."""
 
     def __init__(self, stream: TeslemetryStream, vin: str):
-        # A dictionary of TelemetryFields keys and null values
+        # A dictionary of Signal keys and null values
         self.stream: TeslemetryStream = stream
         self.vin: str = vin
-        self.fields: dict[TelemetryFields, None] = {}
+        self.fields: dict[Signal, None] = {}
         self.lock = asyncio.Lock()
 
-    async def add(self, field: TelemetryFields) -> None:
+    async def add(self, field: Signal) -> None:
         """Handle vehicle data from the stream."""
         if field in self.stream.fields:
             LOGGER.debug("Streaming field %s already enabled @ %ss", field, self.stream.fields[field].get('interval_seconds'))

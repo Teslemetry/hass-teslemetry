@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from tesla_fleet_api.const import Scope, Seat
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -40,7 +40,7 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     scopes: list[Scope] | None = None
     timestamp_key: TeslemetryTimestamp | None = None
     polling_value: Callable[[StateType], StateType] = bool
-    streaming_key: TelemetryFields | None = None
+    streaming_key: Signal | None = None
     streaming_value: Callable[[StateType], StateType] = lambda x: x == "true"
 
 
@@ -48,7 +48,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
         timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
-        streaming_key=TelemetryFields.SENTRY_MODE,
+        streaming_key=Signal.SENTRY_MODE,
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
@@ -64,7 +64,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryFields.AUTO_SEAT_CLIMATE_LEFT,
+        streaming_key=Signal.AUTO_SEAT_CLIMATE_LEFT,
         on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
         off_func=lambda api: api.remote_auto_seat_climate_request(
             Seat.FRONT_LEFT, False
@@ -74,7 +74,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
         timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-        streaming_key=TelemetryFields.AUTO_SEAT_CLIMATE_RIGHT,
+        streaming_key=Signal.AUTO_SEAT_CLIMATE_RIGHT,
         on_func=lambda api: api.remote_auto_seat_climate_request(
             Seat.FRONT_RIGHT, True
         ),
@@ -107,7 +107,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
 
 VEHICLE_CHARGE_DESCRIPTION = TeslemetrySwitchEntityDescription(
     key="charge_state_user_charge_enable_request",
-    streaming_key=TelemetryFields.CHARGE_ENABLE_REQUEST,
+    streaming_key=Signal.CHARGE_ENABLE_REQUEST,
     on_func=lambda api: api.charge_start(),
     off_func=lambda api: api.charge_stop(),
     scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],

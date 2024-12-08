@@ -3,7 +3,7 @@ from __future__ import annotations
 from tesla_fleet_api.const import Scope
 from typing import Any
 
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 
 from homeassistant.components.lock import LockEntity
 from homeassistant.config_entries import ConfigEntry
@@ -57,7 +57,7 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
             data,
             "vehicle_state_locked",
             TeslemetryTimestamp.VEHICLE_STATE,
-            TelemetryFields.LOCKED,
+            Signal.LOCKED,
         )
         self.scoped = scoped
 
@@ -99,7 +99,7 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
             data,
             "charge_state_charge_port_latch",
             TeslemetryTimestamp.CHARGE_STATE,
-            TelemetryFields.CHARGE_PORT_LATCH,
+            Signal.CHARGE_PORT_LATCH,
         )
         self.scoped = scoped
 
@@ -141,7 +141,7 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockRestoreEntity):
         scoped: bool,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, "vehicle_state_speed_limit_mode_active", TeslemetryTimestamp.VEHICLE_STATE, TelemetryFields.SPEED_LIMIT_MODE)
+        super().__init__(data, "vehicle_state_speed_limit_mode_active", TeslemetryTimestamp.VEHICLE_STATE, Signal.SPEED_LIMIT_MODE)
         self.scoped = scoped
 
     def _async_update_attrs(self) -> None:

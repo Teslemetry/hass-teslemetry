@@ -4,7 +4,7 @@ from itertools import chain
 from typing import Any, cast
 
 from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
@@ -213,13 +213,13 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
             data,
             side,
             [
-                TelemetryFields.INSIDE_TEMP,
-                TelemetryFields.HVAC_AC_ENABLED,
-                TelemetryFields.HVAC_AUTO_MODE,
-                TelemetryFields.HVAC_FAN_SPEED,
-                TelemetryFields.HVAC_FAN_STATUS,
-                TelemetryFields.HVAC_LEFT_TEMPERATURE_REQUEST,
-                TelemetryFields.HVAC_RIGHT_TEMPERATURE_REQUEST,
+                Signal.INSIDE_TEMP,
+                Signal.HVAC_AC_ENABLED,
+                Signal.HVAC_AUTO_MODE,
+                Signal.HVAC_FAN_SPEED,
+                Signal.HVAC_FAN_STATUS,
+                Signal.HVAC_LEFT_TEMPERATURE_REQUEST,
+                Signal.HVAC_RIGHT_TEMPERATURE_REQUEST,
             ]
         )
 
@@ -236,10 +236,10 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
 
     def _async_value_from_stream(self, data) -> None:
         """Update the attributes of the entity."""
-        if (state := data.get(TelemetryFields.HVAC_AC_ENABLED)) is not None:
+        if (state := data.get(Signal.HVAC_AC_ENABLED)) is not None:
             self._attr_hvac_mode = HVACMode.HEAT_COOL if state else HVACMode.OFF
 
-        if (state := data.get(TelemetryFields.HVAC_AUTO_MODE)) is not None:
+        if (state := data.get(Signal.HVAC_AUTO_MODE)) is not None:
             self._attr_hvac_mode = state
         value = self.get("climate_state_is_climate_on")
         if value is None:
@@ -307,7 +307,7 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
             data,
             "climate_state_cabin_overheat_protection",
             timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-            streaming_key=TelemetryFields.INSIDE_TEMP,
+            streaming_key=Signal.INSIDE_TEMP,
         )
 
         # Supported Features

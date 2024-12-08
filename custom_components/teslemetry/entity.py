@@ -6,16 +6,14 @@ from time import time
 from homeassistant.helpers.entity import Entity
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import Scope
-from teslemetry_stream import TelemetryFields
+from teslemetry_stream import Signal
 
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import (
-    DOMAIN,
-    TeslemetryPollingKeys,
-)
+from .const import DOMAIN
+
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
@@ -32,14 +30,14 @@ class TeslemetryVehicleStreamEntity(Entity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, data: TeslemetryVehicleData, key: str, streaming_key: TelemetryFields
+        self, data: TeslemetryVehicleData, key: str, streaming_key: Signal
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_key = streaming_key
 
         self.stream = data.stream
         self.vin = data.vin
-        self.add_field = data.stream_vehicle.add_field
+        self.add_field = data.stream.get_vehicle(self.vin).add_field
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
@@ -72,7 +70,7 @@ class TeslemetryVehicleComplexStreamEntity(Entity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, data: TeslemetryVehicleData, key: str, streaming_keys: list[TelemetryFields]
+        self, data: TeslemetryVehicleData, key: str, streaming_keys: list[Signal]
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_keys = streaming_keys

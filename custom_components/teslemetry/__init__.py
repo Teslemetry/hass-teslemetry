@@ -11,7 +11,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 #from tesla_fleet_api.teslemetry import rate_limit
-from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle, TeslemetryStreamVehicleNotConfigured, TeslemetryStreamError
+from teslemetry_stream import TeslemetryStream
 
 
 from homeassistant.config_entries import ConfigEntry
@@ -132,7 +132,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
-            stream_vehicle = stream.create_vehicle(vin)
             firmware = metadata[vin]["access"]
 
             device = DeviceInfo(
@@ -157,7 +156,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     api=api,
                     coordinator=coordinator,
                     stream=stream,
-                    stream_vehicle=stream_vehicle,
                     vin=vin,
                     firmware=firmware,
                     device=device,

@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
+from propcache import cached_property
 
 from .const import TeslemetryState, MODELS
 from .entity import (
@@ -128,9 +129,13 @@ class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor)
         if (sensor_data := await self.async_get_last_sensor_data()) is not None:
             self._attr_native_value = sensor_data.native_value
 
+    @cached_property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.stream.connected
+
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_available = self.stream.connected
         if (value is None):
             self._attr_native_value = None
         else:

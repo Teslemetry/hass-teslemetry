@@ -21,8 +21,6 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 
-from .helpers import AddStreamFields
-
 @dataclass
 class TeslemetryData:
     """Data for the Teslemetry integration."""
@@ -40,7 +38,6 @@ class TeslemetryVehicleData:
     api: VehicleSpecific
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
-    stream_vehicle: TeslemetryStreamVehicle
     vin: str
     firmware: str
     device: DeviceInfo
