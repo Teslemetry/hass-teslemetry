@@ -42,6 +42,7 @@ class TeslemetryVehicleData:
     stream: TeslemetryStream
     stream_vehicle: TeslemetryStreamVehicle
     vin: str
+    firmware: str
     device: DeviceInfo
     remove_listener: Callable
     wakelock = asyncio.Lock()

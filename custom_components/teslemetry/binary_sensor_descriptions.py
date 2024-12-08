@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -12,25 +11,21 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, STATE_ON
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.typing import StateType
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import TeslemetryPollingKeys
-from .models import TeslemetryVehicleData, TeslemetryEnergyData
-from .helpers import auto_type
 
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
 
-    is_on: Callable[[StateType], bool] = lambda x: bool(x)
+    polling_value_fn: Callable[[StateType], bool] = lambda x: bool(x)
     polling_parent: TeslemetryPollingKeys | None = None
     streaming_key: TelemetryFields | None = None
+    streaming_firmware: str = "2024.26"
+    streaming_value_fn: Callable[[StateType], bool] = lambda x: bool(x)
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
@@ -47,8 +42,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_charger_phases",
         polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
         streaming_key=TelemetryFields.CHARGER_PHASES,
+        polling_value_fn=lambda x: int(x) > 1,
+        streaming_value_fn=lambda x: int(x) > 1,
 
-        is_on=lambda x: int(x) > 1,
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -84,7 +80,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_conn_charge_cable",
         polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
-        is_on=lambda x: x != "<invalid>",
+        polling_value_fn=lambda x: x != "<invalid>",
 
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
@@ -102,7 +98,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling_parent=TeslemetryPollingKeys.VEHICLE_STATE,
 
         device_class=BinarySensorDeviceClass.RUNNING,
-        is_on=lambda x: x == "Recording",
+        polling_value_fn=lambda x: x == "Recording",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),

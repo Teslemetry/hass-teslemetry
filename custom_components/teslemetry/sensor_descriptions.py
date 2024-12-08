@@ -147,6 +147,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_state_conn_charge_cable",
         polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
+        streaming_key=TelemetryFields.CHARGING_CABLE_TYPE,
 
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
@@ -352,6 +353,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.BATTERY,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
+        suggested_display_precision=1
     ),
     TeslemetrySensorEntityDescription(
         key="drive_state_active_route_miles_to_arrival",
@@ -975,6 +977,29 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="vehicle_name",
         streaming_key=TelemetryFields.VEHICLE_NAME,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="center_display",
+        streaming_key=TelemetryFields.CENTER_DISPLAY,
+        options=[
+          "Off",
+          "Dim",
+          "Accessory",
+          "On",
+          "Driving",
+          "Charging",
+          "Lock",
+          "Sentry",
+          "Dog",
+          "Entertainment"
+        ],
+        streaming_value_fn=lambda x: str(x).replace("DisplayState",""),
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="efficiency_package",
+        streaming_key=TelemetryFields.EFFICIENCY_PACKAGE,
         entity_registry_enabled_default=False,
     ),
 )

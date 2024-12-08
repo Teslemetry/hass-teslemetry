@@ -876,6 +876,12 @@
       },
       "total_grid_energy_exported": {
         "name": "Grid exported"
+      },
+      "center_display": {
+        "name": "Center Display"
+      },
+      "efficiency_package": {
+        "name": "Efficiency Package"
       }
     },
     "switch": {

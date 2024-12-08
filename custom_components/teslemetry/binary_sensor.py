@@ -3,10 +3,6 @@
 from __future__ import annotations
 
 from itertools import chain
-from collections.abc import Callable
-from dataclasses import dataclass
-
-from teslemetry_stream import TelemetryFields
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -14,13 +10,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, STATE_ON
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryState, TeslemetryPollingKeys, TeslemetryUpdateType
+from .const import TeslemetryState, TeslemetryUpdateType
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,
@@ -28,7 +23,6 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
-from .helpers import auto_type
 
 from .binary_sensor_descriptions import (
     VEHICLE_DESCRIPTIONS,
@@ -41,37 +35,32 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Teslemetry binary sensor platform from a config entry."""
 
+    entities = []
+    for vehicle in entry.runtime_data.vehicles:
+        if vehicle.api.pre2021:
+            # Vehicle cannot use streaming
+            for description in VEHICLE_DESCRIPTIONS:
+                if description.polling_parent:
+                    entities.append(TeslemetryVehicleBinarySensorEntity(vehicle, description))
+        else:
+            for description in VEHICLE_DESCRIPTIONS:
+                if description.streaming_key and description.streaming_firmware >= vehicle.firmware:
+                    entities.append(TeslemetryVehicleStreamBinarySensorEntity(vehicle, description))
+                elif description.polling_parent:
+                    entities.append(TeslemetryVehicleBinarySensorEntity(vehicle, description))
 
-    async_add_entities(
-        chain(
-            (  # Vehicle State
-                TeslemetryVehicleBinarySensorStateEntity(vehicle)
-                for vehicle in entry.runtime_data.vehicles
-            ),
-            (  # Vehicles
-                TeslemetryVehicleBinarySensorEntity(vehicle, description)
-                for vehicle in entry.runtime_data.vehicles
-                for description in VEHICLE_DESCRIPTIONS
-            ),
-            (  # Energy Site Live
-                TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
-                for energysite in entry.runtime_data.energysites
-                for description in ENERGY_LIVE_DESCRIPTIONS
-                if energysite.info_coordinator.data.get("components_battery")
-                if description.key in energysite.live_coordinator.data
-            ),
-            (  # Energy Site Info
-                TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
-                for energysite in entry.runtime_data.energysites
-                for description in ENERGY_INFO_DESCRIPTIONS
-                if energysite.info_coordinator.data.get("components_battery")
-                if description.key in energysite.info_coordinator.data
-            ),
-        )
-    )
+    for energysite in entry.runtime_data.energysites:
+        for description in ENERGY_LIVE_DESCRIPTIONS:
+            if description.key in energysite.live_coordinator.data:
+                entities.append(TeslemetryEnergyLiveBinarySensorEntity(energysite, description))
+        for description in ENERGY_INFO_DESCRIPTIONS:
+            if description.key in energysite.info_coordinator.data:
+                entities.append(TeslemetryEnergyInfoBinarySensorEntity(energysite, description))
+
+    async_add_entities(entities)
 
 
-class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity, RestoreEntity):
+class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     """Base class for Teslemetry vehicle binary sensors."""
 
     entity_description: TeslemetryBinarySensorEntityDescription
@@ -87,12 +76,6 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
             data, description.key, description.timestamp_key, description.streaming_key
         )
 
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
-            self._attr_is_on = state.state == STATE_ON
-
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
 
@@ -101,15 +84,10 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
             self._attr_is_on = None
         else:
             self._attr_available = True
-            self._attr_is_on = self.entity_description.is_on(self._value)
-
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value from the stream."""
-        self._attr_available = True
-        self._attr_is_on = self.entity_description.is_on(auto_type(value))
+            self._attr_is_on = self.entity_description.polling_value_fn(self._value)
 
 
-class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySensorEntity, RestoreEntity):
+class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     """Teslemetry vehicle state binary sensors."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
@@ -161,7 +139,7 @@ class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySe
 
 
 
-class TeslemetryStreamBinarySensorEntity(
+class TeslemetryVehicleStreamBinarySensorEntity(
     TeslemetryVehicleStreamEntity, BinarySensorEntity, RestoreEntity
 ):
     """Base class for Teslemetry vehicle streaming sensors."""
@@ -185,7 +163,7 @@ class TeslemetryStreamBinarySensorEntity(
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_on = self.entity_description.value_fn(auto_type(value))
+        self._attr_is_on = self.entity_description.stream_value_fn(value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

@@ -55,12 +55,12 @@ async def async_setup_entry(
                 entities.append(TeslemetryVehicleTimeSensorEntity(vehicle, description))
         else:
             for description in VEHICLE_DESCRIPTIONS:
-                if description.streaming_key and description.streaming_firmware > "0":
+                if description.streaming_key and description.streaming_firmware >= vehicle.firmware:
                     entities.append(TeslemetryStreamSensorEntity(vehicle, description))
                 elif description.polling_parent:
                     entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
             for description in VEHICLE_TIME_DESCRIPTIONS:
-                entities.append(TeslemetryVehicleTimeSensorEntity(vehicle, description))
+                entities.append(TeslemetryVehicleTimeStreamSensorEntity(vehicle, description))
 
     for energysite in entry.runtime_data.energysites:
         for description in ENERGY_LIVE_DESCRIPTIONS:
@@ -106,48 +106,6 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             self._attr_available = False
             self._attr_native_value = None
 
-
-class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
-    """Base class for Teslemetry vehicle metric sensors."""
-
-    entity_description: TeslemetryTimeEntityDescription
-    _last_value: int | None = None
-
-    def __init__(
-        self,
-        data: TeslemetryVehicleData,
-        description: TeslemetryTimeEntityDescription,
-    ) -> None:
-        """Initialize the sensor."""
-        self.entity_description = description
-        self._get_timestamp = ignore_variance(
-            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
-            ignored_variance=timedelta(minutes=1),
-        )
-
-        super().__init__(data, description.key)
-        self._attr_translation_key = f"{self.entity_description.key}_timestamp"
-        self._attr_unique_id = f"{data.vin}-{description.key}_timestamp"
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the sensor."""
-
-        self._attr_available = self._value is not None and self._value > 0
-
-        if (value := self._value) == self._last_value:
-            # No change
-            return
-        self._last_value = value
-        if isinstance(value, int | float):
-            self._attr_native_value = self._get_timestamp(value)
-        else:
-            self._attr_native_value = None
-
-    def _async_value_from_stream(self, value) -> None:
-        self._attr_available = True
-        self._attr_native_value = self._get_timestamp(int(value))
-
-
 class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
     """Base class for Teslemetry vehicle streaming sensors."""
 
@@ -177,6 +135,82 @@ class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor)
             self._attr_native_value = None
         else:
             self._attr_native_value = self.entity_description.streaming_value_fn(value)
+
+class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
+    """Base class for Teslemetry vehicle metric sensors."""
+
+    entity_description: TeslemetryTimeEntityDescription
+    _last_value: int | None = None
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryTimeEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        self._get_timestamp = ignore_variance(
+            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
+            ignored_variance=timedelta(minutes=1),
+        )
+
+        super().__init__(data, description.key)
+        self._attr_translation_key = f"{self.entity_description.key}_timestamp"
+        self._attr_unique_id = f"{data.vin}-{description.key}_timestamp"
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+
+        value = self._value
+        self._attr_available = value is not None and value > 0
+
+        if value == self._last_value:
+            # No change
+            return
+        self._last_value = value
+        if isinstance(value, int | float):
+            self._attr_native_value = self._get_timestamp(value)
+        else:
+            self._attr_native_value = None
+
+class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
+    """Base class for Teslemetry vehicle metric sensors."""
+
+    entity_description: TeslemetryTimeEntityDescription
+    _last_value: int | None = None
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryTimeEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        self._get_timestamp = ignore_variance(
+            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
+            ignored_variance=timedelta(minutes=1),
+        )
+
+        assert description.streaming_key
+        super().__init__(data, description.key, description.streaming_key)
+        self._attr_translation_key = f"{self.entity_description.key}_timestamp"
+        self._attr_unique_id = f"{data.vin}-{description.key}_timestamp"
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the attributes of the sensor."""
+
+        self._attr_available = value is not None and value > 0
+
+        if value == self._last_value:
+            # No change
+            return
+        self._last_value = value
+        if isinstance(value, int | float):
+            self._attr_native_value = self._get_timestamp(value)
+        else:
+            self._attr_native_value = None
+
+
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

@@ -10,7 +10,7 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     TeslaFleetError,
 )
-from tesla_fleet_api.teslemetry import rate_limit
+#from tesla_fleet_api.teslemetry import rate_limit
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle, TeslemetryStreamVehicleNotConfigured, TeslemetryStreamError
 
 
@@ -99,7 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
         region = calls[0]["region"]
-        vins = calls[0]["vins"]
+        metadata = calls[0]["vehicles"]
         products = calls[1]["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
@@ -126,13 +126,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
     for product in products:
-        if "vin" in product and product["vin"] in vins and Scope.VEHICLE_DEVICE_DATA in scopes:
+        if "vin" in product and metadata.get(product["vin"], {}).get("access") and Scope.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
             product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
             stream_vehicle = stream.create_vehicle(vin)
+            firmware = metadata[vin]["access"]
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -141,6 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 name=product["display_name"],
                 model=MODELS.get(vin[3]),
                 serial_number=vin,
+                sw_version=firmware,
             )
 
             device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
@@ -157,6 +159,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     stream=stream,
                     stream_vehicle=stream_vehicle,
                     vin=vin,
+                    firmware=firmware,
                     device=device,
                     remove_listener=remove_listener
                 )
