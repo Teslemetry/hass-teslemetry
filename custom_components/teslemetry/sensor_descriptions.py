@@ -1009,6 +1009,7 @@ class TeslemetryTimeEntityDescription(SensorEntityDescription):
     variance: int = 60
     polling_parent: TeslemetryPollingKeys | None = None
     streaming_key: Signal | None = None
+    streaming_firmware: str = "2024.26"
 
 
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (

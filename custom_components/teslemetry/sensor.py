@@ -47,21 +47,16 @@ async def async_setup_entry(
 
     entities = []
     for vehicle in entry.runtime_data.vehicles:
-        if vehicle.api.pre2021:
-            # Vehicle cannot use streaming
-            for description in VEHICLE_DESCRIPTIONS:
-                if description.polling_parent:
-                    entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
-            for description in VEHICLE_TIME_DESCRIPTIONS:
-                entities.append(TeslemetryVehicleTimeSensorEntity(vehicle, description))
-        else:
-            for description in VEHICLE_DESCRIPTIONS:
-                if description.streaming_key and description.streaming_firmware >= vehicle.firmware:
-                    entities.append(TeslemetryStreamSensorEntity(vehicle, description))
-                elif description.polling_parent:
-                    entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
-            for description in VEHICLE_TIME_DESCRIPTIONS:
+        for description in VEHICLE_DESCRIPTIONS:
+            if not vehicle.api.pre2021 and description.streaming_key and description.streaming_firmware >= vehicle.firmware:
+                entities.append(TeslemetryStreamSensorEntity(vehicle, description))
+            elif description.polling_parent:
+                entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
+        for description in VEHICLE_TIME_DESCRIPTIONS:
+            if not vehicle.api.pre2021 and description.streaming_firmware >= vehicle.firmware:
                 entities.append(TeslemetryVehicleTimeStreamSensorEntity(vehicle, description))
+            else:
+                entities.append(TeslemetryVehicleTimeSensorEntity(vehicle, description))
 
     for energysite in entry.runtime_data.energysites:
         for description in ENERGY_LIVE_DESCRIPTIONS:

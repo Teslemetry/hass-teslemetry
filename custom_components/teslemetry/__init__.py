@@ -132,7 +132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
-            firmware = metadata[vin]["access"]
+            firmware = metadata[vin]["firmware"]
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -196,7 +196,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(
-            async_setup_stream(vehicle.stream_vehicle)
+            async_setup_stream(vehicle)
             for vehicle in vehicles
         ),
         *(
@@ -265,8 +265,9 @@ def create_handle_vehicle_stream(vin: str, coordinator) -> Callable[[dict], None
 
     return handle_vehicle_stream
 
-async def async_setup_stream(vehicle_stream: TeslemetryStreamVehicle):
+async def async_setup_stream(vehicle: TeslemetryVehicleData):
     """Set up the stream for a vehicle."""
 
+    vehicle_stream = vehicle.stream.get_vehicle(vehicle.vin)
     await vehicle_stream.get_config()
     await vehicle_stream.prefer_typed(True)

@@ -73,7 +73,7 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
         """Initialize the sensor."""
         self.entity_description = description
         super().__init__(
-            data, description.key, description.timestamp_key, description.streaming_key
+            data, description.key
         )
 
     def _async_update_attrs(self) -> None:
