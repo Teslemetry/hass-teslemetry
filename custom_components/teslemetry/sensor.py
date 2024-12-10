@@ -350,11 +350,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         # This entity isnt allowed in core
-        key="charge_state_minutes_to_full_charge",
+        key="charge_state_time_to_full_charge",
         streaming_key=TelemetryField.TIME_TO_FULL_CHARGE,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.MINUTES,
+        native_unit_of_measurement=UnitOfTime.HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
         available_fn=lambda x: x is not None and x > 0,
     ),
@@ -362,7 +362,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         # This entity isnt allowed in core
         key="drive_state_active_route_minutes_to_arrival",
         streaming_key=TelemetryField.MINUTES_TO_ARRIVAL,
-        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
+        timestamp_key=TeslemetryTimestamp.DRIVE_STATE,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.MINUTES,
     ),
@@ -442,21 +442,24 @@ class TeslemetryTimeEntityDescription(SensorEntityDescription):
     variance: int = 60
     streaming_key: TelemetryField | None = None
     timestamp_key: TeslemetryTimestamp | None = None
+    value_fn: Callable[[float], timedelta]
 
 
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
     TeslemetryTimeEntityDescription(
-        key="charge_state_minutes_to_full_charge",
+        key="charge_state_time_to_full_charge",
         streaming_key=TelemetryField.TIME_TO_FULL_CHARGE,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn= lambda value: timedelta(hours=value)
     ),
     TeslemetryTimeEntityDescription(
         key="drive_state_active_route_minutes_to_arrival",
         streaming_key=TelemetryField.MINUTES_TO_ARRIVAL,
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn= lambda value: timedelta(minutes=value)
     ),
 )
 
@@ -1187,8 +1190,8 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
-        self._get_timestamp = ignore_variance(
-            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
+        self._time_value = ignore_variance(
+            func=lambda value: dt_util.utcnow() + description.value_fn(value),
             ignored_variance=timedelta(minutes=1),
         )
 
@@ -1206,13 +1209,13 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             return
         self._last_value = value
         if isinstance(value, int | float):
-            self._attr_native_value = self._get_timestamp(value)
+            self._attr_native_value = self._time_value(float(value))
         else:
             self._attr_native_value = None
 
     def _async_value_from_stream(self, value) -> None:
         self._attr_available = True
-        self._attr_native_value = self._get_timestamp(int(value))
+        self._attr_native_value = self._time_value(float(value))
 
 
 class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
