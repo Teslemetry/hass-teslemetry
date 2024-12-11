@@ -303,7 +303,7 @@ def async_register_services(hass: HomeAssistant) -> None:  # noqa: C901
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         try:
-            resp = await vehicle.stream.replace_fields(fields=call.data[ATTR_FIELDS])
+            resp = await vehicle.stream.get_vehicle(vehicle.vin).post_config({"fields":call.data[ATTR_FIELDS]})
         except Exception as e:
             raise HomeAssistantError from e
         if "error" in resp:

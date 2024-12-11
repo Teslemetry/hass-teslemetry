@@ -141,7 +141,7 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockRestoreEntity):
         scoped: bool,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, "vehicle_state_speed_limit_mode_active", TeslemetryTimestamp.VEHICLE_STATE, Signal.SPEED_LIMIT_MODE)
+        super().__init__(data, "vehicle_state_speed_limit_mode_active", TeslemetryTimestamp.VEHICLE_STATE) #TelemetryField.SPEED_LIMIT_MODE
         self.scoped = scoped
 
     def _async_update_attrs(self) -> None:
