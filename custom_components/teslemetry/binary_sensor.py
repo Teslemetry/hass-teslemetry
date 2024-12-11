@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from itertools import chain
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from teslemetry_stream import Signal
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -11,6 +14,8 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_ON
+from homeassistant.helpers.typing import StateType
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -24,10 +29,288 @@ from .entity import (
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
-from .binary_sensor_descriptions import (
-    VEHICLE_DESCRIPTIONS,
-    ENERGY_LIVE_DESCRIPTIONS,
-    ENERGY_INFO_DESCRIPTIONS,
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
+    """Describes Teslemetry binary sensor entity."""
+
+    polling_value_fn: Callable[[StateType], bool] = lambda x: bool(x)
+    polling: bool = False
+    streaming_key: Signal | None = None
+    streaming_firmware: str = "2024.26"
+    streaming_value_fn: Callable[[StateType], bool] = lambda x: x is True or x == "true"
+
+
+VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
+    TeslemetryBinarySensorEntityDescription(
+        key="state",
+        polling=True,
+        polling_value_fn=lambda x: x == TeslemetryState.ONLINE,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_battery_heater_on",
+        polling=True,
+        streaming_key=Signal.BATTERY_HEATER_ON,
+
+        device_class=BinarySensorDeviceClass.HEAT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_charger_phases",
+        polling=True,
+        streaming_key=Signal.CHARGER_PHASES,
+        polling_value_fn=lambda x: int(x) > 1,
+        streaming_value_fn=lambda x: int(x) > 1,
+
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_preconditioning_enabled",
+        polling=True,
+        streaming_key=Signal.PRECONDITIONING_ENABLED,
+
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="climate_state_is_preconditioning",
+        polling=True,
+
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_scheduled_charging_pending",
+        polling=True,
+        streaming_key=Signal.SCHEDULED_CHARGING_PENDING,
+
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_trip_charging",
+        polling=True,
+
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_state_conn_charge_cable",
+        polling=True,
+        polling_value_fn=lambda x: x != "<invalid>",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="climate_state_cabin_overheat_protection_actively_cooling",
+        polling=True,
+        device_class=BinarySensorDeviceClass.HEAT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_dashcam_state",
+        polling=True,
+        device_class=BinarySensorDeviceClass.RUNNING,
+        polling_value_fn=lambda x: x == "Recording",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_is_user_present",
+        polling=True,
+        device_class=BinarySensorDeviceClass.PRESENCE,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_tpms_soft_warning_fl",
+        polling=True,
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_tpms_soft_warning_fr",
+        polling=True,
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_tpms_soft_warning_rl",
+        polling=True,
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_tpms_soft_warning_rr",
+        polling=True,
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_fd_window",
+        polling=True,
+        streaming_key=Signal.FD_WINDOW,
+        device_class=BinarySensorDeviceClass.WINDOW,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_fp_window",
+        polling=True,
+        streaming_key=Signal.FP_WINDOW,
+        device_class=BinarySensorDeviceClass.WINDOW,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_rd_window",
+        polling=True,
+        streaming_key=Signal.RD_WINDOW,
+        device_class=BinarySensorDeviceClass.WINDOW,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_rp_window",
+        polling=True,
+        streaming_key=Signal.RP_WINDOW,
+        device_class=BinarySensorDeviceClass.WINDOW,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_df",
+        polling=True,
+        device_class=BinarySensorDeviceClass.DOOR,
+        streaming_key=Signal.DOOR_STATE,
+        streaming_value_fn=lambda x: x.get("DriverFront") in [True,"true"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_dr",
+        polling=True,
+        device_class=BinarySensorDeviceClass.DOOR,
+        streaming_key=Signal.DOOR_STATE,
+        streaming_value_fn=lambda x: x.get("DriverRear") in [True,"true"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_pf",
+        polling=True,
+        device_class=BinarySensorDeviceClass.DOOR,
+        streaming_key=Signal.DOOR_STATE,
+        streaming_value_fn=lambda x: x.get("PassengerFront") in [True,"true"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="vehicle_state_pr",
+        polling=True,
+        device_class=BinarySensorDeviceClass.DOOR,
+        streaming_key=Signal.DOOR_STATE,
+        streaming_value_fn=lambda x: x.get("PassengerRear") in [True,"true"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="automatic_blind_spot_camera",
+        streaming_key=Signal.AUTOMATIC_BLIND_SPOT_CAMERA,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="automatic_emergency_braking_off",
+        streaming_key=Signal.AUTOMATIC_EMERGENCY_BRAKING_OFF,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="blind_spot_collision_warning_chime",
+        streaming_key=Signal.BLIND_SPOT_COLLISION_WARNING_CHIME,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="bms_full_charge_complete",
+        streaming_key=Signal.BMS_FULL_CHARGE_COMPLETE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="brake_pedal",
+        streaming_key=Signal.BRAKE_PEDAL,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_enable_request",
+        streaming_key=Signal.CHARGE_ENABLE_REQUEST,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="charge_port_cold_weather_mode",
+        streaming_key=Signal.CHARGE_PORT_COLD_WEATHER_MODE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="service_mode",
+        streaming_key=Signal.SERVICE_MODE,
+        entity_registry_enabled_default=False,
+    ),
+    # NEEDS TRANSLATION
+    TeslemetryBinarySensorEntityDescription(
+        key="pin_to_drive_enabled",
+        streaming_key=Signal.PIN_TO_DRIVE_ENABLED,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="drive_rail",
+        streaming_key=Signal.DRIVE_RAIL,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="driver_seat_belt",
+        streaming_key=Signal.DRIVER_SEAT_BELT,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="driver_seat_occupied",
+        streaming_key=Signal.DRIVER_SEAT_OCCUPIED,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="passenger_seat_belt",
+        streaming_key=Signal.PASSENGER_SEAT_BELT,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="fast_charger_present",
+        streaming_key=Signal.FAST_CHARGER_PRESENT,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="gps_state",
+        streaming_key=Signal.GPS_STATE,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="guest_mode_enabled",
+        streaming_key=Signal.GUEST_MODE_ENABLED,
+        entity_registry_enabled_default=False,
+        streaming_value_fn=lambda x: x is True or x == "true",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="dc_dc_enable",
+        streaming_key=Signal.DC_DC_ENABLE,
+        entity_registry_enabled_default=False,
+    ),
+)
+
+ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(key="backup_capable"),
+    BinarySensorEntityDescription(key="grid_services_active"),
+    BinarySensorEntityDescription(key="storm_mode_active"),
+)
+
+
+ENERGY_INFO_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="components_grid_services_enabled",
+    ),
 )
 
 async def async_setup_entry(
@@ -37,30 +320,29 @@ async def async_setup_entry(
 
     entities = []
     for vehicle in entry.runtime_data.vehicles:
-        if vehicle.api.pre2021:
-            # Vehicle cannot use streaming
-            for description in VEHICLE_DESCRIPTIONS:
-                if description.polling_parent:
-                    entities.append(TeslemetryVehicleBinarySensorEntity(vehicle, description))
-        else:
-            for description in VEHICLE_DESCRIPTIONS:
-                if description.streaming_key and description.streaming_firmware >= vehicle.firmware:
-                    entities.append(TeslemetryVehicleStreamBinarySensorEntity(vehicle, description))
-                elif description.polling_parent:
-                    entities.append(TeslemetryVehicleBinarySensorEntity(vehicle, description))
+        for description in VEHICLE_DESCRIPTIONS:
+            if not vehicle.api.pre2021 and description.streaming_key and description.streaming_firmware >= vehicle.firmware:
+                entities.append(TeslemetryVehicleStreamingBinarySensorEntity(vehicle, description))
+            elif description.polling:
+                entities.append(TeslemetryVehiclePollingBinarySensorEntity(vehicle, description))
 
-    for energysite in entry.runtime_data.energysites:
-        for description in ENERGY_LIVE_DESCRIPTIONS:
-            if description.key in energysite.live_coordinator.data:
-                entities.append(TeslemetryEnergyLiveBinarySensorEntity(energysite, description))
-        for description in ENERGY_INFO_DESCRIPTIONS:
-            if description.key in energysite.info_coordinator.data:
-                entities.append(TeslemetryEnergyInfoBinarySensorEntity(energysite, description))
+    entities.extend(
+        TeslemetryEnergyLiveBinarySensorEntity(energysite, description)
+        for energysite in entry.runtime_data.energysites
+        for description in ENERGY_LIVE_DESCRIPTIONS
+        if description.key in energysite.live_coordinator.data
+    )
+    entities.extend(
+        TeslemetryEnergyInfoBinarySensorEntity(energysite, description)
+        for energysite in entry.runtime_data.energysites
+        for description in ENERGY_INFO_DESCRIPTIONS
+        if description.key in energysite.info_coordinator.data
+    )
 
     async_add_entities(entities)
 
 
-class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
+class TeslemetryVehiclePollingBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorEntity):
     """Base class for Teslemetry vehicle binary sensors."""
 
     entity_description: TeslemetryBinarySensorEntityDescription
@@ -87,73 +369,22 @@ class TeslemetryVehicleBinarySensorEntity(TeslemetryVehicleEntity, BinarySensorE
             self._attr_is_on = self.entity_description.polling_value_fn(self._value)
 
 
-class TeslemetryVehicleBinarySensorStateEntity(TeslemetryVehicleEntity, BinarySensorEntity):
-    """Teslemetry vehicle state binary sensors."""
-
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-
-    def __init__(
-        self,
-        data: TeslemetryVehicleData
-    ) -> None:
-        """Initialize the sensor."""
-        #TeslemetryState.ONLINE
-        super().__init__(data, "state")
-
-    def _handle_stream_update(self, data) -> None:
-        """Handle the data update."""
-        # This is the wrong place to do this logic, move it to the init later
-        if "vehicle_data" in data:
-            return
-        if data.get("state") is not None:
-            self.coordinator.data["state"] = data["state"]
-        else:
-            self.coordinator.data["state"] = TeslemetryState.ONLINE
-        self._updated_by = TeslemetryUpdateType.STREAMING
-        self._async_update_attrs()
-        self.async_write_ha_state()
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
-            self._attr_is_on = state.state == STATE_ON
-
-        if self.stream.server:
-            self.async_on_remove(
-                self.stream.async_add_listener(
-                    self._handle_stream_update,
-                    {"vin": self.vin},
-                )
-            )
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the binary sensor."""
-
-        if self._value is None:
-            self._attr_available = False
-            self._attr_is_on = None
-        else:
-            self._attr_available = True
-            self._attr_is_on = self._value == TeslemetryState.ONLINE
-
-
-
-class TeslemetryVehicleStreamBinarySensorEntity(
+class TeslemetryVehicleStreamingBinarySensorEntity(
     TeslemetryVehicleStreamEntity, BinarySensorEntity, RestoreEntity
 ):
     """Base class for Teslemetry vehicle streaming sensors."""
 
-    entity_description: BinarySensorEntityDescription
+    entity_description: TeslemetryBinarySensorEntityDescription
 
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        description: BinarySensorEntityDescription,
+        description: TeslemetryBinarySensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
-        super().__init__(data, description.key)
+        assert description.streaming_key
+        super().__init__(data, description.key, description.streaming_key)
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
@@ -163,7 +394,7 @@ class TeslemetryVehicleStreamBinarySensorEntity(
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_on = self.entity_description.stream_value_fn(value)
+        self._attr_is_on = self.entity_description.streaming_value_fn(value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

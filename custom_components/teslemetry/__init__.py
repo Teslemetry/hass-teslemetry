@@ -255,13 +255,19 @@ def create_handle_vehicle_stream(vin: str, coordinator) -> Callable[[dict], None
     def handle_vehicle_stream(data: dict) -> None:
         """Handle vehicle data from the stream."""
         if "vehicle_data" in data:
-            LOGGER.debug("Streaming received vehicle data from %s", vin)
+            LOGGER.debug("Streaming received new vehicle data from %s", vin)
             coordinator.updated_once = True
             coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
         elif "state" in data:
-            LOGGER.debug("Streaming received state from %s", vin)
-            coordinator.data["state"] = data["state"]
-            coordinator.async_set_updated_data(coordinator.data)
+            if coordinator.data["state"] != data["state"]:
+                LOGGER.debug("Streaming received new state from %s", vin)
+                coordinator.data["state"] = data["state"]
+                coordinator.async_set_updated_data(coordinator.data)
+        elif "data" in data or "alert" in data or "error" in data:
+            if coordinator.data["state"] != TeslemetryState.ONLINE:
+                LOGGER.debug("Streaming received telemetry from %s so it must be awake", vin)
+                coordinator.data["data"] = TeslemetryState.ONLINE
+                coordinator.async_set_updated_data(coordinator.data)
 
     return handle_vehicle_stream
 

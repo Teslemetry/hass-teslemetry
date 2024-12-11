@@ -14,6 +14,11 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
+#TeslemetrySensorEntityDescription(
+#    key="origin_location",
+#    streaming_key=Signal.ORIGIN_LOCATION,
+#    entity_registry_enabled_default=False,
+#),
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback

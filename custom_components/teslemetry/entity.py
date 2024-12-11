@@ -1,7 +1,7 @@
 """Teslemetry parent entity class."""
 
 from typing import Any
-from time import time
+from propcache import cached_property
 
 from homeassistant.helpers.entity import Entity
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
@@ -63,6 +63,10 @@ class TeslemetryVehicleStreamEntity(Entity):
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 
+    @cached_property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.stream.connected
 
 class TeslemetryVehicleComplexStreamEntity(Entity):
     """Parent class for Teslemetry Vehicle Stream entities with multiple keys."""

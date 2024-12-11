@@ -133,6 +133,33 @@
       },
       "vehicle_state_tpms_soft_warning_rr": {
         "name": "Tire pressure warning rear right"
+      },
+      "pin_to_drive_enabled": {
+        "name": "Pin To Drive Enabled"
+      },
+      "drive_rail": {
+        "name": "Drive Rail"
+      },
+      "driver_seat_belt": {
+        "name": "Driver Seat Belt"
+      },
+      "driver_seat_occupied": {
+        "name": "Driver Seat Occupied"
+      },
+      "passenger_seat_belt": {
+        "name": "Passenger Seat Belt"
+      },
+      "fast_charger_present": {
+        "name": "Fast Charger Present"
+      },
+      "gps_state": {
+        "name": "GPS State"
+      },
+      "guest_mode_enabled": {
+        "name": "Guest Mode Enabled"
+      },
+      "dc_dc_enable": {
+        "name": "DCDC Enable"
       }
     },
     "button": {
@@ -451,10 +478,10 @@
       "energy_left": {
         "name": "Energy left"
       },
-      "event_alerts": {
+      "alerts": {
         "name": "Latest alert"
       },
-      "event_errors": {
+      "errors": {
         "name": "Latest error"
       },
       "generator_power": {
@@ -520,9 +547,6 @@
       },
       "dc_charging_power": {
         "name": "DC Charging Power"
-      },
-      "dc_dc_enable": {
-        "name": "DCDC Enable"
       },
       "destination_location": {
         "name": "Destination Location"
@@ -617,38 +641,17 @@
       "di_voltage_battery_rear_right": {
         "name": "Rear Right DI Voltage"
       },
-      "door_state": {
-        "name": "Door State"
-      },
-      "drive_rail": {
-        "name": "Drive Rail"
-      },
-      "driver_seat_belt": {
-        "name": "Driver Seat Belt"
-      },
-      "driver_seat_occupied": {
-        "name": "Driver Seat Occupied"
-      },
       "emergency_lane_departure_avoidance": {
         "name": "Emergency Lane Departure Avoidance"
       },
       "energy_remaining": {
         "name": "Pack Remaining"
       },
-      "fast_charger_present": {
-        "name": "Fast Charger Present"
-      },
       "forward_collision_warning": {
         "name": "Forward Collision Warning"
       },
       "gps_heading": {
         "name": "Heading"
-      },
-      "gps_state": {
-        "name": "GPS State"
-      },
-      "guest_mode_enabled": {
-        "name": "Guest Mode Enabled"
       },
       "guest_mode_mobile_access_state": {
         "name": "Guest Mode State"
@@ -710,14 +713,8 @@
       "paired_key_quantity": {
         "name": "Number of paired Keys"
       },
-      "passenger_seat_belt": {
-        "name": "Passenger Seat Belt"
-      },
       "pedal_position": {
         "name": "Pedal Position"
-      },
-      "pin_to_drive_enabled": {
-        "name": "Pin To Drive Enabled"
       },
       "rated_range": {
         "name": "Rated Range"
