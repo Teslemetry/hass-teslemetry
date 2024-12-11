@@ -364,13 +364,13 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     ),
     TeslemetrySensorEntityDescription(
         # This entity isnt allowed in core
-        key="charge_state_minutes_to_full_charge",
+        key="charge_state_time_to_full_charge",
         polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
         streaming_key=Signal.TIME_TO_FULL_CHARGE,
         polling_available_fn=lambda x: x is not None and float(x) > 0,
 
         device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.MINUTES,
+        native_unit_of_measurement=UnitOfTime.HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetrySensorEntityDescription(
@@ -1014,7 +1014,7 @@ class TeslemetryTimeEntityDescription(SensorEntityDescription):
 
 VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
     TeslemetryTimeEntityDescription(
-        key="charge_state_minutes_to_full_charge",
+        key="charge_state_time_to_full_charge",
         polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
         streaming_key=Signal.TIME_TO_FULL_CHARGE,
         device_class=SensorDeviceClass.TIMESTAMP,
@@ -1022,7 +1022,7 @@ VEHICLE_TIME_DESCRIPTIONS: tuple[TeslemetryTimeEntityDescription, ...] = (
     ),
     TeslemetryTimeEntityDescription(
         key="drive_state_active_route_minutes_to_arrival",
-        polling_parent=TeslemetryPollingKeys.CHARGE_STATE,
+        polling_parent=TeslemetryPollingKeys.DRIVE_STATE,
         streaming_key=Signal.MINUTES_TO_ARRIVAL,
         device_class=SensorDeviceClass.TIMESTAMP,
     ),
