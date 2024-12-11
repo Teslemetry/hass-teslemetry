@@ -50,6 +50,16 @@ class TeslemetryUpdateType(StrEnum):
     STREAMING = "streaming"
 
 
+class TeslemetryPollingKeys(StrEnum):
+    """Teslemetry Timestamps."""
+
+    VEHICLE_STATE = "vehicle_state"
+    DRIVE_STATE = "drive_state"
+    CHARGE_STATE = "charge_state"
+    CLIMATE_STATE = "climate_state"
+    GUI_SETTINGS = "gui_settings"
+    VEHICLE_CONFIG = "vehicle_config"
+
 class TeslemetryTimestamp(StrEnum):
     """Teslemetry Timestamps."""
 

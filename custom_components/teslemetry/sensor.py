@@ -1,42 +1,22 @@
 """Sensor platform for Teslemetry integration."""
 
 from __future__ import annotations
+from datetime import  timedelta
 
-from tesla_fleet_api.const import TelemetryField
-from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from itertools import chain
-from typing import cast
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     RestoreSensor,
     SensorEntityDescription,
-    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    PERCENTAGE,
-    EntityCategory,
-    UnitOfElectricCurrent,
-    UnitOfElectricPotential,
-    UnitOfEnergy,
-    UnitOfLength,
-    UnitOfPower,
-    UnitOfPressure,
-    UnitOfSpeed,
-    UnitOfTemperature,
-    UnitOfTime,
-)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.variance import ignore_variance
+from propcache import cached_property
 
-from .const import TeslemetryState, TeslemetryTimestamp, MODELS, ENERGY_HISTORY_FIELDS
+from .const import TeslemetryState, MODELS
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
@@ -46,6 +26,7 @@ from .entity import (
     TeslemetryEnergyHistoryEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+
 from .helpers import auto_type, ignore_drop
 
 ChargeStates = {
@@ -1015,127 +996,58 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = 
             "off_grid_intentional",
             "off_grid_unintentional",
             "island_status_unknown",
-        ]
-    ),
+
+from .helpers import auto_type
+
+from .sensor_descriptions import (
+    TeslemetrySensorEntityDescription,
+    TeslemetryTimeEntityDescription,
+    TeslemetryEnergySensorEntityDescription,
+    VEHICLE_DESCRIPTIONS,
+    VEHICLE_TIME_DESCRIPTIONS,
+    ENERGY_LIVE_DESCRIPTIONS,
+    ENERGY_INFO_DESCRIPTIONS,
+    ENERGY_HISTORY_DESCRIPTIONS,
+    WALL_CONNECTOR_DESCRIPTIONS,
 )
-
-
-WALL_CONNECTOR_DESCRIPTIONS: tuple[
-    TeslemetryEnergySensorEntityDescription, ...
-] = (
-    TeslemetryEnergySensorEntityDescription(
-        key="wall_connector_state",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        options=list(WallConnectorStates.values()),
-        device_class=SensorDeviceClass.ENUM,
-        value_fn=lambda value: WallConnectorStates.get(cast(str, value)),
-    ),
-    TeslemetryEnergySensorEntityDescription(
-        key="wall_connector_fault_state",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryEnergySensorEntityDescription(
-        key="wall_connector_power",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.WATT,
-        suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
-        suggested_display_precision=2,
-        device_class=SensorDeviceClass.POWER,
-    ),
-)
-
-ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
-        key="vpp_backup_reserve_percent",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        device_class=SensorDeviceClass.BATTERY,
-        native_unit_of_measurement=PERCENTAGE,
-    ),
-    SensorEntityDescription(key="version"),
-)
-
-
-ENERGY_HISTORY_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = tuple(
-    TeslemetryEnergySensorEntityDescription(
-        key=key,
-        device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        suggested_display_precision=2,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_registry_enabled_default=(key.startswith("total") or key=="grid_energy_imported"),
-        value_fn=lambda x: x.get(key, 0),
-    ) for key in ENERGY_HISTORY_FIELDS
-)
-
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
 
-    async_add_entities(
-        chain(
-            (  # Add vehicles
-                TeslemetryVehicleSensorEntity(vehicle, description)
-                for vehicle in entry.runtime_data.vehicles
-                for description in VEHICLE_DESCRIPTIONS
-            ),
-            (  # Add vehicles time sensors
-                TeslemetryVehicleTimeSensorEntity(vehicle, description)
-                for vehicle in entry.runtime_data.vehicles
-                for description in VEHICLE_TIME_DESCRIPTIONS
-            ),
-            (  # Add vehicle streaming
-                TeslemetryStreamSensorEntity(vehicle, description)
-                for vehicle in entry.runtime_data.vehicles
-                for description in VEHICLE_STREAM_DESCRIPTIONS
-            ),
-            (  # Add energy site live
-                TeslemetryEnergyLiveSensorEntity(energysite, description)
-                for energysite in entry.runtime_data.energysites
-                for description in ENERGY_LIVE_DESCRIPTIONS
-                if description.key in energysite.live_coordinator.data
-            ),
-            (  # Add wall connectors
-                TeslemetryWallConnectorSensorEntity(energysite, din, description)
-                for energysite in entry.runtime_data.energysites
-                for din in energysite.live_coordinator.data.get("wall_connectors", {})
-                for description in WALL_CONNECTOR_DESCRIPTIONS
-            ),
-            (  # Add wall connector connected vehicle
-                TeslemetryWallConnectorVehicleSensorEntity(
-                    energysite, din, entry.runtime_data.vehicles
-                )
-                for energysite in entry.runtime_data.energysites
-                for din in energysite.live_coordinator.data.get("wall_connectors", {})
-            ),
-            (  # Add energy site info
-                TeslemetryEnergyInfoSensorEntity(energysite, description)
-                for energysite in entry.runtime_data.energysites
-                for description in ENERGY_INFO_DESCRIPTIONS
-                if description.key in energysite.info_coordinator.data
-            ),
-            (  # Add energy history sensor
-                TeslemetryEnergyHistorySensorEntity(energysite, description)
-                for energysite in entry.runtime_data.energysites
-                for description in ENERGY_HISTORY_DESCRIPTIONS
-                if energysite.history_coordinator is not None
-            ),
-            (  # Add alert event sensor
-                TeslemetryVehicleEventEntity(vehicle, "alerts")
-                for vehicle in entry.runtime_data.vehicles
-            ),
-            (  # Add error event sensor
-                TeslemetryVehicleEventEntity(vehicle, "errors")
-                for vehicle in entry.runtime_data.vehicles
-            )
-        )
-    )
+    entities = []
+    for vehicle in entry.runtime_data.vehicles:
+        for description in VEHICLE_DESCRIPTIONS:
+            if not vehicle.api.pre2021 and description.streaming_key and vehicle.firmware >= description.streaming_firmware:
+                entities.append(TeslemetryStreamSensorEntity(vehicle, description))
+            elif description.polling_parent:
+                entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
+        for description in VEHICLE_TIME_DESCRIPTIONS:
+            if not vehicle.api.pre2021 and vehicle.firmware >= description.streaming_firmware:
+                entities.append(TeslemetryVehicleTimeStreamSensorEntity(vehicle, description))
+            else:
+                entities.append(TeslemetryVehicleTimeSensorEntity(vehicle, description))
+
+    for energysite in entry.runtime_data.energysites:
+        for description in ENERGY_LIVE_DESCRIPTIONS:
+            if description.key in energysite.live_coordinator.data:
+                entities.append(TeslemetryEnergyLiveSensorEntity(energysite, description))
+        for din in energysite.live_coordinator.data.get("wall_connectors", {}):
+            for description in WALL_CONNECTOR_DESCRIPTIONS:
+                entities.append(TeslemetryWallConnectorSensorEntity(energysite, din, description))
+            entities.append(TeslemetryWallConnectorVehicleSensorEntity(energysite, din, entry.runtime_data.vehicles))
+        for description in ENERGY_INFO_DESCRIPTIONS:
+            if description.key in energysite.info_coordinator.data:
+                entities.append(TeslemetryEnergyInfoSensorEntity(energysite, description))
+        if energysite.history_coordinator is not None:
+            for description in ENERGY_HISTORY_DESCRIPTIONS:
+                entities.append(TeslemetryEnergyHistorySensorEntity(energysite, description))
+
+    async_add_entities(entities)
 
 
-class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
+class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -1148,34 +1060,52 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, RestoreSensor):
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
-        super().__init__(
-            data, description.key, description.timestamp_key, description.streaming_key
-        )
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if self.coordinator.data.get('state') == TeslemetryState.OFFLINE:
-
-            if (sensor_data := await self.async_get_last_sensor_data()) is not None and not self.coordinator.updated_once:
-                self._attr_native_value = sensor_data.native_value
+        assert description.polling_parent
+        super().__init__(data, description.key)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
 
-        if self.entity_description.available_fn(self._value):
+        if self.entity_description.polling_available_fn(self._value):
             self._attr_available = True
-            self._attr_native_value = self.entity_description.value_fn(self._value)
+            self._attr_native_value = self.entity_description.polling_value_fn(self._value)
         else:
             self._attr_available = False
             self._attr_native_value = None
 
+class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
+    """Base class for Teslemetry vehicle streaming sensors."""
+
+    entity_description: TeslemetrySensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        assert description.streaming_key
+        super().__init__(data, description.key, description.streaming_key)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+
+        if (sensor_data := await self.async_get_last_sensor_data()) is not None:
+            self._attr_native_value = sensor_data.native_value
+
+    @cached_property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.stream.connected
+
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-
-        if (value := auto_type(value)) is not None:
-            self._attr_available = True
-            self._attr_native_value = self.entity_description.value_fn(value)
+        if (value is None):
+            self._attr_native_value = None
+        else:
+            self._attr_native_value = self.entity_description.streaming_value_fn(value)
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
@@ -1202,9 +1132,10 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
 
-        self._attr_available = self._value is not None and self._value > 0
+        value = self._value
+        self._attr_available = value is not None and value > 0
 
-        if (value := self._value) == self._last_value:
+        if value == self._last_value:
             # No change
             return
         self._last_value = value
@@ -1213,39 +1144,45 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         else:
             self._attr_native_value = None
 
-    def _async_value_from_stream(self, value) -> None:
-        self._attr_available = True
-        self._attr_native_value = self._time_value(float(value))
+          
+class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
+    """Base class for Teslemetry vehicle metric sensors."""
 
-
-class TeslemetryStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
-    """Base class for Teslemetry vehicle streaming sensors."""
-
-    entity_description: TeslemetryStreamSensorEntityDescription
+    entity_description: TeslemetryTimeEntityDescription
+    _last_value: int | None = None
 
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        description: TeslemetryStreamSensorEntityDescription,
+        description: TeslemetryTimeEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         self.entity_description = description
-        super().__init__(data, description.key)
+        self._get_timestamp = ignore_variance(
+            func=lambda value: dt_util.utcnow() + timedelta(minutes=value),
+            ignored_variance=timedelta(minutes=1),
+        )
 
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-
-        if (sensor_data := await self.async_get_last_sensor_data()) is not None:
-            self._attr_native_value = sensor_data.native_value
+        assert description.streaming_key
+        super().__init__(data, description.key, description.streaming_key)
+        self._attr_translation_key = f"{self.entity_description.key}_timestamp"
+        self._attr_unique_id = f"{data.vin}-{description.key}_timestamp"
 
     def _async_value_from_stream(self, value) -> None:
-        """Update the value of the entity."""
-        self._attr_available = self.stream.connected
-        if (value is None):
-            self._attr_native_value = None
+        """Update the attributes of the sensor."""
+
+        self._attr_available = value is not None and value > 0
+
+        if value == self._last_value:
+            # No change
+            return
+        self._last_value = value
+        if isinstance(value, int | float):
+            self._attr_native_value = self._get_timestamp(value)
         else:
-            self._attr_native_value = self.entity_description.value_fn(value)
+            self._attr_native_value = None
+
+
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

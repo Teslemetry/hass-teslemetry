@@ -2,9 +2,13 @@
 
 import asyncio
 from typing import Any
-from homeassistant.exceptions import HomeAssistantError
+from teslemetry_stream import TeslemetryStream
+from teslemetry_stream import Signal
 from tesla_fleet_api.exceptions import TeslaFleetError
+
+from homeassistant.exceptions import HomeAssistantError
 from .const import DOMAIN, LOGGER, TeslemetryState
+
 
 def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
     """Flatten the data structure."""
@@ -99,9 +103,9 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
 
 def auto_type(value) -> int | float | bool | str:
     """Automatically cast a string to a type."""
-    # If not a string return None
+
     if not isinstance(value, str):
-        return None
+        return value
 
     if value.isdigit():
         return int(value)
@@ -132,3 +136,35 @@ def ignore_drop(change: int | float = 1):
         return _last_value
 
     return _ignore_drop
+
+class AddStreamFields:
+    """Handle streaming field updates."""
+
+    def __init__(self, stream: TeslemetryStream, vin: str):
+        # A dictionary of Signal keys and null values
+        self.stream: TeslemetryStream = stream
+        self.vin: str = vin
+        self.fields: dict[Signal, None] = {}
+        self.lock = asyncio.Lock()
+
+    async def add(self, field: Signal) -> None:
+        """Handle vehicle data from the stream."""
+        if field in self.stream.fields:
+            LOGGER.debug("Streaming field %s already enabled @ %ss", field, self.stream.fields[field].get('interval_seconds'))
+            return
+        self.fields[field] = None
+        async with self.lock:
+            # Short circuit if no fields are present
+            if len(self.fields) == 0:
+                return
+            # Collect additional fields before sending
+            await asyncio.sleep(1)
+            # Copy the field list and empty it
+            fields = self.fields.copy()
+            self.fields.clear()
+
+            resp = await self.stream.update_fields(fields, self.vin)
+            if(resp.get("response",{}).get("updated_vehicles") == 1):
+                LOGGER.debug("Added streaming fields %s", ", ".join(fields.keys()))
+            else:
+                LOGGER.warning("Unable to add streaming fields %s", ", ".join(fields.keys()))

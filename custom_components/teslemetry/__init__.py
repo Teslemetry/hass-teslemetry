@@ -1,18 +1,17 @@
 """Teslemetry integration."""
 
 import asyncio
+from collections.abc import Callable
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     InvalidToken,
-    SubscriptionRequired,
     TeslaFleetError,
-    Forbidden,
 )
-from tesla_fleet_api.teslemetry import rate_limit
-from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicleNotConfigured
+#from tesla_fleet_api.teslemetry import rate_limit
+from teslemetry_stream import TeslemetryStream
 
 
 from homeassistant.config_entries import ConfigEntry
@@ -32,23 +31,23 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .const import TeslemetryState
-from .helpers import flatten
+from .helpers import flatten, AddStreamFields
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_register_services
 
 PLATFORMS: Final = [
     Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.COVER,
-    Platform.CLIMATE,
-    Platform.DEVICE_TRACKER,
-    Platform.LOCK,
-    Platform.MEDIA_PLAYER,
-    Platform.NUMBER,
-    Platform.SELECT,
+    #Platform.BUTTON,
+    #Platform.COVER,
+    #Platform.CLIMATE,
+    #Platform.DEVICE_TRACKER,
+    #Platform.LOCK,
+    #Platform.MEDIA_PLAYER,
+    #Platform.NUMBER,
+    #Platform.SELECT,
     Platform.SENSOR,
-    Platform.SWITCH,
-    Platform.UPDATE,
+    #Platform.SWITCH,
+    #Platform.UPDATE,
 ]
 
 class HandleVehicleData:
@@ -72,6 +71,8 @@ class HandleVehicleState:
         """Handle state from the stream."""
         self.coordinator.data["state"] = data["state"]
         self.coordinator.async_set_updated_data(self.coordinator.data)
+
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
@@ -98,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         uid = calls[0]["uid"]
         scopes = calls[0]["scopes"]
         region = calls[0]["region"]
+        metadata = calls[0]["vehicles"]
         products = calls[1]["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
@@ -117,21 +119,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicles: list[TeslemetryVehicleData] = []
     energysites: list[TeslemetryEnergyData] = []
 
-    # Create a single stream instance
-    try:
-        stream = TeslemetryStream(
-            session, access_token, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
-        )
-    except TeslemetryStreamError:
-        LOGGER.warn("Failed to setup Teslemetry streaming", e)
+    # Create the stream
+    stream = TeslemetryStream(
+        session, access_token, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
+    )
+
 
     for product in products:
-        if "vin" in product and Scope.VEHICLE_DEVICE_DATA in scopes:
+        if "vin" in product and metadata.get(product["vin"], {}).get("access") and Scope.VEHICLE_DEVICE_DATA in scopes:
             # Remove the protobuff 'cached_data' that we do not use to save memory
             product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            firmware = metadata[vin]["firmware"]
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -140,9 +141,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 name=product["display_name"],
                 model=MODELS.get(vin[3]),
                 serial_number=vin,
+                sw_version=firmware,
             )
 
             device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
+
+            remove_listener = stream.async_add_listener(
+                create_handle_vehicle_stream(vin, coordinator),
+                {"vin": vin},
+            )
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -150,7 +157,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     coordinator=coordinator,
                     stream=stream,
                     vin=vin,
+                    firmware=firmware,
                     device=device,
+                    remove_listener=remove_listener
                 )
             )
         elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
@@ -187,13 +196,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Run all coordinator first refreshes
     await asyncio.gather(
         *(
-            async_setup_stream(hass, teslemetry, vehicle)
+            async_setup_stream(vehicle)
             for vehicle in vehicles
         ),
-        #*(
-        #    vehicle.coordinator.async_config_entry_first_refresh()
-        #    for vehicle in vehicles
-        #),
+        *(
+            vehicle.coordinator.async_config_entry_first_refresh()
+            for vehicle in vehicles
+        ),
         *(
             energysite.live_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
@@ -234,94 +243,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Teslemetry Config."""
     for vehicle in entry.runtime_data.vehicles:
-        for remove_listener in vehicle.remove_listeners:
-            remove_listener()
+        vehicle.remove_listener()
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         del entry.runtime_data
     return unload_ok
 
 
-async def async_setup_stream(hass: HomeAssistant, teslemetry: Teslemetry, vehicle: TeslemetryVehicleData):
-    """Setup stream for vehicle."""
-    LOGGER.debug("Stream Starting Up")
+def create_handle_vehicle_stream(vin: str, coordinator) -> Callable[[dict], None]:
+    """Create a handle vehicle stream function."""
 
-    # This whole section needs to be refacted to match what is being implemented into core
+    def handle_vehicle_stream(data: dict) -> None:
+        """Handle vehicle data from the stream."""
+        if "vehicle_data" in data:
+            LOGGER.debug("Streaming received vehicle data from %s", vin)
+            coordinator.updated_once = True
+            coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
+        elif "state" in data:
+            LOGGER.debug("Streaming received state from %s", vin)
+            coordinator.data["state"] = data["state"]
+            coordinator.async_set_updated_data(coordinator.data)
 
-    try:
-        async with rate_limit:
-            # Ensure the vehicle is configured for streaming
-            def handle_alerts(event: dict) -> None:
-                """Handle stream alerts."""
-                LOGGER.debug("Streaming received alert from %s", vehicle.vin)
-                if alerts := event.get("alerts"):
-                    for alert in alerts:
-                        if alert["startedAt"] <= vehicle.last_alert:
-                            break
-                        alert["vin"] = vehicle.vin
-                        hass.bus.fire("teslemetry_alert", alert)
-                    vehicle.last_alert = alerts[0]["startedAt"]
+    return handle_vehicle_stream
 
-            def handle_errors(event: dict) -> None:
-                """Handle stream errors."""
-                LOGGER.debug("Streaming received error from %s", vehicle.vin)
-                if errors := event.get("errors"):
-                    for error in errors:
-                        if error["createdAt"] <= vehicle.last_error:
-                            break
-                        error["vin"] = vehicle.vin
-                        hass.bus.fire("teslemetry_error", error)
-                    vehicle.last_error = errors[0]["createdAt"]
+async def async_setup_stream(vehicle: TeslemetryVehicleData):
+    """Set up the stream for a vehicle."""
 
-            def handle_vehicle_data(data: dict) -> None:
-                """Handle vehicle data from the stream."""
-                LOGGER.debug("Streaming received vehicle_data from %s", vehicle.vin)
-                vehicle.coordinator.updated_once = True
-                vehicle.coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
-
-            def handle_state(data: dict) -> None:
-                """Handle state from the stream."""
-                LOGGER.debug("Streaming received state from %s", vehicle.vin)
-                vehicle.coordinator.data["state"] = data["state"]
-                vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
-
-            def handle_connectivity(data: dict) -> None:
-                """Handle status from the stream."""
-                LOGGER.debug("Streaming received connectivity from %s to %s", vehicle.vin, data["status"])
-                if data["status"] == "CONNECTED":
-                    vehicle.coordinator.data["state"] = TeslemetryState.ONLINE
-                elif data["status"] == "DISCONNECTED":
-                    vehicle.coordinator.data["state"] = TeslemetryState.OFFLINE
-                vehicle.coordinator.async_set_updated_data(vehicle.coordinator.data)
-
-            vehicle.remove_listeners = (
-                vehicle.stream.async_add_listener(
-                    handle_alerts,
-                    {"vin": vehicle.vin, "alerts": None},
-                ),
-                vehicle.stream.async_add_listener(
-                    handle_errors,
-                    {"vin": vehicle.vin, "errors": None},
-                ),
-                vehicle.stream.async_add_listener(
-                    handle_vehicle_data,
-                    {"vin": vehicle.vin, "vehicle_data": None},
-                ),
-                vehicle.stream.async_add_listener(
-                    handle_state,
-                    {"vin": vehicle.vin, "state": None},
-                ),
-                #vehicle.stream.async_add_listener(
-                #    handle_connectivity,
-                #    {"vin": vehicle.vin, "status": None},
-                #),
-            )
-
-    except TeslemetryStreamVehicleNotConfigured:
-        LOGGER.warning(
-            "Vehicle %s is not configured for streaming. Configure at https://teslemetry.com/console/%s",
-            vehicle.vin,
-            vehicle.vin,
-        )
-    except Exception as e:
-        LOGGER.info("Vehicle %s is unable to use streaming", vehicle.vin)
-        LOGGER.debug(e)
+    vehicle_stream = vehicle.stream.get_vehicle(vehicle.vin)
+    await vehicle_stream.get_config()
+    await vehicle_stream.prefer_typed(True)

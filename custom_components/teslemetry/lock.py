@@ -3,7 +3,7 @@ from __future__ import annotations
 from tesla_fleet_api.const import Scope
 from typing import Any
 
-from tesla_fleet_api.const import TelemetryField
+from teslemetry_stream import Signal
 
 from homeassistant.components.lock import LockEntity
 from homeassistant.config_entries import ConfigEntry
@@ -57,7 +57,7 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
             data,
             "vehicle_state_locked",
             TeslemetryTimestamp.VEHICLE_STATE,
-            TelemetryField.LOCKED,
+            Signal.LOCKED,
         )
         self.scoped = scoped
 
@@ -99,7 +99,7 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
             data,
             "charge_state_charge_port_latch",
             TeslemetryTimestamp.CHARGE_STATE,
-            TelemetryField.CHARGE_PORT_LATCH,
+            Signal.CHARGE_PORT_LATCH,
         )
         self.scoped = scoped
 

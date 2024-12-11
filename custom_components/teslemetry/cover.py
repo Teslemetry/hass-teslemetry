@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from tesla_fleet_api.const import WindowCommand, Trunk, Scope, TelemetryField, SunRoofCommand
+from tesla_fleet_api.const import WindowCommand, Trunk, Scope, SunRoofCommand
+from teslemetry_stream import Signal
 
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -127,7 +128,7 @@ class TeslemetryChargePortEntity(TeslemetryVehicleEntity, CoverRestoreEntity):
             vehicle,
             "charge_state_charge_port_door_open",
             timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-            streaming_key=TelemetryField.CHARGE_PORT,
+            streaming_key=Signal.CHARGE_PORT,
         )
 
     def _async_update_attrs(self) -> None:

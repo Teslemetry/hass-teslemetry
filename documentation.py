@@ -1,6 +1,6 @@
 """Write documentation."""
 
-from tesla_fleet_api.const import TelemetryField
+from teslemetry_stream import TelemetryFields
 from itertools import chain
 import json
 from custom_components.teslemetry.binary_sensor import (
@@ -17,9 +17,8 @@ from custom_components.teslemetry.number import (
 from custom_components.teslemetry.select import (
     SEAT_HEATER_DESCRIPTIONS as SELECT_SEAT_HEATER_DESCRIPTIONS,
 )
-from custom_components.teslemetry.sensor import (
+from custom_components.teslemetry.sensor_descriptions import (
     VEHICLE_DESCRIPTIONS as SENSOR_VEHICLE_DESCRIPTIONS,
-    VEHICLE_STREAM_DESCRIPTIONS as SENSOR_VEHICLE_STREAM_DESCRIPTIONS,
     VEHICLE_TIME_DESCRIPTIONS as SENSOR_VEHICLE_TIME_DESCRIPTIONS,
     ENERGY_INFO_DESCRIPTIONS as SENSOR_ENERGY_INFO_DESCRIPTIONS,
     ENERGY_LIVE_DESCRIPTIONS as SENSOR_ENERGY_LIVE_DESCRIPTIONS,
@@ -48,7 +47,8 @@ def compare_keys(a, b, parent=""):
 
 used = []
 streaming_used = []
-domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
+#domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
+domains = ("sensor")
 domain_names = {
     'binary_sensor': "Binary sensor",
     'device_tracker': "Device tracker",
@@ -66,33 +66,32 @@ domain_names = {
 # Iterate over all entities
 output = []
 for domain, type, descriptions in (
-    (
-        "binary_sensor",
-        "Vehicle",
-        chain(
-            BINARY_VEHICLE_DESCRIPTIONS,
-            BINARY_VEHICLE_STREAM_DESCRIPTIONS,
-        ),
-    ),
-    (
-        "binary_sensor",
-        "Energy Site",
-        chain(
-            BINARY_ENERGY_LIVE_DESCRIPTIONS,
-            BINARY_ENERGY_INFO_DESCRIPTIONS,
-        ),
-    ),
-    ("button", "Vehicle", BUTTON_DESCRIPTIONS),
-    ("number", "Vehicle", NUMBER_VEHICLE_DESCRIPTIONS),
-    ("number", "Energy Site", NUMBER_ENERGY_INFO_DESCRIPTIONS),
-    ("select", "Vehicle", SELECT_SEAT_HEATER_DESCRIPTIONS),
+    #(
+    #    "binary_sensor",
+    #    "Vehicle",
+    #    chain(
+    #        BINARY_VEHICLE_DESCRIPTIONS,
+    #        BINARY_VEHICLE_STREAM_DESCRIPTIONS,
+    #    ),
+    #),
+    #(
+    #    "binary_sensor",
+    #    "Energy Site",
+    #    chain(
+    #        BINARY_ENERGY_LIVE_DESCRIPTIONS,
+    #        BINARY_ENERGY_INFO_DESCRIPTIONS,
+    #    ),
+    #),
+    #("button", "Vehicle", BUTTON_DESCRIPTIONS),
+    #("number", "Vehicle", NUMBER_VEHICLE_DESCRIPTIONS),
+    #("number", "Energy Site", NUMBER_ENERGY_INFO_DESCRIPTIONS),
+    #("select", "Vehicle", SELECT_SEAT_HEATER_DESCRIPTIONS),
     (
         "sensor",
         "Vehicle",
         chain(
             SENSOR_VEHICLE_DESCRIPTIONS,
             SENSOR_VEHICLE_TIME_DESCRIPTIONS,
-            SENSOR_VEHICLE_STREAM_DESCRIPTIONS,
         )
     ),(
         "sensor",
@@ -106,15 +105,11 @@ for domain, type, descriptions in (
         "Wall Connector",
         SENSOR_WALL_CONNECTOR_DESCRIPTIONS,
     ),
-    ("switch", "Vehicle", SWITCH_VEHICLE_DESCRIPTIONS),
+    #("switch", "Vehicle", SWITCH_VEHICLE_DESCRIPTIONS),
 ):
     for description in descriptions:
-        if isinstance(description.key, TelemetryField):
-            key = f"{description.key.value}"
-            translation_key = f"stream_{description.key.value.lower()}"
-        else:
-            key = description.key
-            translation_key = description.key
+        key = description.key
+        translation_key = description.key
         #if key not in strings["entity"][domain]:
         #    print(f"No string for {domain} {key}")
         if translation_key not in en["entity"][domain]:
@@ -122,24 +117,23 @@ for domain, type, descriptions in (
         else:
             used.append((domain, translation_key))
 
-        method = "Polling"
-
-        if (
-            hasattr(description, "streaming_key")
-            and description.streaming_key is not None
-        ):
+        method = ""
+        streaming = hasattr(description, "streaming_key") and description.streaming_key is not None
+        polling = hasattr(description, "polling_parent") and description.polling_parent is not None
+        if streaming and polling:
             method = "Both"
-
-        elif isinstance(description.key, TelemetryField):
+        elif streaming:
             method = "Streaming"
+        elif polling:
+            method = "Polling"
 
         enabled = "Yes"
         if description.entity_registry_enabled_default == False:
             enabled = "No"
 
-        output.append(
-            f"|{type}|{domain_names[domain]}|{en['entity'][domain][translation_key]['name']}|{method}|{enabled}|"
-        )
+        #output.append(
+        #    f"|{type}|{domain_names[domain]}|{en['entity'][domain][translation_key]['name']}|{method}|{enabled}|"
+        #)
 
 extras = [
     ("Vehicle","button","refresh","Polling","Yes"),

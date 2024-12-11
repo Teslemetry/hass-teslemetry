@@ -5,7 +5,8 @@ from itertools import chain
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from tesla_fleet_api.const import Scope, TelemetryField
+from tesla_fleet_api.const import Scope
+from teslemetry_stream import Signal
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -46,14 +47,14 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     scopes: list[Scope] | None = None
     requires: str | None = None
     timestamp_key: TeslemetryTimestamp | None = None
-    streaming_key: TelemetryField | None = None
+    streaming_key: Signal | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_current_request",
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        streaming_key=TelemetryField.CHARGE_CURRENT_REQUEST,
+        streaming_key=Signal.CHARGE_CURRENT_REQUEST,
         native_step=PRECISION_WHOLE,
         native_min_value=0,
         native_max_value=32,
@@ -67,7 +68,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_limit_soc",
         timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
-        streaming_key=TelemetryField.CHARGE_LIMIT_SOC,
+        streaming_key=Signal.CHARGE_LIMIT_SOC,
         native_step=PRECISION_WHOLE,
         native_min_value=50,
         native_max_value=100,
@@ -222,7 +223,7 @@ class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestore
         self.hass = hass
         self.scoped = Scope.VEHICLE_CMDS in scopes
 
-        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_mph", TeslemetryTimestamp.VEHICLE_STATE, TelemetryField.CURRENT_LIMIT_MPH)
+        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_mph", TeslemetryTimestamp.VEHICLE_STATE, Signal.CURRENT_LIMIT_MPH)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -276,7 +277,7 @@ class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEn
             UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR
         )
 
-        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_kph", TeslemetryTimestamp.VEHICLE_STATE, TelemetryField.CURRENT_LIMIT_MPH)
+        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_kph", TeslemetryTimestamp.VEHICLE_STATE, Signal.CURRENT_LIMIT_MPH)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
