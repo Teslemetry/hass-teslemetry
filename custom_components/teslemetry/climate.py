@@ -1,6 +1,7 @@
 """Climate platform for Teslemetry integration."""
 
 from typing import Any, cast
+from itertools import chain
 
 from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
 from teslemetry_stream import Signal
@@ -23,33 +24,39 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryClimateSide, TeslemetryTimestamp
+from .const import TeslemetryClimateSide
 from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
-
-DEFAULT_MIN_TEMP = 15
-DEFAULT_MAX_TEMP = 28
-
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Teslemetry Climate platform from a config entry."""
 
-    entities = []
-    for vehicle in entry.runtime_data.vehicles:
-        if True or vehicle.api.pre2021 or vehicle.firmware < "2024.44.25":
-            # Vehicle cannot use streaming
-           entities.append(TeslemetryPollingClimateEntity(
-               vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
-           ))
-           entities.append(TeslemetryCabinOverheatProtectionEntity(vehicle, entry.runtime_data.scopes))
-        else:
-            entities.append(TeslemetryStreamingClimateEntity(
+    async_add_entities(
+        chain((
+            TeslemetryPollingClimateEntity(
                 vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
-            ))
-            entities.append(TeslemetryCabinOverheatProtectionEntity(vehicle, entry.runtime_data.scopes))
+            )
+            if True or vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
+            else TeslemetryStreamingClimateEntity(
+                    vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
+                )
+            for vehicle in entry.runtime_data.vehicles
+        ),(
+            TeslemetryPollingCabinOverheatProtectionEntity(
+                vehicle, entry.runtime_data.scopes
+            )
+            if vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
+            else TeslemetryStreamingCabinOverheatProtectionEntity(
+                vehicle, entry.runtime_data.scopes
+            )
+            for vehicle in entry.runtime_data.vehicles
+        ))
+    )
 
+DEFAULT_MIN_TEMP = 15
+DEFAULT_MAX_TEMP = 28
 
 class TeslemetryClimateEntity(ClimateEntity):
     """Vehicle Climate Control."""
@@ -344,7 +351,7 @@ class TeslemetryCabinOverheatProtectionEntity(ClimateEntity):
         self._attr_hvac_mode = hvac_mode
         self.async_write_ha_state()
 
-class TeslemetryCabinOverheatProtectionPollingEntity(TeslemetryVehicleEntity, TeslemetryCabinOverheatProtectionEntity):
+class TeslemetryPollingCabinOverheatProtectionEntity(TeslemetryVehicleEntity, TeslemetryCabinOverheatProtectionEntity):
     """Vehicle Cabin Overheat Protection."""
 
     def __init__(
@@ -387,7 +394,7 @@ class TeslemetryCabinOverheatProtectionPollingEntity(TeslemetryVehicleEntity, Te
         self._attr_current_temperature = self.get("climate_state_inside_temp")
 
 
-class TeslemetryCabinOverheatProtectionPollingEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryCabinOverheatProtectionEntity):
+class TeslemetryStreamingCabinOverheatProtectionEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryCabinOverheatProtectionEntity):
     """Vehicle Cabin Overheat Protection."""
 
     def __init__(

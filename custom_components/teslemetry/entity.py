@@ -24,10 +24,26 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import wake_up_vehicle, handle_command, handle_vehicle_command
 
 
-class TeslemetryVehicleStreamEntity(Entity):
-    """Parent class for Teslemetry Vehicle Stream entities."""
+class TeslemetryEntity(Entity):
+    """Base class for all Teslemetry classes."""
 
     _attr_has_entity_name = True
+
+    def raise_for_scope(self, scope: Scope):
+        """Raise an error if a scope is not available."""
+        if not self.scoped:
+             raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="missing_scope",
+                translation_placeholders={"scope": scope},
+             )
+
+    async def handle_command(self, command) -> dict[str, Any]:
+        """Handle a command."""
+        return await handle_command(command)
+
+class TeslemetryVehicleStreamEntity(TeslemetryEntity):
+    """Parent class for Teslemetry Vehicle Stream entities."""
 
     def __init__(
         self, data: TeslemetryVehicleData, key: str, streaming_key: Signal
@@ -68,10 +84,8 @@ class TeslemetryVehicleStreamEntity(Entity):
         """Return True if entity is available."""
         return self.stream.connected
 
-class TeslemetryVehicleComplexStreamEntity(Entity):
+class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle Stream entities with multiple keys."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self, data: TeslemetryVehicleData, key: str, streaming_keys: list[Signal]
@@ -101,24 +115,23 @@ class TeslemetryVehicleComplexStreamEntity(Entity):
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
         data = {key: data["data"][key] for key in self.streaming_keys if key in data["data"]}
-        self._async_value_from_stream(data["data"])
+        self._async_data_from_stream(data["data"])
         self.async_write_ha_state()
 
     def _async_data_from_stream(self, data: Any) -> None:
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 
-class TeslemetryEntity(
+class TeslemetryCoordinatorEntity(
     CoordinatorEntity[
         TeslemetryVehicleDataCoordinator
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator
         | TeslemetryEnergyHistoryCoordinator
-    ]
+    ],
+    TeslemetryEntity,
 ):
-    """Parent class for all Teslemetry entities."""
-
-    _attr_has_entity_name = True
+    """Parent class for all polled Teslemetry entities."""
 
     def __init__(
         self,
@@ -168,18 +181,6 @@ class TeslemetryEntity(
         """Return True if a specific value is in coordinator data."""
         return (key or self.key) in self.coordinator.data
 
-    def raise_for_scope(self, scope: Scope):
-        """Raise an error if a scope is not available."""
-        if not self.scoped:
-             raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="missing_scope",
-                translation_placeholders={"scope": scope},
-             )
-
-    async def handle_command(self, command) -> dict[str, Any]:
-        """Handle a command."""
-        return await handle_command(command)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -192,8 +193,8 @@ class TeslemetryEntity(
         raise NotImplementedError()
 
 
-class TeslemetryVehicleEntity(TeslemetryEntity):
-    """Parent class for Teslemetry Vehicle entities."""
+class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
+    """Parent class for polled Teslemetry Vehicle entities."""
 
     def __init__(
         self,
@@ -226,7 +227,7 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         return await handle_vehicle_command(command)
 
 
-class TeslemetryEnergyLiveEntity(TeslemetryEntity):
+class TeslemetryEnergyLiveEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Live entities."""
 
     def __init__(
@@ -243,7 +244,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryEntity):
         self._async_update_attrs()
 
 
-class TeslemetryEnergyInfoEntity(TeslemetryEntity):
+class TeslemetryEnergyInfoEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
     def __init__(
@@ -259,7 +260,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryEntity):
         super().__init__(data.info_coordinator, data.api, key)
         self._async_update_attrs()
 
-class TeslemetryEnergyHistoryEntity(TeslemetryEntity):
+class TeslemetryEnergyHistoryEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy History Entities."""
 
     def __init__(
@@ -272,12 +273,13 @@ class TeslemetryEnergyHistoryEntity(TeslemetryEntity):
         self._attr_device_info = data.device
         self._attr_translation_key = key
 
+        assert data.history_coordinator
         super().__init__(data.history_coordinator, data.api, key)
         self._async_update_attrs()
 
 
 class TeslemetryWallConnectorEntity(
-    TeslemetryEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]
+    TeslemetryCoordinatorEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]
 ):
     """Parent class for Teslemetry Wall Connector Entities."""
 
