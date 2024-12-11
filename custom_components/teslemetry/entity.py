@@ -104,7 +104,7 @@ class TeslemetryVehicleComplexStreamEntity(Entity):
         self._async_value_from_stream(data["data"])
         self.async_write_ha_state()
 
-    def _async_value_from_stream(self, value: Any) -> None:
+    def _async_data_from_stream(self, data: Any) -> None:
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 

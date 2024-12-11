@@ -1,6 +1,5 @@
 """Climate platform for Teslemetry integration."""
 
-from itertools import chain
 from typing import Any, cast
 
 from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
@@ -25,7 +24,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import TeslemetryClimateSide, TeslemetryTimestamp
-from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
+from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
 DEFAULT_MIN_TEMP = 15
@@ -39,7 +38,7 @@ async def async_setup_entry(
 
     entities = []
     for vehicle in entry.runtime_data.vehicles:
-        if vehicle.api.pre2021 or vehicle.firmware < "2024.44.25":
+        if True or vehicle.api.pre2021 or vehicle.firmware < "2024.44.25":
             # Vehicle cannot use streaming
            entities.append(TeslemetryPollingClimateEntity(
                vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
@@ -47,7 +46,7 @@ async def async_setup_entry(
            entities.append(TeslemetryCabinOverheatProtectionEntity(vehicle, entry.runtime_data.scopes))
         else:
             entities.append(TeslemetryStreamingClimateEntity(
-                vehicle, TeslemetryClimateSide.DRIVER,vehicle.streaming_key, entry.runtime_data.scopes
+                vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
             ))
             entities.append(TeslemetryCabinOverheatProtectionEntity(vehicle, entry.runtime_data.scopes))
 
@@ -234,20 +233,15 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
             self._attr_fan_mode = state.attributes.get('fan_mode')
             self._attr_preset_mode = state.attributes.get('preset_mode')
 
-    def _async_value_from_stream(self, data) -> None:
+    def _async_data_from_stream(self, data) -> None:
         """Update the attributes of the entity."""
         if (state := data.get(Signal.HVAC_AC_ENABLED)) is not None:
             self._attr_hvac_mode = HVACMode.HEAT_COOL if state else HVACMode.OFF
 
         if (state := data.get(Signal.HVAC_AUTO_MODE)) is not None:
             self._attr_hvac_mode = state
-        value = self.get("climate_state_is_climate_on")
-        if value is None:
-            self._attr_hvac_mode = None
-        if value:
-            self._attr_hvac_mode = HVACMode.HEAT_COOL
-        else:
-            self._attr_hvac_mode = HVACMode.OFF
+
+
 
         self._attr_current_temperature = self.get("climate_state_inside_temp")
         self._attr_target_temperature = self.get(f"climate_state_{self.key}_setting")
@@ -277,7 +271,7 @@ COP_LEVELS = {
 }
 
 
-class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEntity):
+class TeslemetryCabinOverheatProtectionEntity(ClimateEntity):
     """Vehicle Cabin Overheat Protection."""
 
     _attr_precision = PRECISION_WHOLE
@@ -296,59 +290,13 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
     _attr_fan_mode = None
     _attr_preset_mode = None
 
-    def __init__(
-        self,
-        data: TeslemetryVehicleData,
-        scopes: [Scope],
-    ) -> None:
-        """Initialize the climate."""
-
-        super().__init__(
-            data,
-            "climate_state_cabin_overheat_protection",
-            timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
-            streaming_key=Signal.INSIDE_TEMP,
-        )
-
-        # Supported Features
-        self._attr_supported_features = (
-            ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
-        )
-        if self.get("vehicle_config_cop_user_set_temp_supported"):
-            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
-
-        # Scopes
-        self.scoped = Scope.VEHICLE_CMDS in scopes
-        if not self.scoped:
-            self._attr_supported_features = ClimateEntityFeature(0)
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the entity."""
-        state = self.get("climate_state_cabin_overheat_protection")
-        if state is None:
-            self._attr_hvac_mode = None
-        else:
-            self._attr_hvac_mode = COP_MODES.get(state)
-
-        level = self.get("climate_state_cop_activation_temperature")
-        if level is None:
-            self._attr_target_temperature = None
-        else:
-            self._attr_target_temperature = COP_LEVELS.get(level)
-
-        self._attr_current_temperature = self.get("climate_state_inside_temp")
-
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value from the stream."""
-        self._attr_current_temperature = float(value)
-
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
-        self.async_set_hvac_mode(HVACMode.COOL)
+        await self.async_set_hvac_mode(HVACMode.COOL)
 
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
-        self.async_set_hvac_mode(HVACMode.OFF)
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
@@ -395,3 +343,87 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryVehicleEntity, ClimateEn
 
         self._attr_hvac_mode = hvac_mode
         self.async_write_ha_state()
+
+class TeslemetryCabinOverheatProtectionPollingEntity(TeslemetryVehicleEntity, TeslemetryCabinOverheatProtectionEntity):
+    """Vehicle Cabin Overheat Protection."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scopes: [Scope],
+    ) -> None:
+        """Initialize the climate."""
+
+        super().__init__(
+            data,
+            "climate_state_cabin_overheat_protection",
+        )
+
+        # Supported Features
+        self._attr_supported_features = (
+            ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        )
+        if self.get("vehicle_config_cop_user_set_temp_supported"):
+            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+
+        # Scopes
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
+            self._attr_supported_features = ClimateEntityFeature(0)
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+
+        if state := self.get("climate_state_cabin_overheat_protection") is None:
+            self._attr_hvac_mode = None
+        else:
+            self._attr_hvac_mode = COP_MODES.get(state)
+
+        if level := self.get("climate_state_cop_activation_temperature") is None:
+            self._attr_target_temperature = None
+        else:
+            self._attr_target_temperature = COP_LEVELS.get(level)
+
+        self._attr_current_temperature = self.get("climate_state_inside_temp")
+
+
+class TeslemetryCabinOverheatProtectionPollingEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryCabinOverheatProtectionEntity):
+    """Vehicle Cabin Overheat Protection."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scopes: [Scope],
+    ) -> None:
+        """Initialize the climate."""
+
+        super().__init__(
+            data,
+            "climate_state_cabin_overheat_protection",
+            [
+                Signal.CABIN_OVERHEAT_PROTECTION_MODE,
+                Signal.CABIN_OVERHEAT_PROTECTION_TEMPERATURE_LIMIT,
+                Signal.INSIDE_TEMP
+            ]
+        )
+
+        # Supported Features
+        self._attr_supported_features = (
+            ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        )
+        if self.get("vehicle_config_cop_user_set_temp_supported"):
+            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+
+        # Scopes
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
+            self._attr_supported_features = ClimateEntityFeature(0)
+
+    def _async_data_from_stream(self, data) -> None:
+        """Update the value from the stream."""
+        if (value := data.get(Signal.CABIN_OVERHEAT_PROTECTION_MODE)) is not None:
+            self._attr_hvac_mode = COP_MODES.get(value.replace("CabinOverheatProtectionModeState",""))
+        if (value := data.get(Signal.CABIN_OVERHEAT_PROTECTION_TEMPERATURE_LIMIT)) is not None:
+            self._attr_target_temperature = COP_LEVELS.get(value.replace("ClimateOverheatProtectionTempLimit",""))
+        if (value := data.get(Signal.INSIDE_TEMP)) is not None:
+            self._attr_current_temperature = value

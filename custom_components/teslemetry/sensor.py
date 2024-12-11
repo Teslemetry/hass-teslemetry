@@ -445,14 +445,16 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="vehicle_config_roof_color",
         polling=True,
         streaming_key=Signal.ROOF_COLOR,
-
+        streaming_value_fn=lambda x: str(x).replace("RoofColor", ""),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_scheduled_charging_mode",
         polling=True,
         streaming_key=Signal.SCHEDULED_CHARGING_MODE,
-
+        streaming_value_fn=lambda x: str(x).replace("ScheduledChargingMode", ""),
+        options=["Unknown", "Off", "StartAt", "DepartBy"],
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -563,11 +565,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT, #Unconfirmed
         device_class=SensorDeviceClass.POWER,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetrySensorEntityDescription(
-        key="destination_location",
-        streaming_key=Signal.DESTINATION_LOCATION,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1265,7 +1262,8 @@ class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamEntity, Restore
         await super().async_added_to_hass()
 
         if (sensor_data := await self.async_get_last_sensor_data()) is not None:
-            self._attr_native_value = sensor_data.native_value
+            if sensor_data.native_value is not None:
+                self._attr_native_value = sensor_data.native_value
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""

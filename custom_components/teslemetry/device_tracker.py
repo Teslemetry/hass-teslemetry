@@ -102,7 +102,7 @@ class TeslemetryDeviceTrackerRouteEntity(TeslemetryDeviceTrackerEntity):
     """Vehicle Navigation Device Tracker Class."""
 
     key = "route"
-    streaming_key = None
+    streaming_key = Signal.DESTINATION_LOCATION
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the device tracker."""

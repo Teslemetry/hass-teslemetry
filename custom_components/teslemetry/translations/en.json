@@ -548,9 +548,6 @@
       "dc_charging_power": {
         "name": "DC Charging Power"
       },
-      "destination_location": {
-        "name": "Destination Location"
-      },
       "di_axle_speed_front": {
         "name": "Front DU Axle Speed"
       },
