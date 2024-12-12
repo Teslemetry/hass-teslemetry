@@ -101,7 +101,7 @@ def auto_type(value) -> int | float | bool | str:
     """Automatically cast a string to a type."""
     # If not a string return None
     if not isinstance(value, str):
-        return None
+        return value
 
     if value.isdigit():
         return int(value)
