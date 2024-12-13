@@ -123,16 +123,16 @@
         "name": "Rear passenger window"
       },
       "vehicle_state_tpms_soft_warning_fl": {
-        "name": "Tire pressure warning front left"
+        "name": "TPMS warning front left"
       },
       "vehicle_state_tpms_soft_warning_fr": {
-        "name": "Tire pressure warning front right"
+        "name": "TPMS warning front right"
       },
       "vehicle_state_tpms_soft_warning_rl": {
-        "name": "Tire pressure warning rear left"
+        "name": "TPMS warning rear left"
       },
       "vehicle_state_tpms_soft_warning_rr": {
-        "name": "Tire pressure warning rear right"
+        "name": "TPMS warning rear right"
       },
       "pin_to_drive_enabled": {
         "name": "Pin To Drive Enabled"
@@ -164,22 +164,22 @@
     },
     "button": {
       "boombox": {
-        "name": "Play fart"
+        "name": "Fart"
       },
       "enable_keyless_driving": {
-        "name": "Keyless driving"
+        "name": "Keyless"
       },
       "flash_lights": {
-        "name": "Flash lights"
+        "name": "Flash"
       },
       "homelink": {
         "name": "Homelink"
       },
       "honk": {
-        "name": "Honk horn"
+        "name": "Horn"
       },
       "refresh": {
-        "name": "Force refresh"
+        "name": "Refresh"
       },
       "wake": {
         "name": "Wake"
@@ -220,7 +220,7 @@
         "name": "Trunk"
       },
       "windows": {
-        "name": "Vent windows"
+        "name": "Windows"
       },
       "vehicle_state_sun_roof_state": {
         "name": "Sun roof"
@@ -522,10 +522,10 @@
         "name": "Brake Pedal Position"
       },
       "brick_voltage_max": {
-        "name": "Brick Voltage Max"
+        "name": "Battery Voltage Max"
       },
       "brick_voltage_min": {
-        "name": "Brick Voltage Min"
+        "name": "Battery Voltage Min"
       },
       "car_type": {
         "name": "Car Type"
@@ -678,10 +678,10 @@
         "name": "Longitudinal Acceleration"
       },
       "module_temp_max": {
-        "name": "Module Temperature Maximum"
+        "name": "Battery Temperature Maximum"
       },
       "module_temp_min": {
-        "name": "Module Temperature Minimum"
+        "name": "Battery Temperature Minimum"
       },
       "no_enough_power_to_heat": {
         "name": "Not Enough Power To Heat"
@@ -723,7 +723,7 @@
         "name": "Sentry Mode"
       },
       "state_of_charge": {
-        "name": "State of charge"
+        "name": "Battery SoC"
       },
       "speed_limit_warning": {
         "name": "Speed Limit Warning"
@@ -750,28 +750,28 @@
         "name": "Odometer"
       },
       "vehicle_state_tpms_last_seen_pressure_time_fl": {
-        "name": "Tire pressure last measured front left"
+        "name": "TPMS last measured front left"
       },
       "vehicle_state_tpms_last_seen_pressure_time_fr": {
-        "name": "Tire pressure last measured front right"
+        "name": "TPMS last measured front right"
       },
       "vehicle_state_tpms_last_seen_pressure_time_rl": {
-        "name": "Tire pressure last measured rear left"
+        "name": "TPMS last measured rear left"
       },
       "vehicle_state_tpms_last_seen_pressure_time_rr": {
-        "name": "Tire pressure last measured rear right"
+        "name": "TPMS last measured rear right"
       },
       "vehicle_state_tpms_pressure_fl": {
-        "name": "Tire pressure front left"
+        "name": "TPMS front left"
       },
       "vehicle_state_tpms_pressure_fr": {
-        "name": "Tire pressure front right"
+        "name": "TPMS front right"
       },
       "vehicle_state_tpms_pressure_rl": {
-        "name": "Tire pressure rear left"
+        "name": "TPMS rear left"
       },
       "vehicle_state_tpms_pressure_rr": {
-        "name": "Tire pressure rear right"
+        "name": "TPMS rear right"
       },
       "version": {
         "name": "Version"
@@ -901,10 +901,10 @@
         "name": "Storm watch"
       },
       "vehicle_state_sentry_mode": {
-        "name": "Sentry mode"
+        "name": "Sentry"
       },
       "vehicle_state_valet_mode": {
-        "name": "Valet mode"
+        "name": "Valet"
       }
     },
     "update": {
