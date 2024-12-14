@@ -12,7 +12,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
@@ -72,7 +72,12 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        self._async_value_from_stream(data["data"][self.streaming_key])
+
+        try:
+            self._async_value_from_stream(data["data"][self.streaming_key])
+        except Exception as e:
+            LOGGER.error("Error updating %s: %s", self._attr_translation_key, e)
+            LOGGER.debug(data)
         self.async_write_ha_state()
 
     def _async_value_from_stream(self, value: Any) -> None:
@@ -114,9 +119,14 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        data = {key: data["data"][key] for key in self.streaming_keys if key in data["data"]}
-        self._async_data_from_stream(data["data"])
-        self.async_write_ha_state()
+        #data = {key: data["data"][key] for key in self.streaming_keys if key in data["data"]}
+        if any(key in data["data"] for key in self.streaming_keys):
+            try:
+                self._async_data_from_stream(data["data"])
+            except Exception as e:
+                LOGGER.error("Error updating %s: %s", self._attr_translation_key, e)
+                LOGGER.debug(data)
+            self.async_write_ha_state()
 
     def _async_data_from_stream(self, data: Any) -> None:
         """Update the entity with the latest value from the stream."""
@@ -168,7 +178,7 @@ class TeslemetryCoordinatorEntity(
         return default
 
     def exactly(self, value: Any, key: str | None = None) -> bool | None:
-        """Return if a key exactly matches the valug but retain None."""
+        """Return if a key exactly matches the value but retain None."""
         key = key or self.key
         if value is None:
             return self.get(key, False) is None

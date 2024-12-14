@@ -38,7 +38,7 @@ async def async_setup_entry(
             TeslemetryPollingClimateEntity(
                 vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
             )
-            if True or vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
+            if vehicle.api.pre2021 or vehicle.firmware < "2030.44.25" # Insufficent streaming data for climate
             else TeslemetryStreamingClimateEntity(
                     vehicle, TeslemetryClimateSide.DRIVER, entry.runtime_data.scopes
                 )
@@ -357,7 +357,7 @@ class TeslemetryPollingCabinOverheatProtectionEntity(TeslemetryVehicleEntity, Te
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scopes: [Scope],
+        scopes: list[Scope],
     ) -> None:
         """Initialize the climate."""
 
@@ -400,7 +400,7 @@ class TeslemetryStreamingCabinOverheatProtectionEntity(TeslemetryVehicleComplexS
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scopes: [Scope],
+        scopes: list[Scope],
     ) -> None:
         """Initialize the climate."""
 
@@ -418,7 +418,7 @@ class TeslemetryStreamingCabinOverheatProtectionEntity(TeslemetryVehicleComplexS
         self._attr_supported_features = (
             ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         )
-        if self.get("vehicle_config_cop_user_set_temp_supported"):
+        if data.coordinator.data.get("vehicle_config_cop_user_set_temp_supported"):
             self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
 
         # Scopes

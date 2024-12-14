@@ -38,7 +38,7 @@ from .services import async_register_services
 PLATFORMS: Final = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
-    #Platform.COVER,
+    Platform.COVER,
     Platform.CLIMATE,
     #Platform.DEVICE_TRACKER,
     #Platform.LOCK,
