@@ -1,5 +1,6 @@
 """Device Tracker platform for Teslemetry integration."""
 from __future__ import annotations
+from itertools import chain
 
 from teslemetry_stream import Signal
 
@@ -25,16 +26,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Teslemetry device tracker platform from a config entry."""
 
-
     async_add_entities(
-        klass(vehicle)
-        for klass in (
-            TeslemetryDeviceTrackerLocationEntity,
-            TeslemetryDeviceTrackerRouteEntity,
+        chain(
+            (
+                TeslemetryDeviceTrackerLocationEntity(vehicle)
+                for vehicle in entry.runtime_data.vehicles
+            ),
+            (
+            TeslemetryDeviceTrackerRouteEntity(vehicle)
+            for vehicle in entry.runtime_data.vehicles
+            )
         )
-        for vehicle in entry.runtime_data.vehicles
     )
-
 
 class TeslemetryDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity, RestoreEntity):
     """Base class for Teslemetry Tracker Entities."""

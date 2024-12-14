@@ -43,7 +43,7 @@ async def async_setup_entry(
             ),
             (
                 TeslemetryPollingChargePortEntity(vehicle, entry.runtime_data.scopes)
-                if vehicle.api.pre2021 or vehicle.firmware < "2024.26"
+                if vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
                 else TeslemetryStreamingChargePortEntity(vehicle, entry.runtime_data.scopes)
                 for vehicle in entry.runtime_data.vehicles
             ),
@@ -220,12 +220,15 @@ class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamEntity, Tesleme
         super().__init__(
             vehicle,
             "charge_state_charge_port_door_open",
-            streaming_key=Signal.CHARGE_PORT_LATCH,
+            streaming_key=Signal.CHARGE_PORT_DOOR_OPEN,
         )
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_closed = value == "ChargePortLatchDisengaged"
+        if value is None:
+            self._attr_is_closed = None
+        else:
+            self._attr_is_closed = not value
 
 
 class TeslemetryFrontTrunkEntity(CoverEntity):
@@ -267,14 +270,17 @@ class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, Tesleme
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
         super().__init__(vehicle, "vehicle_state_ft", Signal.DOOR_STATE)
+        print(self._attr_is_closed)
 
     def _async_value_from_stream(self, value) -> None:
         """Update the entity attributes."""
-        value = value.get("TrunkFront")
-        if value is None:
-            self._attr_is_closed = None
+        open = value.get("TrunkFront")
+
+        if isinstance(open, bool):
+            self._attr_is_closed = not open
         else:
-            self._attr_is_closed = not value
+            self._attr_is_closed = None
+        print(self._attr_is_closed)
 
 class TeslemetryRearTrunkEntity(CoverEntity):
     """Cover entity for the rear trunk."""

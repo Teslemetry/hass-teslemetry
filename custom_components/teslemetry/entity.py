@@ -119,7 +119,6 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-        #data = {key: data["data"][key] for key in self.streaming_keys if key in data["data"]}
         if any(key in data["data"] for key in self.streaming_keys):
             try:
                 self._async_data_from_stream(data["data"])
