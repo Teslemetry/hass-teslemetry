@@ -1,13 +1,11 @@
 """Switch platform for Teslemetry integration."""
 
 from __future__ import annotations
-from itertools import chain
+
 from collections.abc import Callable
 from dataclasses import dataclass
+from itertools import chain
 from typing import Any
-
-from tesla_fleet_api.const import Scope, Seat
-from teslemetry_stream import Signal
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -18,16 +16,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.typing import StateType
+from tesla_fleet_api.const import Scope, Seat
+from teslemetry_stream import Signal
 
-from .const import TeslemetryTimestamp
 from .entity import (
-    TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
-    TeslemetryEnergyLiveEntity,
+    TeslemetryVehicleEntity,
+    TeslemetryVehicleStreamEntity
 )
 from .models import (
-    TeslemetryVehicleData,
     TeslemetryEnergyData,
+    TeslemetryVehicleData,
 )
 
 
@@ -38,32 +38,31 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     on_func: Callable
     off_func: Callable
     scopes: list[Scope] | None = None
-    timestamp_key: TeslemetryTimestamp | None = None
-    polling_value: Callable[[StateType], StateType] = bool
+    polling_value_fn: Callable[[StateType], StateType] = bool
     streaming_key: Signal | None = None
-    streaming_value: Callable[[StateType], StateType] = lambda x: x == "true"
+    streaming_value_fn: Callable[[StateType], StateType] = bool
+    streaming_firmware: str = "2024.26"
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_sentry_mode",
-        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
         streaming_key=Signal.SENTRY_MODE,
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
-        streaming_value=lambda x: x != "Off",
+        streaming_value_fn=lambda x: x != "SentryModeStateOff",
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
-        timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
+        streaming_key=Signal.VALET_MODE_ENABLED,
+        streaming_firmware="2024.44.25",
         on_func=lambda api: api.set_valet_mode(on=True),
         off_func=lambda api: api.set_valet_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
-        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         streaming_key=Signal.AUTO_SEAT_CLIMATE_LEFT,
         on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
         off_func=lambda api: api.remote_auto_seat_climate_request(
@@ -73,7 +72,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_right",
-        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         streaming_key=Signal.AUTO_SEAT_CLIMATE_RIGHT,
         on_func=lambda api: api.remote_auto_seat_climate_request(
             Seat.FRONT_RIGHT, True
@@ -85,7 +83,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_steering_wheel_heat",
-        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=Signal.HVAC_STEERING_WHEEL_HEAT_AUTO,
+        streaming_firmware="2024.44.25",
         on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
             on=True
         ),
@@ -96,21 +95,20 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     ),
     TeslemetrySwitchEntityDescription(
         key="climate_state_defrost_mode",
-        timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
+        streaming_key=Signal.DEFROST_MODE,
         on_func=lambda api: api.set_preconditioning_max(on=True, manual_override=False),
         off_func=lambda api: api.set_preconditioning_max(
             on=False, manual_override=False
         ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
-)
-
-VEHICLE_CHARGE_DESCRIPTION = TeslemetrySwitchEntityDescription(
-    key="charge_state_user_charge_enable_request",
-    streaming_key=Signal.CHARGE_ENABLE_REQUEST,
-    on_func=lambda api: api.charge_start(),
-    off_func=lambda api: api.charge_stop(),
-    scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
+    TeslemetrySwitchEntityDescription(
+        key="charge_state_user_charge_enable_request",
+        streaming_key=Signal.CHARGE_ENABLE_REQUEST,
+        on_func=lambda api: api.charge_start(),
+        off_func=lambda api: api.charge_stop(),
+        scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
+    )
 )
 
 
@@ -123,15 +121,11 @@ async def async_setup_entry(
     async_add_entities(
         chain(
             (
-                TeslemetryVehicleSwitchEntity(vehicle, description, entry.runtime_data.scopes)
+                TeslemetryPollingVehicleSwitchEntity(vehicle, description, entry.runtime_data.scopes)
+                if vehicle.api.pre2021 or vehicle.firmware < description.streaming_firmware
+                else TeslemetryStreamingVehicleSwitchEntity(vehicle, description, entry.runtime_data.scopes)
                 for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
-            ),
-            (
-                TeslemetryChargeSwitchEntity(
-                    vehicle, VEHICLE_CHARGE_DESCRIPTION, entry.runtime_data.scopes
-                )
-                for vehicle in entry.runtime_data.vehicles
             ),
             (
                 TeslemetryStormModeSwitchEntity(energysite, entry.runtime_data.scopes)
@@ -151,49 +145,14 @@ async def async_setup_entry(
     )
 
 
-class TeslemetrySwitchEntity(SwitchEntity):
-    """Base class for all Teslemetry switch entities."""
+
+
+
+class TeslemetryVehicleSwitchEntity(SwitchEntity):
+    """Base class for Teslemetry vehicle switch entities."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslemetrySwitchEntityDescription
-
-
-
-
-class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEntity, RestoreEntity):
-    """Base class for Teslemetry vehicle switch entities."""
-
-    def __init__(
-        self,
-        data: TeslemetryVehicleData,
-        description: TeslemetrySwitchEntityDescription,
-        scopes: list[Scope],
-    ) -> None:
-        """Initialize the Switch."""
-
-        self.entity_description = description
-        self.scoped = any(scope in scopes for scope in description.scopes)
-
-        super().__init__(
-            data, description.key, description.timestamp_key, description.streaming_key
-        )
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
-            if (state.state == "on"):
-                self._attr_is_on = True
-            elif (state.state == "off"):
-                self._attr_is_on = False
-
-    def _async_update_attrs(self) -> None:
-        """Update the attributes of the sensor."""
-        self._attr_is_on = self.entity_description.polling_value(self._value)
-
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value of the entity."""
-        self._attr_is_on = self.entity_description.streaming_value(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
@@ -211,24 +170,79 @@ class TeslemetryVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetrySwitchEnt
         self._attr_is_on = False
         self.async_write_ha_state()
 
+class TeslemetryPollingVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetryVehicleSwitchEntity):
+    """Base class for Teslemetry vehicle switch entities."""
 
-class TeslemetryChargeSwitchEntity(TeslemetryVehicleSwitchEntity):
-    """Entity class for Teslemetry Charge Switch."""
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Switch."""
+
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes)
+
+        super().__init__(
+            data, description.key
+        )
 
     def _async_update_attrs(self) -> None:
-        """Update the attributes of the entity."""
+        """Update the attributes of the sensor."""
         if self._value is None:
-            self._attr_is_on = self.get("charge_state_charge_enable_request")
+            if self.entity_description.key == "charge_state_user_charge_enable_request":
+                self._attr_is_on = self.get("charge_state_charge_enable_request")
+            else:
+                self._attr_is_on = None
         else:
-            self._attr_is_on = self._value
+            self._attr_is_on = self.entity_description.polling_value_fn(self._value)
 
-    # Need to test how streaming impacts this entity
+
+class TeslemetryStreamingVehicleSwitchEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleSwitchEntity, RestoreEntity):
+    """Base class for Teslemetry vehicle switch entities."""
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySwitchEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Switch."""
+
+        self.entity_description = description
+        self.scoped = any(scope in scopes for scope in description.scopes)
+
+        assert description.streaming_key
+        super().__init__(
+            data, description.key, description.streaming_key
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state == "on"):
+                self._attr_is_on = True
+            elif (state.state == "off"):
+                self._attr_is_on = False
+
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        if value is None:
+            self._attr_is_on = None
+        else:
+            self._attr_is_on = self.entity_description.streaming_value_fn(value)
 
 
 class TeslemetryStormModeSwitchEntity(
-    TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
+    TeslemetryEnergyInfoEntity, SwitchEntity
 ):
     """Entity class for Storm Watch switch."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    entity_description: TeslemetrySwitchEntityDescription
 
     def __init__(
         self,
@@ -259,9 +273,12 @@ class TeslemetryStormModeSwitchEntity(
 
 
 class TeslemetryChargeFromGridSwitchEntity(
-    TeslemetryEnergyInfoEntity, TeslemetrySwitchEntity
+    TeslemetryEnergyInfoEntity, SwitchEntity
 ):
     """Entity class for Charge From Grid switch."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    entity_description: TeslemetrySwitchEntityDescription
 
     def __init__(
         self,

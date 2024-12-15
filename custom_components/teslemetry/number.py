@@ -27,7 +27,6 @@ from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.util.unit_conversion import SpeedConverter
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
@@ -171,7 +170,7 @@ class TeslemetryVehicleNumberEntity(NumberEntity):
         self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
         super().__init__(
-            data, description.key, description.timestamp_key, description.streaming_key
+            data, description.key
         )
 
     def _async_update_attrs(self) -> None:
@@ -282,7 +281,7 @@ class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity)
         self.hass = hass
         self.scoped = Scope.VEHICLE_CMDS in scopes
 
-        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_mph", TeslemetryTimestamp.VEHICLE_STATE, Signal.CURRENT_LIMIT_MPH)
+        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_mph")
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -336,7 +335,7 @@ class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
             UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR
         )
 
-        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_kph", TeslemetryTimestamp.VEHICLE_STATE, Signal.CURRENT_LIMIT_MPH)
+        super().__init__(data, "vehicle_state_speed_limit_mode_current_limit_kph")
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""

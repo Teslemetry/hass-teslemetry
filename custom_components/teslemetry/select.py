@@ -110,7 +110,7 @@ async def async_setup_entry(
                 else TeslemetryStreamingSeatHeaterSelectEntity(vehicle, description, scoped)
                 for description in SEAT_HEATER_DESCRIPTIONS
                 for vehicle in entry.runtime_data.vehicles
-                if description.supported_fn(vehicle)
+                if description.supported_fn(vehicle.coordinator.data)
             ),
             (
                 TeslemetrPollingWheelHeaterSelectEntity(vehicle, scoped)
@@ -248,11 +248,11 @@ class TeslemetrPollingWheelHeaterSelectEntity(TeslemetryVehicleEntity, Teslemetr
         scoped: bool,
     ) -> None:
         """Initialize the vehicle seat select entity."""
-        self.scoped = scoped
         super().__init__(
             data,
             "climate_state_steering_wheel_heat_level",
         )
+        self.scoped = scoped
 
     def _async_update_attrs(self) -> None:
         """Handle updated data from the coordinator."""
@@ -271,12 +271,13 @@ class TeslemetryStreamingWheelHeaterSelectEntity(TeslemetryVehicleStreamEntity, 
         scoped: bool,
     ) -> None:
         """Initialize the vehicle seat select entity."""
-        self.scoped = scoped
         super().__init__(
             data,
             "climate_state_steering_wheel_heat_level",
             Signal.HVAC_STEERING_WHEEL_HEAT_LEVEL,
         )
+        self.scoped = scoped
+        self._attr_current_option = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""

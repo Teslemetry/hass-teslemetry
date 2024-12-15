@@ -46,8 +46,8 @@ PLATFORMS: Final = [
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
-    #Platform.SWITCH,
-    #Platform.UPDATE,
+    Platform.SWITCH,
+    Platform.UPDATE,
 ]
 
 class HandleVehicleData:

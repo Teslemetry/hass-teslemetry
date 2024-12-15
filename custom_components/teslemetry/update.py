@@ -12,8 +12,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import TeslemetryUpdateStatus, TeslemetryTimestamp
-from .entity import TeslemetryVehicleEntity
+from .const import TeslemetryUpdateStatus
+from .entity import TeslemetryVehicleEntity, TeslemetryVehicleComplexStreamEntity
 from .models import TeslemetryVehicleData
 
 
@@ -24,15 +24,30 @@ async def async_setup_entry(
 
 
     async_add_entities(
-        TeslemetryUpdateEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        TeslemetryPollingUpdateEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        if vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
+        else TeslemetryStreamingUpdateEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
         for vehicle in entry.runtime_data.vehicles
     )
 
 
-class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
+class TeslemetryUpdateEntity(UpdateEntity):
     """Teslemetry Updates entity."""
 
     _attr_supported_features = UpdateEntityFeature.PROGRESS
+
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
+        """Install an update."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.schedule_software_update(offset_sec=60))
+        self._attr_state = TeslemetryUpdateStatus.INSTALLING
+        self.async_write_ha_state()
+
+class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEntity):
+    """Teslemetry Updates entity."""
 
     def __init__(
         self,
@@ -44,8 +59,6 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         super().__init__(
             data,
             "vehicle_state_software_update_status",
-            timestamp_key=TeslemetryTimestamp.VEHICLE_STATE,
-            streaming_key=Signal.VERSION,
         )
 
     def _async_update_attrs(self) -> None:
@@ -93,17 +106,59 @@ class TeslemetryUpdateEntity(TeslemetryVehicleEntity, UpdateEntity):
         else:
             self._attr_in_progress = False
 
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value of the entity."""
-        if (value != " "):
-            self._attr_installed_version = value
 
-    async def async_install(
-        self, version: str | None, backup: bool, **kwargs: Any
+class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryUpdateEntity):
+    """Teslemetry Updates entity."""
+
+    _download_percentage: int = 0
+    _install_percentage: int = 0
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scoped: bool,
     ) -> None:
-        """Install an update."""
-        self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
-        await self.handle_command(self.api.schedule_software_update(offset_sec=60))
-        self._attr_state = TeslemetryUpdateStatus.INSTALLING
-        self.async_write_ha_state()
+        """Initialize the Update."""
+        self.scoped = scoped
+        super().__init__(
+            data,
+            "vehicle_state_software_update_status",
+            [
+                Signal.SOFTWARE_UPDATE_DOWNLOAD_PERCENT_COMPLETE,
+                Signal.SOFTWARE_UPDATE_EXPECTED_DURATION_MINUTES,
+                Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE,
+                Signal.SOFTWARE_UPDATE_SCHEDULED_START_TIME,
+                Signal.SOFTWARE_UPDATE_VERSION,
+                Signal.VERSION
+            ]
+        )
+
+    def _async_data_from_stream(self, data) -> None:
+        """Update the attributes of the entity."""
+
+        if Signal.SOFTWARE_UPDATE_DOWNLOAD_PERCENT_COMPLETE in data:
+            self._download_percentage = data[Signal.SOFTWARE_UPDATE_DOWNLOAD_PERCENT_COMPLETE]
+        if Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE in data:
+            self._install_percentage = data[Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE]
+        if Signal.VERSION in data:
+            self._installed_version = data[Signal.SOFTWARE_UPDATE_VERSION].split(" ")[0]
+        if Signal.SOFTWARE_UPDATE_VERSION in data:
+            self._attr_latest_version = data[Signal.SOFTWARE_UPDATE_VERSION]
+
+
+        # Supported Features
+        if self.scoped and self._download_percentage == 100:
+            self._attr_supported_features = (
+                UpdateEntityFeature.PROGRESS | UpdateEntityFeature.INSTALL
+            )
+        else:
+            self._attr_supported_features = UpdateEntityFeature.PROGRESS
+
+
+        # In Progress
+        if self._download_percentage > 0:
+            self._attr_in_progress = self._download_percentage
+        elif self._install_percentage > 0:
+            self._attr_in_progress = self._install_percentage
+        else:
+            self._attr_in_progress = False
