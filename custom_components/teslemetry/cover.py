@@ -133,6 +133,7 @@ class TeslemetryStreamingWindowEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
+        self._attr_is_closed = None
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
@@ -210,18 +211,18 @@ class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamEntity, Tesleme
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
+        super().__init__(
+            vehicle,
+            "charge_state_charge_port_door_open",
+            streaming_key=Signal.CHARGE_PORT_DOOR_OPEN,
+        )
         self.scoped = any(
             scope in scopes
             for scope in [Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS]
         )
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
-
-        super().__init__(
-            vehicle,
-            "charge_state_charge_port_door_open",
-            streaming_key=Signal.CHARGE_PORT_DOOR_OPEN,
-        )
+        self._attr_is_closed = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
@@ -266,11 +267,11 @@ class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, Tesleme
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
+        super().__init__(vehicle, "vehicle_state_ft", Signal.DOOR_STATE)
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
-        super().__init__(vehicle, "vehicle_state_ft", Signal.DOOR_STATE)
-        print(self._attr_is_closed)
+        self._attr_is_closed = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the entity attributes."""
@@ -280,7 +281,7 @@ class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, Tesleme
             self._attr_is_closed = not open
         else:
             self._attr_is_closed = None
-        print(self._attr_is_closed)
+
 
 class TeslemetryRearTrunkEntity(CoverEntity):
     """Cover entity for the rear trunk."""
@@ -327,10 +328,11 @@ class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamEntity, Teslemet
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
         """Initialize the sensor."""
+        super().__init__(vehicle, "vehicle_state_rt", Signal.DOOR_STATE)
         self.scoped = Scope.VEHICLE_CMDS in scopes
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
-        super().__init__(vehicle, "vehicle_state_rt", Signal.DOOR_STATE)
+        self._attr_is_closed = None
 
     def _async_value_from_stream(self, value) -> None:
         """Update the entity attributes."""

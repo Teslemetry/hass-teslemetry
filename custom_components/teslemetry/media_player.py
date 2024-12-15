@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryVehicleComplexStreamEntity
 )
 from .models import TeslemetryVehicleData
 
@@ -33,13 +34,15 @@ async def async_setup_entry(
 
 
     async_add_entities(
-        TeslemetryMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        TeslemetryPollingMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        if vehicle.api.pre2021 or vehicle.firmware < "2026"
+        else TeslemetryStreamingMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
         for vehicle in entry.runtime_data.vehicles
     )
 
 
 class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
-    """Vehicle Location Media Class."""
+    """Base vehicle media player class."""
 
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_supported_features = (
@@ -50,6 +53,48 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.VOLUME_SET
     )
     max_volume: float = MAX_VOLUME
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set volume level, range 0..1."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.adjust_volume(int(volume * self.max_volume)))
+        self._attr_volume_level = volume
+        self.async_write_ha_state()
+
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        if self.state != MediaPlayerState.PLAYING:
+            self.raise_for_scope(Scope.VEHICLE_CMDS)
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.media_toggle_playback())
+            self._attr_state = MediaPlayerState.PLAYING
+            self.async_write_ha_state()
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        if self.state == MediaPlayerState.PLAYING:
+            self.raise_for_scope(Scope.VEHICLE_CMDS)
+            await self.wake_up_if_asleep()
+            await self.handle_command(self.api.media_toggle_playback())
+            self._attr_state = MediaPlayerState.PAUSED
+            self.async_write_ha_state()
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.media_next_track())
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await self.wake_up_if_asleep()
+        await self.handle_command(self.api.media_prev_track())
+
+class TeslemetryPollingMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
+    """Polling vehicle media player class."""
+
 
     def __init__(
         self,
@@ -102,40 +147,21 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
         )
         self._attr_source = self.get("vehicle_state_media_info_now_playing_source")
 
-    async def async_set_volume_level(self, volume: float) -> None:
-        """Set volume level, range 0..1."""
-        self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
-        await self.handle_command(self.api.adjust_volume(int(volume * self.max_volume)))
-        self._attr_volume_level = volume
-        self.async_write_ha_state()
+class TeslemetryStreamingMediaEntity(TeslemetryVehicleComplexStreamEntity, MediaPlayerEntity):
+    """Streaming vehicle media player class."""
 
-    async def async_media_play(self) -> None:
-        """Send play command."""
-        if self.state != MediaPlayerState.PLAYING:
-            self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
-            await self.handle_command(self.api.media_toggle_playback())
-            self._attr_state = MediaPlayerState.PLAYING
-            self.async_write_ha_state()
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scoped: bool,
+    ) -> None:
+        """Initialize the media player entity."""
+        super().__init__(data, "media", [])
+        self.scoped = scoped
+        if not scoped:
+            self._attr_supported_features = MediaPlayerEntityFeature(0)
 
-    async def async_media_pause(self) -> None:
-        """Send pause command."""
-        if self.state == MediaPlayerState.PLAYING:
-            self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
-            await self.handle_command(self.api.media_toggle_playback())
-            self._attr_state = MediaPlayerState.PAUSED
-            self.async_write_ha_state()
-
-    async def async_media_next_track(self) -> None:
-        """Send next track command."""
-        self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
-        await self.handle_command(self.api.media_next_track())
-
-    async def async_media_previous_track(self) -> None:
-        """Send previous track command."""
-        self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
-        await self.handle_command(self.api.media_prev_track())
+    def _async_update_attrs(self) -> None:
+        """Update entity attributes."""
+        pass
+        # NOT IMPLEMENTED BY TESLA YET

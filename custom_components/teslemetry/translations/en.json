@@ -228,18 +228,13 @@
     },
     "device_tracker": {
       "location": {
-        "name": "Location",
-        "state_attributes": {
-          "heading": {
-            "name": "Heading"
-          },
-          "speed": {
-            "name": "Speed"
-          }
-        }
+        "name": "Location"
       },
       "route": {
         "name": "Route"
+      },
+      "origin": {
+        "name": "Origin"
       }
     },
     "lock": {
@@ -697,9 +692,6 @@
       },
       "module_number_temp_min": {
         "name": "Module Number Temperature Minimum"
-      },
-      "origin_location": {
-        "name": "Origin Location"
       },
       "pack_current": {
         "name": "Pack Current"

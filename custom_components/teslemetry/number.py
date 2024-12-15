@@ -31,6 +31,7 @@ from .const import TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
+    TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
@@ -46,14 +47,12 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     max_key: str | None = None
     scopes: list[Scope] | None = None
     requires: str | None = None
-    timestamp_key: TeslemetryTimestamp | None = None
     streaming_key: Signal | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_current_request",
-        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         streaming_key=Signal.CHARGE_CURRENT_REQUEST,
         native_step=PRECISION_WHOLE,
         native_min_value=0,
@@ -67,7 +66,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
     ),
     TeslemetryNumberEntityDescription(
         key="charge_state_charge_limit_soc",
-        timestamp_key=TeslemetryTimestamp.CHARGE_STATE,
         streaming_key=Signal.CHARGE_LIMIT_SOC,
         native_step=PRECISION_WHOLE,
         native_min_value=50,
@@ -116,29 +114,35 @@ async def async_setup_entry(
 
     async_add_entities(
         chain(
-            (  # Add speed limit entities
+            (
                 TeslemetryImperialSpeedNumberEntity(
                     hass,
                     vehicle,
                     entry.runtime_data.scopes,
                 )
                 for vehicle in entry.runtime_data.vehicles
-            ),(  # Add speed limit entities
+            ),(
                 TeslemetryMetricSpeedNumberEntity(
                     hass,
                     vehicle,
                     entry.runtime_data.scopes,
                 )
                 for vehicle in entry.runtime_data.vehicles
-            ),(  # Add vehicle entities
-                TeslemetryVehicleNumberEntity(
+            ),(
+                TeslemetryPollingNumberEntity(
+                    vehicle,
+                    description,
+                    entry.runtime_data.scopes,
+                )
+                if vehicle.api.pre2021 or vehicle.firmware < "2024.26"
+                else TeslemetryStreamingNumberEntity(
                     vehicle,
                     description,
                     entry.runtime_data.scopes,
                 )
                 for vehicle in entry.runtime_data.vehicles
                 for description in VEHICLE_DESCRIPTIONS
-            ),(  # Add energy site entities
+            ),(
                 TeslemetryEnergyInfoNumberSensorEntity(
                     energysite,
                     description,
@@ -152,17 +156,7 @@ async def async_setup_entry(
         )
     )
 
-class NumberRestoreEntity(NumberEntity, RestoreEntity):
-    """Base class for Teslemetry Number Entities."""
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
-            if (state.state.isdigit()):
-                self._attr_native_value = float(state.state)
-
-class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
+class TeslemetryVehicleNumberEntity(NumberEntity):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription
@@ -205,7 +199,72 @@ class TeslemetryVehicleNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity
         self._attr_native_value = value
         self.async_write_ha_state()
 
-class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
+class TeslemetryPollingNumberEntity(TeslemetryVehicleEntity, TeslemetryVehicleNumberEntity):
+    """Number entity for current charge."""
+
+    entity_description: TeslemetryNumberEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryNumberEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Number entity."""
+        self.scoped = any(scope in scopes for scope in description.scopes)
+        self.entity_description = description
+        super().__init__(
+            data, description.key
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_native_value = self._value
+        self._attr_native_min_value = self.get(
+            self.entity_description.min_key,
+            self.entity_description.native_min_value,
+        )
+        self._attr_native_max_value = self.get(
+            self.entity_description.max_key,
+            self.entity_description.native_max_value,
+        )
+
+
+class TeslemetryStreamingNumberEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleNumberEntity, RestoreEntity):
+    """Number entity for current charge."""
+
+    entity_description: TeslemetryNumberEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryNumberEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Number entity."""
+        self.scoped = any(scope in scopes for scope in description.scopes)
+        self.entity_description = description
+        assert description.streaming_key
+        super().__init__(
+            data, description.key, description.streaming_key
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state.isdigit()):
+                self._attr_native_value = float(state.state)
+
+    def _async_value_from_stream(self, value) -> None:
+        """Update the value of the entity."""
+        if isinstance(value, float | int):
+            self._attr_native_value = float(value)
+        else:
+            self._attr_native_value = None
+
+
+class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
     """Number entity for speed limit in MPH."""
 
     device_class = NumberDeviceClass.SPEED
@@ -251,7 +310,7 @@ class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestore
         self.async_write_ha_state()
 
 
-class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberRestoreEntity):
+class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
     """Number entity for speed limit in KMPH."""
 
     device_class = NumberDeviceClass.SPEED

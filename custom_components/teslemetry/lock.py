@@ -2,6 +2,7 @@
 from __future__ import annotations
 from tesla_fleet_api.const import Scope
 from typing import Any
+from itertools import chain
 
 from teslemetry_stream import Signal
 
@@ -16,6 +17,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .const import DOMAIN, TeslemetryChargeCableLockStates, TeslemetryTimestamp
 from .entity import (
     TeslemetryVehicleEntity,
+    TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData
 
@@ -25,49 +27,37 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Teslemetry sensor platform from a config entry."""
 
-
     async_add_entities(
-        klass(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
-        for klass in (
-            TeslemetryVehicleLockEntity,
-            TeslemetryCableLockEntity,
-            TeslemetrySpeedLimitEntity,
+        chain(
+            (
+                TeslemetryPollingVehicleLockEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+                if vehicle.api.pre2021 or vehicle.firmware < "2024.26"
+                else TeslemetryStreamingVehicleLockEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+                for vehicle in entry.runtime_data.vehicles
+            ),
+            (
+                TeslemetryPollingCableLockEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+                if vehicle.api.pre2021 or vehicle.firmware < "2024.26"
+                else TeslemetryStreamingCableLockEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+                for vehicle in entry.runtime_data.vehicles
+            )
         )
-        for vehicle in entry.runtime_data.vehicles
     )
 
-class LockRestoreEntity(LockEntity, RestoreEntity):
+class LockRestoreEntity(RestoreEntity):
     """Base class for Teslemetry Lock Entities."""
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None and not self.coordinator.updated_once:
+        if (state := await self.async_get_last_state()) is not None:
             if (state.state == "locked"):
                 self._attr_is_locked = True
             elif (state.state == "unlocked"):
                 self._attr_is_locked = False
 
-class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
-    """Lock entity for Teslemetry."""
-
-    def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            data,
-            "vehicle_state_locked",
-            TeslemetryTimestamp.VEHICLE_STATE,
-            Signal.LOCKED,
-        )
-        self.scoped = scoped
-
-    def _async_update_attrs(self) -> None:
-        """Update entity attributes."""
-        self._attr_is_locked = self._value
-
-    def _async_value_from_stream(self, value) -> None:
-        """Update entity value from stream."""
-        self._attr_is_locked = value == "true"
+class TeslemetryVehicleLockEntity(LockEntity):
+    """Base vehicle lock entity for Teslemetry."""
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the doors."""
@@ -85,33 +75,43 @@ class TeslemetryVehicleLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
         self._attr_is_locked = False
         self.async_write_ha_state()
 
+class TeslemetryPollingVehicleLockEntity(TeslemetryVehicleEntity, TeslemetryVehicleLockEntity):
+    """Polling vehicle lock entity for Teslemetry."""
 
-class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
-    """Cable Lock entity for Teslemetry."""
-
-    def __init__(
-        self,
-        data: TeslemetryVehicleData,
-        scoped: bool,
-    ) -> None:
+    def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
         """Initialize the sensor."""
         super().__init__(
             data,
-            "charge_state_charge_port_latch",
-            TeslemetryTimestamp.CHARGE_STATE,
-            Signal.CHARGE_PORT_LATCH,
+            "vehicle_state_locked",
         )
         self.scoped = scoped
 
     def _async_update_attrs(self) -> None:
         """Update entity attributes."""
-        if self._value is None:
-            self._attr_is_locked = None
-        self._attr_is_locked = self._value == TeslemetryChargeCableLockStates.ENGAGED
+        self._attr_is_locked = self._value
+
+class TeslemetryStreamingVehicleLockEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleLockEntity, LockRestoreEntity):
+    """Streaming vehicle lock entity for Teslemetry."""
+
+    def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            data,
+            "vehicle_state_locked",
+            Signal.LOCKED,
+        )
+        self.scoped = scoped
 
     def _async_value_from_stream(self, value) -> None:
         """Update entity value from stream."""
-        self._attr_is_locked = value == TeslemetryChargeCableLockStates.ENGAGED
+        if isinstance(value, bool):
+            self._attr_is_locked = value
+        else:
+            self._attr_is_locked = None
+
+
+class TeslemetryCableLockEntity(LockEntity):
+    """Base cable Lock entity for Teslemetry."""
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Charge cable Lock cannot be manually locked."""
@@ -129,11 +129,8 @@ class TeslemetryCableLockEntity(TeslemetryVehicleEntity, LockRestoreEntity):
         self._attr_is_locked = False
         self.async_write_ha_state()
 
-
-class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockRestoreEntity):
-    """Speed Limit with PIN entity for Tessie."""
-
-    _attr_code_format = r"^\d\d\d\d$"
+class TeslemetryPollingCableLockEntity(TeslemetryVehicleEntity, TeslemetryCableLockEntity):
+    """Polling cable lock entity for Teslemetry."""
 
     def __init__(
         self,
@@ -141,30 +138,34 @@ class TeslemetrySpeedLimitEntity(TeslemetryVehicleEntity, LockRestoreEntity):
         scoped: bool,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(data, "vehicle_state_speed_limit_mode_active", TeslemetryTimestamp.VEHICLE_STATE) #TelemetryField.SPEED_LIMIT_MODE
+        super().__init__(
+            data,
+            "charge_state_charge_port_latch",
+        )
         self.scoped = scoped
 
     def _async_update_attrs(self) -> None:
         """Update entity attributes."""
-        self._attr_is_locked = self._value
+        if self._value is None:
+            self._attr_is_locked = None
+        self._attr_is_locked = self._value == TeslemetryChargeCableLockStates.ENGAGED
 
-    async def async_lock(self, **kwargs: Any) -> None:
-        """Enable speed limit with pin."""
-        code: str | None = kwargs.get(ATTR_CODE)
-        if code:
-            self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
-            await self.handle_command(self.api.speed_limit_activate(code))
-            self._attr_is_locked = True
-            self.async_write_ha_state()
+class TeslemetryStreamingCableLockEntity(TeslemetryVehicleStreamEntity, TeslemetryCableLockEntity, LockRestoreEntity):
+    """Streaming cable lock entity for Teslemetry."""
 
-    async def async_unlock(self, **kwargs: Any) -> None:
-        """Disable speed limit with pin."""
-        code: str | None = kwargs.get(ATTR_CODE)
-        if code:
-            self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
-            await self.handle_command(self.api.speed_limit_deactivate(code))
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scoped: bool,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            data,
+            "charge_state_charge_port_latch",
+            Signal.CHARGE_PORT_LATCH,
+        )
+        self.scoped = scoped
 
-            self._attr_is_locked = False
-            self.async_write_ha_state()
+    def _async_value_from_stream(self, value) -> None:
+        """Update entity value from stream."""
+        self._attr_is_locked = value == "ChargePortLatchEngaged"

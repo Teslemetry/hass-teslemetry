@@ -31,7 +31,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .const import TeslemetryState
-from .helpers import flatten, AddStreamFields
+from .helpers import flatten
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_register_services
 
@@ -40,10 +40,10 @@ PLATFORMS: Final = [
     Platform.BUTTON,
     Platform.COVER,
     Platform.CLIMATE,
-    #Platform.DEVICE_TRACKER,
-    #Platform.LOCK,
-    #Platform.MEDIA_PLAYER,
-    #Platform.NUMBER,
+    Platform.DEVICE_TRACKER,
+    Platform.LOCK,
+    Platform.MEDIA_PLAYER,
+    Platform.NUMBER,
     #Platform.SELECT,
     Platform.SENSOR,
     #Platform.SWITCH,

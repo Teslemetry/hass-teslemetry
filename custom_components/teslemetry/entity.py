@@ -50,6 +50,7 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_key = streaming_key
+        self.vehicle = data
 
         self.stream = data.stream
         self.vin = data.vin
@@ -83,6 +84,10 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
     def _async_value_from_stream(self, value: Any) -> None:
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
+
+    async def wake_up_if_asleep(self) -> None:
+        """Wake up the vehicle if its asleep."""
+        await wake_up_vehicle(self.vehicle)
 
     @cached_property
     def available(self) -> bool:
@@ -131,6 +136,15 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 
+    async def wake_up_if_asleep(self) -> None:
+        """Wake up the vehicle if its asleep."""
+        await wake_up_vehicle(self.vehicle)
+
+    @cached_property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.stream.connected
+
 class TeslemetryCoordinatorEntity(
     CoordinatorEntity[
         TeslemetryVehicleDataCoordinator
@@ -156,7 +170,7 @@ class TeslemetryCoordinatorEntity(
         self.api = api
         self.key = key
 
-    @property
+    @cached_property
     def available(self) -> bool:
         """Return if sensor is available."""
         return self.coordinator.last_update_success and self._attr_available

@@ -18,6 +18,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    DEGREE,
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -133,6 +134,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=1,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_charger_voltage",
@@ -148,6 +150,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         polling=True,
         streaming_key=Signal.CHARGE_AMPS,
 
+        suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
@@ -531,6 +534,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_registry_enabled_default=False,
         streaming_value_fn=lambda x: int(x),
+        suggested_display_precision=0,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_port",
@@ -549,6 +553,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.SPEED,
         native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,  # Might be dynamic
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="dc_charging_engery_in",
@@ -557,6 +562,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR, #Unconfirmed
         device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=2,
         streaming_value_fn=lambda x: float(x),
     ),
     TeslemetrySensorEntityDescription(
@@ -571,6 +577,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="di_axle_speed_front",
         streaming_key=Signal.DI_AXLE_SPEED_F,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_axle_speed_rear",
@@ -581,46 +588,55 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="di_axle_speed_rear_left",
         streaming_key=Signal.DI_AXLE_SPEED_REL,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_axle_speed_rear_right",
         streaming_key=Signal.DI_AXLE_SPEED_RER,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_heatsink_temp_front",
         streaming_key=Signal.DI_HEATSINK_TF,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_heatsink_temp_rear",
         streaming_key=Signal.DI_HEATSINK_TR,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_heatsink_temp_rear_left",
         streaming_key=Signal.DI_HEATSINK_TREL,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_heatsink_temp_rear_right",
         streaming_key=Signal.DI_HEATSINK_TRER,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_front",
         streaming_key=Signal.DI_MOTOR_CURRENT_F,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear",
         streaming_key=Signal.DI_MOTOR_CURRENT_R,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear_left",
         streaming_key=Signal.DI_MOTOR_CURRENT_REL,
         entity_registry_enabled_default=False,
+        suggested_display_precision=2,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear_right",
@@ -772,6 +788,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="gps_heading",
         streaming_key=Signal.GPS_HEADING,
         # Unit of direction?
+        native_unit_of_measurement=DEGREE,
         entity_registry_enabled_default=False,
         suggested_display_precision=1,
     ),
@@ -1276,6 +1293,8 @@ class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamEntity, Restore
 class TeslemetryVehicleEventSensorEntity(RestoreSensor):
     """Base class for Teslemetry vehicle streaming sensors."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         data: TeslemetryVehicleData,
@@ -1293,7 +1312,6 @@ class TeslemetryVehicleEventSensorEntity(RestoreSensor):
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        print(f"Listening for events {self.type}")
         self.async_on_remove(
             self.stream.async_add_listener(
                 self._handle_stream_update,
@@ -1306,9 +1324,9 @@ class TeslemetryVehicleEventSensorEntity(RestoreSensor):
 
     def _handle_stream_update(self, data) -> None:
         """Update the value of the entity."""
-        print(f"Received events {data}")
+        print(f"TODO Received events {data}")
         for event in data[self.type].sorted(key=lambda event: event["startedAt"]).filter(lambda event: event["startedAt"] > self._last):
-            print(f"Received event {event}")
+            print(f"TODO Received event {event}")
             self._last = event["startedAt"]
             self._attr_native_value = event["name"]
             self.async_write_ha_state()
