@@ -51,7 +51,7 @@
         "name": "Trip charging"
       },
       "climate_state_cabin_overheat_protection_actively_cooling": {
-        "name": "Cabin overheat protection actively cooling"
+        "name": "Cabin overheat protection active"
       },
       "climate_state_is_preconditioning": {
         "name": "Preconditioning"
@@ -123,16 +123,16 @@
         "name": "Rear passenger window"
       },
       "vehicle_state_tpms_soft_warning_fl": {
-        "name": "Tire pressure warning front left"
+        "name": "TPMS warning front left"
       },
       "vehicle_state_tpms_soft_warning_fr": {
-        "name": "Tire pressure warning front right"
+        "name": "TPMS warning front right"
       },
       "vehicle_state_tpms_soft_warning_rl": {
-        "name": "Tire pressure warning rear left"
+        "name": "TPMS warning rear left"
       },
       "vehicle_state_tpms_soft_warning_rr": {
-        "name": "Tire pressure warning rear right"
+        "name": "TPMS warning rear right"
       },
       "pin_to_drive_enabled": {
         "name": "Pin To Drive Enabled"
@@ -164,22 +164,22 @@
     },
     "button": {
       "boombox": {
-        "name": "Play fart"
+        "name": "Fart"
       },
       "enable_keyless_driving": {
         "name": "Keyless driving"
       },
       "flash_lights": {
-        "name": "Flash lights"
+        "name": "Flash"
       },
       "homelink": {
         "name": "Homelink"
       },
       "honk": {
-        "name": "Honk horn"
+        "name": "Horn"
       },
       "refresh": {
-        "name": "Force refresh"
+        "name": "Refresh"
       },
       "wake": {
         "name": "Wake"
@@ -211,7 +211,7 @@
     },
     "cover": {
       "charge_state_charge_port_door_open": {
-        "name": "Charge port door"
+        "name": "Charge port"
       },
       "vehicle_state_ft": {
         "name": "Frunk"
@@ -220,7 +220,7 @@
         "name": "Trunk"
       },
       "windows": {
-        "name": "Vent windows"
+        "name": "Windows"
       },
       "vehicle_state_sun_roof_state": {
         "name": "Sun roof"
@@ -250,7 +250,7 @@
     },
     "media_player": {
       "media": {
-        "name": "Media Player"
+        "name": "Media player"
       }
     },
     "number": {
@@ -384,7 +384,7 @@
         }
       },
       "charge_state_charge_energy_added": {
-        "name": "Charge energy added"
+        "name": "Energy added"
       },
       "charge_state_charge_rate": {
         "name": "Charge rate"
@@ -402,13 +402,13 @@
         "name": "Charge cable"
       },
       "charge_state_est_battery_range": {
-        "name": "Estimate battery range"
+        "name": "Estimated range"
       },
       "charge_state_fast_charger_type": {
         "name": "Fast charger type"
       },
       "charge_state_ideal_battery_range": {
-        "name": "Ideal battery range"
+        "name": "Ideal range"
       },
       "charge_state_time_to_full_charge": {
         "name": "Time to full charge"
@@ -431,7 +431,7 @@
         "name": "Scheduled departure time"
       },
       "charge_state_usable_battery_level": {
-        "name": "Usable Battery level"
+        "name": "Usable battery"
       },
       "climate_state_driver_temp_setting": {
         "name": "Driver temperature setting"
@@ -446,7 +446,7 @@
         "name": "Passenger temperature setting"
       },
       "drive_state_active_route_energy_at_arrival": {
-        "name": "State of charge at arrival"
+        "name": "SoC at arrival"
       },
       "drive_state_active_route_miles_to_arrival": {
         "name": "Distance to arrival"
@@ -464,7 +464,7 @@
         "name": "Power"
       },
       "drive_state_shift_state": {
-        "name": "Shift state",
+        "name": "Shift",
         "state": {
           "d": "Drive",
           "n": "Neutral",
@@ -522,10 +522,10 @@
         "name": "Brake Pedal Position"
       },
       "brick_voltage_max": {
-        "name": "Brick Voltage Max"
+        "name": "Battery max voltage"
       },
       "brick_voltage_min": {
-        "name": "Brick Voltage Min"
+        "name": "Battery min voltage"
       },
       "car_type": {
         "name": "Car Type"
@@ -642,7 +642,7 @@
         "name": "Emergency Lane Departure Avoidance"
       },
       "energy_remaining": {
-        "name": "Pack Remaining"
+        "name": "Battery remaining"
       },
       "forward_collision_warning": {
         "name": "Forward Collision Warning",
@@ -689,10 +689,10 @@
         "name": "Longitudinal Acceleration"
       },
       "module_temp_max": {
-        "name": "Module Temperature Maximum"
+        "name": "Battery max temperature"
       },
       "module_temp_min": {
-        "name": "Module Temperature Minimum"
+        "name": "Battery min temperature"
       },
       "no_enough_power_to_heat": {
         "name": "Not Enough Power To Heat"
@@ -710,10 +710,10 @@
         "name": "Module Number Temperature Minimum"
       },
       "pack_current": {
-        "name": "Pack Current"
+        "name": "Battery current"
       },
       "pack_voltage": {
-        "name": "Pack Voltage"
+        "name": "Battery voltage"
       },
       "paired_key_quantity": {
         "name": "Number of paired Keys"
@@ -722,7 +722,7 @@
         "name": "Pedal Position"
       },
       "rated_range": {
-        "name": "Rated Range"
+        "name": "Rated range"
       },
       "route_last_updated": {
         "name": "Route Last Updated"
@@ -739,7 +739,7 @@
         }
       },
       "state_of_charge": {
-        "name": "State of charge"
+        "name": "Battery SoC"
       },
       "speed_limit_warning": {
         "name": "Speed Limit Warning",
@@ -771,28 +771,28 @@
         "name": "Odometer"
       },
       "vehicle_state_tpms_last_seen_pressure_time_fl": {
-        "name": "Tire pressure last measured front left"
+        "name": "TPMS last measured front left"
       },
       "vehicle_state_tpms_last_seen_pressure_time_fr": {
-        "name": "Tire pressure last measured front right"
+        "name": "TPMS last measured front right"
       },
       "vehicle_state_tpms_last_seen_pressure_time_rl": {
-        "name": "Tire pressure last measured rear left"
+        "name": "TPMS last measured rear left"
       },
       "vehicle_state_tpms_last_seen_pressure_time_rr": {
-        "name": "Tire pressure last measured rear right"
+        "name": "TPMS last measured rear right"
       },
       "vehicle_state_tpms_pressure_fl": {
-        "name": "Tire pressure front left"
+        "name": "TPMS front left"
       },
       "vehicle_state_tpms_pressure_fr": {
-        "name": "Tire pressure front right"
+        "name": "TPMS front right"
       },
       "vehicle_state_tpms_pressure_rl": {
-        "name": "Tire pressure rear left"
+        "name": "TPMS rear left"
       },
       "vehicle_state_tpms_pressure_rr": {
-        "name": "Tire pressure rear right"
+        "name": "TPMS rear right"
       },
       "version": {
         "name": "Version"
@@ -967,10 +967,10 @@
         "name": "Storm watch"
       },
       "vehicle_state_sentry_mode": {
-        "name": "Sentry mode"
+        "name": "Sentry"
       },
       "vehicle_state_valet_mode": {
-        "name": "Valet mode"
+        "name": "Valet"
       }
     },
     "update": {
