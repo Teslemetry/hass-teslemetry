@@ -69,28 +69,28 @@
         "name": "Storm watch active"
       },
       "automatic_blind_spot_camera": {
-        "name": "Automatic Blind Spot Camera"
+        "name": "Automatic blind dpot camera"
       },
       "automatic_emergency_braking_off": {
-        "name": "Automatic Emergency Braking Off"
+        "name": "Automatic emergency braking off"
       },
       "blind_spot_collision_warning_chime": {
-        "name": "Blind Spot Collision Warning Chime"
+        "name": "Blind spot collision warning chime"
       },
       "bms_full_charge_complete": {
-        "name": "BMS Full Charge"
+        "name": "BMS full charge"
       },
       "brake_pedal": {
-        "name": "Brake Pedal"
+        "name": "Brake pedal"
       },
       "charge_enable_request": {
-        "name": "Charge Enable Request"
+        "name": "Charge enable request"
       },
       "charge_port_cold_weather_mode": {
-        "name": "Charge Port Cold Weather Mode"
+        "name": "Charge port cold weather mode"
       },
       "service_mode": {
-        "name": "Service Mode"
+        "name": "Service mode"
       },
       "vehicle_state_dashcam_state": {
         "name": "Dashcam"
@@ -135,31 +135,31 @@
         "name": "TPMS warning rear right"
       },
       "pin_to_drive_enabled": {
-        "name": "Pin To Drive Enabled"
+        "name": "Pin to drive enabled"
       },
       "drive_rail": {
-        "name": "Drive Rail"
+        "name": "Drive rail"
       },
       "driver_seat_belt": {
-        "name": "Driver Seat Belt"
+        "name": "Driver seat belt"
       },
       "driver_seat_occupied": {
-        "name": "Driver Seat Occupied"
+        "name": "Driver seat occupied"
       },
       "passenger_seat_belt": {
-        "name": "Passenger Seat Belt"
+        "name": "Passenger seat belt"
       },
       "fast_charger_present": {
-        "name": "Fast Charger Present"
+        "name": "Fast charger present"
       },
       "gps_state": {
-        "name": "GPS State"
+        "name": "GPS state"
       },
       "guest_mode_enabled": {
-        "name": "Guest Mode Enabled"
+        "name": "Guest mode enabled"
       },
       "dc_dc_enable": {
-        "name": "DCDC Enable"
+        "name": "DCDC enable"
       }
     },
     "button": {
@@ -516,10 +516,10 @@
         "name": "Solar power"
       },
       "bms_state": {
-        "name": "BMS State"
+        "name": "BMS state"
       },
       "brake_pedal_position": {
-        "name": "Brake Pedal Position"
+        "name": "Brake pedal position"
       },
       "brick_voltage_max": {
         "name": "Battery max voltage"
@@ -528,124 +528,124 @@
         "name": "Battery min voltage"
       },
       "car_type": {
-        "name": "Car Type"
+        "name": "Car type"
       },
       "charge_current_request_max": {
-        "name": "Charge Current Request Max"
+        "name": "Charge current request max"
       },
       "charge_port": {
-        "name": "Charge Port"
+        "name": "Charge port"
       },
       "cruise_follow_distance": {
-        "name": "Cruise Distance"
+        "name": "Cruise distance"
       },
       "cruise_set_speed": {
-        "name": "Cruise Speed"
+        "name": "Cruise speed"
       },
       "dc_charging_engery_in": {
-        "name": "DC Charging In"
+        "name": "DC charging in"
       },
       "dc_charging_power": {
-        "name": "DC Charging Power"
+        "name": "DC charging power"
       },
       "di_axle_speed_front": {
-        "name": "Front DU Axle Speed"
+        "name": "Front DU axle speed"
       },
       "di_axle_speed_rear": {
-        "name": "Rear DU Axle Speed"
+        "name": "Rear DI axle speed"
       },
       "di_axle_speed_rear_left": {
-        "name": "Rear Left DU Axle Speed "
+        "name": "Rear left DU axle speed "
       },
       "di_axle_speed_rear_right": {
-        "name": "Rear Right DU Axle Speed"
+        "name": "Rear right DU axle speed"
       },
       "di_heatsink_temp_front": {
-        "name": "Front DI Heatsink Temperature"
+        "name": "Front DI heatsink temperature"
       },
       "di_heatsink_temp_rear": {
-        "name": "Rear DI Heatsink Temperature"
+        "name": "Rear DI heatsink temperature"
       },
       "di_heatsink_temp_rear_left": {
-        "name": "Rear Left DI Heatsink Temperature"
+        "name": "Rear left DI heatsink temperature"
       },
       "di_heatsink_temp_rear_right": {
-        "name": "Rear Right DI Heatsink Temperature"
+        "name": "Rear right DI heatsink temperature"
       },
       "di_motor_current_front": {
-        "name": "Front DI Current"
+        "name": "Front DI current"
       },
       "di_motor_current_rear": {
-        "name": "Rear DI Current"
+        "name": "Rear DI current"
       },
       "di_motor_current_rear_left": {
-        "name": "Rear Left DI Current"
+        "name": "Rear left DI current"
       },
       "di_motor_current_rear_right": {
-        "name": "Rear Right DI Current"
+        "name": "Rear right DI current"
       },
       "di_salve_torque_command": {
-        "name": "Di Slave Torque Command"
+        "name": "Di slave torque command"
       },
       "di_state_front": {
-        "name": "Front DI State"
+        "name": "Front DI state"
       },
       "di_state_rear": {
-        "name": "Rear DI State"
+        "name": "Rear DI state"
       },
       "di_state_rear_left": {
-        "name": "Rear Left DI State"
+        "name": "Rear left DI state"
       },
       "di_state_rear_right": {
-        "name": "Rear Right DI State"
+        "name": "Rear right DI state"
       },
       "di_stator_temp_front": {
-        "name": "Front DU Stator Temperature"
+        "name": "Front DU stator temperature"
       },
       "di_stator_temp_rear": {
-        "name": "Rear DU Stator Temperature"
+        "name": "Rear DU stator temperature"
       },
       "di_stator_temp_rear_left": {
-        "name": "Rear Left DU Stator Temperature"
+        "name": "Rear left DU stator temperature"
       },
       "di_stator_temp_rear_right": {
-        "name": "Rear Right DU Stator Temperature"
+        "name": "Rear right DU stator temperature"
       },
       "di_torque_actual_front": {
-        "name": "Front DU Torque"
+        "name": "Front DU torque"
       },
       "di_torque_actual_rear": {
-        "name": "Rear DU Torque"
+        "name": "Rear DU torque"
       },
       "di_torque_actual_rear_left": {
-        "name": "Rear Left DU Torque"
+        "name": "Rear left DU torque"
       },
       "di_torque_actual_rear_right": {
-        "name": "Rear Right DU Torque"
+        "name": "Rear right DU torque"
       },
       "di_torque_motor": {
-        "name": "DiTorquemotor"
+        "name": "DI Torque Motor"
       },
       "di_voltage_battery_front": {
-        "name": "Front DI Voltage"
+        "name": "Front DI voltage"
       },
       "di_voltage_battery_rear": {
-        "name": "Rear DI Voltage"
+        "name": "Rear DI voltage"
       },
       "di_voltage_battery_rear_left": {
-        "name": "Rear Left DI Voltage"
+        "name": "Rear left DI voltage"
       },
       "di_voltage_battery_rear_right": {
-        "name": "Rear Right DI Voltage"
+        "name": "Rear right DI voltage"
       },
       "emergency_lane_departure_avoidance": {
-        "name": "Emergency Lane Departure Avoidance"
+        "name": "Emergency lane departure avoidance"
       },
       "energy_remaining": {
         "name": "Battery remaining"
       },
       "forward_collision_warning": {
-        "name": "Forward Collision Warning",
+        "name": "Forward collision warning",
         "state": {
           "off": "Off",
           "late": "Late",
@@ -657,16 +657,16 @@
         "name": "Heading"
       },
       "guest_mode_mobile_access_state": {
-        "name": "Guest Mode State"
+        "name": "Guest mode state"
       },
       "hvil": {
         "name": "HVIL"
       },
       "isolation_resistance": {
-        "name": "Isolation Resistance"
+        "name": "Isolation resistance"
       },
       "lane_departure_avoidance": {
-        "name": "Lane Departure Avoidance",
+        "name": "Lane departure avoidance",
         "state": {
           "off": "Off",
           "warning": "Warning",
@@ -674,19 +674,19 @@
         }
       },
       "lateral_acceleration": {
-        "name": "Lateral Acceleration"
+        "name": "Lateral acceleration"
       },
       "lifetime_energy_gained_regen": {
-        "name": "Lifetime Energy Gained Regen"
+        "name": "Lifetime energy gained regen"
       },
       "lifetime_energy_used": {
-        "name": "Lifetime Energy Used"
+        "name": "Lifetime energy used"
       },
       "lifetime_energy_used_drive": {
-        "name": "Lifetime Energy Used Drive"
+        "name": "Lifetime energy used drive"
       },
       "longitudinal_acceleration": {
-        "name": "Longitudinal Acceleration"
+        "name": "Longitudinal acceleration"
       },
       "module_temp_max": {
         "name": "Battery max temperature"
@@ -695,19 +695,19 @@
         "name": "Battery min temperature"
       },
       "no_enough_power_to_heat": {
-        "name": "Not Enough Power To Heat"
+        "name": "Not enough power to heat"
       },
       "brick_number_voltage_max": {
-        "name": "Brick Number Voltage Maximum"
+        "name": "Brick number voltage maximum"
       },
       "brick_number_voltage_min": {
-        "name": "Brick Number Voltage Minimum"
+        "name": "Brick number voltage minimum"
       },
       "module_number_temp_max": {
-        "name": "Module Number Temperature Maximum"
+        "name": "Module number temperature maximum"
       },
       "module_number_temp_min": {
-        "name": "Module Number Temperature Minimum"
+        "name": "Module number temperature minimum"
       },
       "pack_current": {
         "name": "Battery current"
@@ -716,19 +716,19 @@
         "name": "Battery voltage"
       },
       "paired_key_quantity": {
-        "name": "Number of paired Keys"
+        "name": "Number of paired keys"
       },
       "pedal_position": {
-        "name": "Pedal Position"
+        "name": "Pedal position"
       },
       "rated_range": {
         "name": "Rated range"
       },
       "route_last_updated": {
-        "name": "Route Last Updated"
+        "name": "Route last updated"
       },
       "sentry_mode": {
-        "name": "Sentry Mode",
+        "name": "Sentry mode",
         "state": {
           "off": "Off",
           "idle": "Idle",
@@ -742,7 +742,7 @@
         "name": "Battery SoC"
       },
       "speed_limit_warning": {
-        "name": "Speed Limit Warning",
+        "name": "Speed limit warning",
         "state": {
           "none": "None",
           "chime": "Chime",
@@ -750,13 +750,13 @@
         }
       },
       "supercharger_session_trip_planner": {
-        "name": "Supercharger Session Trip Planner"
+        "name": "Supercharger session trip planner"
       },
       "trim": {
         "name": "Trim"
       },
       "vehicle_name": {
-        "name": "Vehicle Name"
+        "name": "Vehicle name"
       },
       "total_pack_energy": {
         "name": "Total pack energy"
