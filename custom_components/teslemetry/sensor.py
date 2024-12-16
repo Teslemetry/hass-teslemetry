@@ -14,6 +14,8 @@ from homeassistant.components.sensor import (
     SensorEntity,
     RestoreSensor,
     SensorEntityDescription,
+)
+from homeassistant.components.sensor.const import (
     SensorDeviceClass,
     SensorStateClass,
 )
@@ -53,14 +55,69 @@ from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 from .helpers import ignore_drop
 
-CHARGE_STATES = {
-    "Starting": "starting",
-    "Charging": "charging",
-    "Stopped": "stopped",
-    "Complete": "complete",
-    "Disconnected": "disconnected",
-    "NoPower": "no_power",
-}
+class TeslemetryOptions:
+    """Helper class to handle options for sensor entities."""
+
+    def __init__(self, prefix: str, options: list[str]):
+        """Create a new options list."""
+        self.prefix = prefix
+        self.options = options
+
+    def get(self, value, default=None):
+        """Get the value if it is a valid option."""
+        if isinstance(value, str):
+            option = value.replace(self.prefix, "").lower()
+            print(value,option)
+            if option in self.options:
+                return option
+        return default
+
+DetailedChargeState = TeslemetryOptions("DetailedChargeState",
+    [
+        "starting",
+        "charging",
+        "stopped",
+        "complete",
+        "disconnected",
+        "nopower",
+    ]
+)
+
+ShiftState = TeslemetryOptions("ShiftState",["p", "d", "r", "n"])
+
+ForwardCollisionSensitivity = TeslemetryOptions("ForwardCollisionSensitivity", [
+    "off",
+    "late",
+    "average",
+    "early"
+])
+
+ScheduledChargingMode = TeslemetryOptions("ScheduledChargingMode", [
+    "off",
+    "startat",
+    "departby"
+])
+
+LaneAssistLevel = TeslemetryOptions("LaneAssistLevel", [
+    "off",
+    "warning",
+    "assist"
+])
+
+SentryModeState = TeslemetryOptions("SentryModeState", ["off", "idle", "armed", "aware", "panic", "quiet"])
+SpeedAssistLevel = TeslemetryOptions("SpeedAssistLevel", ["none", "display", "chime"])
+DisplayState = TeslemetryOptions("DisplayState", [
+    "off",
+    "dim",
+    "accessory",
+    "on",
+    "driving",
+    "charging",
+    "lock",
+    "sentry",
+    "dog",
+    "entertainment"
+])
 
 WALL_CONNECTOR_STATES = {
     0: "booting",
@@ -75,7 +132,9 @@ WALL_CONNECTOR_STATES = {
     10: "charging_reduced",  # unseen
 }
 
-SHIFT_STATES = {"P": "p", "D": "d", "R": "r", "N": "n"}
+
+
+
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
@@ -94,10 +153,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_charging_state",
         polling=True,
         streaming_key=Signal.DETAILED_CHARGE_STATE,
-        polling_value_fn=lambda value: CHARGE_STATES.get(cast(str, value)),
-        streaming_value_fn=lambda value: CHARGE_STATES.get(cast(str, value)),
+        polling_value_fn=DetailedChargeState.get,
+        streaming_value_fn=DetailedChargeState.get,
         device_class=SensorDeviceClass.ENUM,
-        options=list(CHARGE_STATES.values()),
+        options=DetailedChargeState.options
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_battery_level",
@@ -120,7 +179,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_charge_energy_added",
         polling=True,
         streaming_key=Signal.AC_CHARGING_ENERGY_IN,
-
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
@@ -130,7 +188,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_charger_power",
         polling=True,
         streaming_key=Signal.AC_CHARGING_POWER,
-
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
@@ -230,11 +287,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="drive_state_shift_state",
         polling=True,
         streaming_key=Signal.GEAR,
-        polling_value_fn=lambda x: SHIFT_STATES.get(str(x), "p"),
+        polling_value_fn=lambda x: ShiftState.get(x, "p"),
         polling_available_fn=lambda x: True,
-        streaming_value_fn=lambda x: SHIFT_STATES.get(str(x)),
+        streaming_value_fn=lambda x: ShiftState.get(x, "p"),
+        options=ShiftState.options,
         device_class=SensorDeviceClass.ENUM,
-        options=list(SHIFT_STATES.values()),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -420,11 +477,11 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
-        key="charge_state_scheduled_charging_mode",
+        key="charge_state_ScheduledChargingMode",
         polling=True,
         streaming_key=Signal.SCHEDULED_CHARGING_MODE,
-        streaming_value_fn=lambda x: str(x).replace("ScheduledChargingMode", ""),
-        options=["Unknown", "Off", "StartAt", "DepartBy"],
+        streaming_value_fn=ScheduledChargingMode.get,
+        options=ScheduledChargingMode.options,
         device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
@@ -778,7 +835,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="forward_collision_warning",
         streaming_key=Signal.FORWARD_COLLISION_WARNING,
         entity_registry_enabled_default=False,
-        streaming_value_fn=lambda x: str(x).replace("ForwardCollisionSensitivity",""),
+        streaming_value_fn=ForwardCollisionSensitivity.get,
+        options=ForwardCollisionSensitivity.options
     ),
     TeslemetrySensorEntityDescription(
         key="gps_heading",
@@ -811,9 +869,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="lane_departure_avoidance",
         streaming_key=Signal.LANE_DEPARTURE_AVOIDANCE,
         entity_registry_enabled_default=False,
-        options=["Unknown","None","Warning","Assist"],
+        streaming_value_fn=LaneAssistLevel.get,
+        options=LaneAssistLevel.options,
         device_class=SensorDeviceClass.ENUM,
-        streaming_value_fn=lambda x: str(x).replace("LaneAssistLevel", "")
     ),
     TeslemetrySensorEntityDescription(
         key="lateral_acceleration",
@@ -945,9 +1003,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="sentry_mode",
         streaming_key=Signal.SENTRY_MODE,
         entity_registry_enabled_default=False,
-        options=["Unknown", "Off", "Idle", "Armed", "Aware", "Panic", "Quiet"],
+        streaming_value_fn=SentryModeState.get,
+        options=SentryModeState.options,
         device_class=SensorDeviceClass.ENUM,
-        streaming_value_fn=lambda x: str(x).replace("SentryModeState",""),
     ),
     TeslemetrySensorEntityDescription(
         key="state_of_charge",
@@ -961,9 +1019,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="speed_limit_warning",
         streaming_key=Signal.SPEED_LIMIT_WARNING,
         entity_registry_enabled_default=False,
-        options=["Unknown","None","Display","Chime"],
+        streaming_value_fn=SpeedAssistLevel.get,
+        options=SpeedAssistLevel.options,
         device_class=SensorDeviceClass.ENUM,
-        streaming_value_fn=lambda x: str(x).replace("SpeedAssistLevel",""),
     ),
     TeslemetrySensorEntityDescription(
         key="supercharger_session_trip_planner",
@@ -984,30 +1042,22 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="center_display",
         streaming_key=Signal.CENTER_DISPLAY,
+        streaming_firmware="2024.44.25",
+        streaming_value_fn=DisplayState.get,
+        options=DisplayState.options,
         device_class=SensorDeviceClass.ENUM,
-        options=[
-          "Off",
-          "Dim",
-          "Accessory",
-          "On",
-          "Driving",
-          "Charging",
-          "Lock",
-          "Sentry",
-          "Dog",
-          "Entertainment"
-        ],
-        streaming_value_fn=lambda x: str(x).replace("DisplayState",""),
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="efficiency_package",
         streaming_key=Signal.EFFICIENCY_PACKAGE,
+        streaming_firmware="2024.44.25",
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="estimated_hours_to_charge_termination",
         streaming_key=Signal.ESTIMATED_HOURS_TO_CHARGE_TERMINATION,
+        streaming_firmware="2024.44.25",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -1016,6 +1066,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="drive_state_expected_energy_percent_at_trip_arrival",
         streaming_key=Signal.EXPECTED_ENERGY_PERCENT_AT_TRIP_ARRIVAL,
+        streaming_firmware="2024.44.25",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -1026,6 +1077,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="homelink_device_count",
         streaming_key=Signal.HOMELINK_DEVICE_COUNT,
+        streaming_firmware="2024.44.25",
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
@@ -1033,6 +1085,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="powershare_hours_left",
         streaming_key=Signal.POWERSHARE_HOURS_LEFT,
+        streaming_firmware="2024.44.25",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
@@ -1043,6 +1096,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="powershare_instantaneous_power_kw",
         streaming_key=Signal.POWERSHARE_INSTANTANEOUS_POWER_KW,
+        streaming_firmware="2024.44.25",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
@@ -1053,9 +1107,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="powershare_status",
         streaming_key=Signal.POWERSHARE_STATUS,
+        streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
         options=[
-            "Unknown",
             "Inactive",
             "Handshaking",
             "Init",
@@ -1069,9 +1123,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="powershare_stop_reason",
         streaming_key=Signal.POWERSHARE_STOP_REASON,
+        streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
         options=[
-            "Unknown",
             "None",
             "SOCTooLow",
             "Retry",
@@ -1086,15 +1140,33 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="powershare_type",
         streaming_key=Signal.POWERSHARE_TYPE,
+        streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
         options=[
-            "Unknown",
             "None",
             "Load",
             "Home"
         ],
         streaming_value_fn=lambda x: str(x).replace("PowershareTypeStatus",""),
         entity_registry_enabled_default=False,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="tpms_hard_warnings",
+        streaming_key=Signal.TPMS_HARD_WARNINGS,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="tpms_soft_warnings",
+        streaming_key=Signal.TPMS_SOFT_WARNINGS,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    TeslemetrySensorEntityDescription(
+        key="wheel_type",
+        streaming_key=Signal.WHEEL_TYPE,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
 @dataclass(frozen=True, kw_only=True)
@@ -1382,9 +1454,11 @@ class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamEntity, Restore
         else:
             self._attr_native_value = self.entity_description.streaming_value_fn(value)
 
+        if self._attr_native_value == "Unknown":
+            self._attr_native_value = None
 
 class TeslemetryVehicleEventSensorEntity(RestoreSensor):
-    """Base class for Teslemetry vehicle streaming sensors."""
+    """Base class for Teslemetry vehicle event sensors."""
 
     _attr_has_entity_name = True
 

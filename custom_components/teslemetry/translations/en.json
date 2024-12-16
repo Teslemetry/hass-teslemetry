@@ -378,7 +378,7 @@
           "charging": "Charging",
           "complete": "Complete",
           "disconnected": "Disconnected",
-          "no_power": "No power",
+          "nopower": "No power",
           "starting": "Starting",
           "stopped": "Stopped"
         }
@@ -417,7 +417,12 @@
         "name": "Time at full charge"
       },
       "charge_state_scheduled_charging_mode": {
-        "name": "Scheduled charging mode"
+        "name": "Scheduled charging mode",
+        "state": {
+          "off": "Off",
+          "startat": "Start at",
+          "departby": "Depart by"
+        }
       },
       "charge_state_scheduled_charging_start_time": {
         "name": "Scheduled charging start time"
@@ -640,7 +645,13 @@
         "name": "Battery Remaining"
       },
       "forward_collision_warning": {
-        "name": "Forward Collision Warning"
+        "name": "Forward Collision Warning",
+        "state": {
+          "off": "Off",
+          "late": "Late",
+          "average": "Average",
+          "early": "Early"
+        }
       },
       "gps_heading": {
         "name": "Heading"
@@ -655,7 +666,12 @@
         "name": "Isolation Resistance"
       },
       "lane_departure_avoidance": {
-        "name": "Lane Departure Avoidance"
+        "name": "Lane Departure Avoidance",
+        "state": {
+          "off": "Off",
+          "warning": "Warning",
+          "assist": "Assist"
+        }
       },
       "lateral_acceleration": {
         "name": "Lateral Acceleration"
@@ -712,13 +728,26 @@
         "name": "Route Last Updated"
       },
       "sentry_mode": {
-        "name": "Sentry Mode"
+        "name": "Sentry Mode",
+        "state": {
+          "off": "Off",
+          "idle": "Idle",
+          "armed": "Armed",
+          "aware": "Aware",
+          "panic": "Panic",
+          "quiet": "Quiet"
+        }
       },
       "state_of_charge": {
         "name": "Battery SoC"
       },
       "speed_limit_warning": {
-        "name": "Speed Limit Warning"
+        "name": "Speed Limit Warning",
+        "state": {
+          "none": "None",
+          "chime": "Chime",
+          "display": "Display"
+        }
       },
       "supercharger_session_trip_planner": {
         "name": "Supercharger Session Trip Planner"
@@ -864,7 +893,19 @@
         "name": "Grid exported"
       },
       "center_display": {
-        "name": "Center display"
+        "name": "Center display",
+        "state": {
+          "off": "Off",
+          "dim": "Dim",
+          "accessory": "Accessory",
+          "on": "On",
+          "driving": "Driving",
+          "charging": "Charging",
+          "lock": "Lock",
+          "sentry": "Sentry",
+          "dog": "Dog",
+          "entertainment": "Entertainment"
+        }
       },
       "efficiency_package": {
         "name": "Efficiency package"
@@ -892,6 +933,15 @@
       },
       "powershare_type": {
         "name": "Powershare type"
+      },
+      "tpms_hard_warnings": {
+        "name": "TPMS hard warnings"
+      },
+      "tpms_soft_warnings": {
+        "name": "TPMS soft warnings"
+      },
+      "wheel_type": {
+        "name": "Wheel type"
       }
     },
     "switch": {
