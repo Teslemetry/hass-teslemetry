@@ -600,7 +600,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=2,
+        suggested_display_precision=0,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear",
@@ -609,7 +609,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=2,
+        suggested_display_precision=0,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear_left",
@@ -618,7 +618,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=2,
+        suggested_display_precision=0,
     ),
     TeslemetrySensorEntityDescription(
         key="di_motor_current_rear_right",
@@ -627,7 +627,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=2,
+        suggested_display_precision=0,
     ),
     TeslemetrySensorEntityDescription(
         key="di_salve_torque_command",
