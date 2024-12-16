@@ -51,7 +51,7 @@
         "name": "Trip charging"
       },
       "climate_state_cabin_overheat_protection_actively_cooling": {
-        "name": "COP Running"
+        "name": "Cabin overheat protection active"
       },
       "climate_state_is_preconditioning": {
         "name": "Preconditioning"
@@ -167,7 +167,7 @@
         "name": "Fart"
       },
       "enable_keyless_driving": {
-        "name": "Keyless"
+        "name": "Keyless driving"
       },
       "flash_lights": {
         "name": "Flash"
@@ -187,7 +187,7 @@
     },
     "climate": {
       "climate_state_cabin_overheat_protection": {
-        "name": "COP"
+        "name": "Cabin overheat protection"
       },
       "driver_temp": {
         "name": "Climate",
@@ -250,7 +250,7 @@
     },
     "media_player": {
       "media": {
-        "name": "Media Player"
+        "name": "Media player"
       }
     },
     "number": {
@@ -364,13 +364,13 @@
     },
     "sensor": {
       "battery_power": {
-        "name": "Battery Power"
+        "name": "Battery power"
       },
       "charge_state_battery_level": {
-        "name": "Battery Level"
+        "name": "Battery level"
       },
       "charge_state_battery_range": {
-        "name": "Battery Range"
+        "name": "Battery range"
       },
       "charge_state_charging_state": {
         "name": "Charging",
@@ -402,13 +402,13 @@
         "name": "Charge cable"
       },
       "charge_state_est_battery_range": {
-        "name": "Range Estimated"
+        "name": "Estimated range"
       },
       "charge_state_fast_charger_type": {
         "name": "Fast charger type"
       },
       "charge_state_ideal_battery_range": {
-        "name": "Range Ideal"
+        "name": "Ideal range"
       },
       "charge_state_time_to_full_charge": {
         "name": "Time to full charge"
@@ -431,7 +431,7 @@
         "name": "Scheduled departure time"
       },
       "charge_state_usable_battery_level": {
-        "name": "Battery Usable"
+        "name": "Usable battery"
       },
       "climate_state_driver_temp_setting": {
         "name": "Driver temperature setting"
@@ -522,10 +522,10 @@
         "name": "Brake Pedal Position"
       },
       "brick_voltage_max": {
-        "name": "Battery Voltage Max"
+        "name": "Battery max voltage"
       },
       "brick_voltage_min": {
-        "name": "Battery Voltage Min"
+        "name": "Battery min voltage"
       },
       "car_type": {
         "name": "Car Type"
@@ -642,7 +642,7 @@
         "name": "Emergency Lane Departure Avoidance"
       },
       "energy_remaining": {
-        "name": "Battery Remaining"
+        "name": "Battery remaining"
       },
       "forward_collision_warning": {
         "name": "Forward Collision Warning",
@@ -689,10 +689,10 @@
         "name": "Longitudinal Acceleration"
       },
       "module_temp_max": {
-        "name": "Battery Temperature Max"
+        "name": "Battery max temperature"
       },
       "module_temp_min": {
-        "name": "Battery Temperature Min"
+        "name": "Battery min temperature"
       },
       "no_enough_power_to_heat": {
         "name": "Not Enough Power To Heat"
@@ -710,10 +710,10 @@
         "name": "Module Number Temperature Minimum"
       },
       "pack_current": {
-        "name": "Battery Current"
+        "name": "Battery current"
       },
       "pack_voltage": {
-        "name": "Battery Voltage"
+        "name": "Battery voltage"
       },
       "paired_key_quantity": {
         "name": "Number of paired Keys"
@@ -722,7 +722,7 @@
         "name": "Pedal Position"
       },
       "rated_range": {
-        "name": "Range Rated"
+        "name": "Rated range"
       },
       "route_last_updated": {
         "name": "Route Last Updated"
