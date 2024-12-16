@@ -864,10 +864,34 @@
         "name": "Grid exported"
       },
       "center_display": {
-        "name": "Center Display"
+        "name": "Center display"
       },
       "efficiency_package": {
-        "name": "Efficiency Package"
+        "name": "Efficiency package"
+      },
+      "estimated_hours_to_charge_termination": {
+        "name": "Estimated hours to charge termination"
+      },
+      "drive_state_expected_energy_percent_at_trip_arrival": {
+        "name": "Expected energy percent at trip arrival"
+      },
+      "homelink_device_count": {
+        "name": "Homelink device count"
+      },
+      "powershare_hours_left": {
+        "name": "Powershare hours left"
+      },
+      "powershare_instantaneous_power_kw": {
+        "name": "Powershare instantaneous power"
+      },
+      "powershare_status": {
+        "name": "Powershare status"
+      },
+      "powershare_stop_reason": {
+        "name": "Powershare stop reason"
+      },
+      "powershare_type": {
+        "name": "Powershare type"
       }
     },
     "switch": {
