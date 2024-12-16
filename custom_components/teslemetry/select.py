@@ -55,7 +55,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         supported_fn=lambda data: data.get(
             "vehicle_config_rear_seat_heaters"
         ) != 0,
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_center",
@@ -64,7 +64,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         supported_fn=lambda data: data.get(
             "vehicle_config_rear_seat_heaters"
         ) != 0,
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_rear_right",
@@ -73,7 +73,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         supported_fn=lambda data: data.get(
             "vehicle_config_rear_seat_heaters"
         ) != 0,
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_third_row_left",
@@ -81,7 +81,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         supported_fn=lambda data: data.get(
             "vehicle_config_third_row_seats"
         ) != "None",
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
     ),
     SeatHeaterDescription(
         key="climate_state_seat_heater_third_row_right",
@@ -89,7 +89,7 @@ SEAT_HEATER_DESCRIPTIONS: tuple[SeatHeaterDescription, ...] = (
         supported_fn=lambda data: data.get(
             "vehicle_config_third_row_seats"
         ) != "None",
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
     ),
 )
 
