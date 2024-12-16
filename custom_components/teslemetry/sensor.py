@@ -52,76 +52,18 @@ from .entity import (
     TeslemetryEnergyHistoryEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-
-
-class TeslemetryOptions:
-    """Helper class to handle options for sensor entities."""
-
-    def __init__(self, prefix: str, options: list[str]):
-        """Create a new options list."""
-        self.prefix = prefix
-        self.options = options
-
-    def get(self, value, default=None):
-        """Get the value if it is a valid option."""
-        if isinstance(value, str):
-            option = value.replace(self.prefix, "").lower()
-            if option in self.options:
-                return option
-        return default
-
-DetailedChargeState = TeslemetryOptions("DetailedChargeState",
-    [
-        "starting",
-        "charging",
-        "stopped",
-        "complete",
-        "disconnected",
-        "nopower",
-    ]
+from .enum import (
+    DetailedChargeState,
+    ShiftState,
+    ScheduledChargingMode,
+    BMSState,
+    ForwardCollisionSensitivity,
+    GuestModeMobileAccess,
+    LaneAssistLevel,
+    SentryModeState,
+    SpeedAssistLevel,
+    DisplayState
 )
-ShiftState = TeslemetryOptions("ShiftState",["p", "d", "r", "n"])
-ForwardCollisionSensitivity = TeslemetryOptions("ForwardCollisionSensitivity", [
-    "off",
-    "late",
-    "average",
-    "early"
-])
-ScheduledChargingMode = TeslemetryOptions("ScheduledChargingMode", [
-    "off",
-    "startat",
-    "departby"
-])
-LaneAssistLevel = TeslemetryOptions("LaneAssistLevel", [
-    "off",
-    "warning",
-    "assist"
-])
-SentryModeState = TeslemetryOptions("SentryModeState", ["off", "idle", "armed", "aware", "panic", "quiet"])
-SpeedAssistLevel = TeslemetryOptions("SpeedAssistLevel", ["none", "display", "chime"])
-DisplayState = TeslemetryOptions("DisplayState", [
-    "off",
-    "dim",
-    "accessory",
-    "on",
-    "driving",
-    "charging",
-    "lock",
-    "sentry",
-    "dog",
-    "entertainment"
-])
-BMSState = TeslemetryOptions("BMSState", ["standby",
-    "drive",
-    "support",
-    "charge",
-    "feim",
-    "clearfault",
-    "fault",
-    "weld",
-    "test",
-    "sna"
-])
 
 WALL_CONNECTOR_STATES = {
     0: "booting",
@@ -516,6 +458,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="bms_state",
         streaming_key=Signal.BMS_STATE,
+        streaming_value_fn=BMSState.get,
+        options=BMSState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -854,7 +799,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="guest_mode_mobile_access_state",
         streaming_key=Signal.GUEST_MODE_MOBILE_ACCESS_STATE,
         entity_registry_enabled_default=False,
-        streaming_value_fn=lambda x: str(x).replace("GuestModeMobileAccess", "")
+        streaming_value_fn=GuestModeMobileAccess.get,
+        options=GuestModeMobileAccess.options,
+        device_class=SensorDeviceClass.ENUM,
     ),
     TeslemetrySensorEntityDescription(
         key="hvil",
