@@ -120,7 +120,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create the stream
     stream = TeslemetryStream(
-        session, access_token, server=f"{region.lower()}.teslemetry.com", parse_timestamp=True
+        session, access_token, server=f"{region.lower()}.teslemetry.com"
     )
 
 

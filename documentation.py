@@ -1,11 +1,9 @@
 """Write documentation."""
 
-from teslemetry_stream import TelemetryFields
 from itertools import chain
 import json
 from custom_components.teslemetry.binary_sensor import (
     VEHICLE_DESCRIPTIONS as BINARY_VEHICLE_DESCRIPTIONS,
-    VEHICLE_STREAM_DESCRIPTIONS as BINARY_VEHICLE_STREAM_DESCRIPTIONS,
     ENERGY_LIVE_DESCRIPTIONS as BINARY_ENERGY_LIVE_DESCRIPTIONS,
     ENERGY_INFO_DESCRIPTIONS as BINARY_ENERGY_INFO_DESCRIPTIONS,
 )
@@ -17,7 +15,7 @@ from custom_components.teslemetry.number import (
 from custom_components.teslemetry.select import (
     SEAT_HEATER_DESCRIPTIONS as SELECT_SEAT_HEATER_DESCRIPTIONS,
 )
-from custom_components.teslemetry.sensor_descriptions import (
+from custom_components.teslemetry.sensor import (
     VEHICLE_DESCRIPTIONS as SENSOR_VEHICLE_DESCRIPTIONS,
     VEHICLE_TIME_DESCRIPTIONS as SENSOR_VEHICLE_TIME_DESCRIPTIONS,
     ENERGY_INFO_DESCRIPTIONS as SENSOR_ENERGY_INFO_DESCRIPTIONS,
@@ -47,8 +45,7 @@ def compare_keys(a, b, parent=""):
 
 used = []
 streaming_used = []
-#domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
-domains = ("sensor")
+domains = ("binary_sensor", "button", "number", "select", "sensor", "switch")
 domain_names = {
     'binary_sensor': "Binary sensor",
     'device_tracker': "Device tracker",
@@ -66,26 +63,23 @@ domain_names = {
 # Iterate over all entities
 output = []
 for domain, type, descriptions in (
-    #(
-    #    "binary_sensor",
-    #    "Vehicle",
-    #    chain(
-    #        BINARY_VEHICLE_DESCRIPTIONS,
-    #        BINARY_VEHICLE_STREAM_DESCRIPTIONS,
-    #    ),
-    #),
-    #(
-    #    "binary_sensor",
-    #    "Energy Site",
-    #    chain(
-    #        BINARY_ENERGY_LIVE_DESCRIPTIONS,
-    #        BINARY_ENERGY_INFO_DESCRIPTIONS,
-    #    ),
-    #),
-    #("button", "Vehicle", BUTTON_DESCRIPTIONS),
-    #("number", "Vehicle", NUMBER_VEHICLE_DESCRIPTIONS),
-    #("number", "Energy Site", NUMBER_ENERGY_INFO_DESCRIPTIONS),
-    #("select", "Vehicle", SELECT_SEAT_HEATER_DESCRIPTIONS),
+    (
+        "binary_sensor",
+        "Vehicle",
+        BINARY_VEHICLE_DESCRIPTIONS,
+    ),
+    (
+        "binary_sensor",
+        "Energy Site",
+        chain(
+            BINARY_ENERGY_LIVE_DESCRIPTIONS,
+            BINARY_ENERGY_INFO_DESCRIPTIONS,
+        ),
+    ),
+    ("button", "Vehicle", BUTTON_DESCRIPTIONS),
+    ("number", "Vehicle", NUMBER_VEHICLE_DESCRIPTIONS),
+    ("number", "Energy Site", NUMBER_ENERGY_INFO_DESCRIPTIONS),
+    ("select", "Vehicle", SELECT_SEAT_HEATER_DESCRIPTIONS),
     (
         "sensor",
         "Vehicle",
@@ -105,7 +99,7 @@ for domain, type, descriptions in (
         "Wall Connector",
         SENSOR_WALL_CONNECTOR_DESCRIPTIONS,
     ),
-    #("switch", "Vehicle", SWITCH_VEHICLE_DESCRIPTIONS),
+    ("switch", "Vehicle", SWITCH_VEHICLE_DESCRIPTIONS),
 ):
     for description in descriptions:
         key = description.key

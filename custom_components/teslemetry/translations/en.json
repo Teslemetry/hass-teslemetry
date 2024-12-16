@@ -68,28 +68,28 @@
       "storm_mode_active": {
         "name": "Storm watch active"
       },
-      "stream_automaticblindspotcamera": {
+      "automatic_blind_spot_camera": {
         "name": "Automatic Blind Spot Camera"
       },
-      "stream_automaticemergencybrakingoff": {
+      "automatic_emergency_braking_off": {
         "name": "Automatic Emergency Braking Off"
       },
-      "stream_blindspotcollisionwarningchime": {
+      "blind_spot_collision_warning_chime": {
         "name": "Blind Spot Collision Warning Chime"
       },
-      "stream_bmsfullchargecomplete": {
+      "bms_full_charge_complete": {
         "name": "BMS Full Charge"
       },
-      "stream_brakepedal": {
+      "brake_pedal": {
         "name": "Brake Pedal"
       },
-      "stream_chargeenablerequest": {
+      "charge_enable_request": {
         "name": "Charge Enable Request"
       },
-      "stream_chargeportcoldweathermode": {
+      "charge_port_cold_weather_mode": {
         "name": "Charge Port Cold Weather Mode"
       },
-      "stream_servicemode": {
+      "service_mode": {
         "name": "Service Mode"
       },
       "vehicle_state_dashcam_state": {

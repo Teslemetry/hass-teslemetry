@@ -43,7 +43,7 @@ DESCRIPTIONS: tuple[TeslemetryDeviceTrackerEntityDescription,...] = (
         key="origin",
         streaming_key=Signal.ORIGIN_LOCATION,
         streaming_firmware="2024.26",
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     )
 )
 

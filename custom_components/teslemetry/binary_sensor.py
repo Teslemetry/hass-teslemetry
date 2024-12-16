@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryState, TeslemetryUpdateType
+from .const import TeslemetryState
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyLiveEntity,
@@ -50,10 +50,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="charge_state_battery_heater_on",
         polling=True,
         streaming_key=Signal.BATTERY_HEATER_ON,
-
         device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_charger_phases",
@@ -61,38 +60,33 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_key=Signal.CHARGER_PHASES,
         polling_value_fn=lambda x: int(x) > 1,
         streaming_value_fn=lambda x: int(x) > 1,
-
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_preconditioning_enabled",
         polling=True,
         streaming_key=Signal.PRECONDITIONING_ENABLED,
-
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="climate_state_is_preconditioning",
         polling=True,
-
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_scheduled_charging_pending",
         polling=True,
         streaming_key=Signal.SCHEDULED_CHARGING_PENDING,
-
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_trip_charging",
         polling=True,
-
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_conn_charge_cable",
@@ -106,7 +100,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.HEAT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_dashcam_state",
@@ -114,7 +108,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.RUNNING,
         polling_value_fn=lambda x: x == "Recording",
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_is_user_present",
@@ -126,28 +120,28 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_fr",
         polling=True,
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_rl",
         polling=True,
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_tpms_soft_warning_rr",
         polling=True,
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_fd_window",
@@ -212,91 +206,91 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="automatic_blind_spot_camera",
         streaming_key=Signal.AUTOMATIC_BLIND_SPOT_CAMERA,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="automatic_emergency_braking_off",
         streaming_key=Signal.AUTOMATIC_EMERGENCY_BRAKING_OFF,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="blind_spot_collision_warning_chime",
         streaming_key=Signal.BLIND_SPOT_COLLISION_WARNING_CHIME,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="bms_full_charge_complete",
         streaming_key=Signal.BMS_FULL_CHARGE_COMPLETE,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="brake_pedal",
         streaming_key=Signal.BRAKE_PEDAL,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_enable_request",
         streaming_key=Signal.CHARGE_ENABLE_REQUEST,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_port_cold_weather_mode",
         streaming_key=Signal.CHARGE_PORT_COLD_WEATHER_MODE,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="service_mode",
         streaming_key=Signal.SERVICE_MODE,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     # NEEDS TRANSLATION
     TeslemetryBinarySensorEntityDescription(
         key="pin_to_drive_enabled",
         streaming_key=Signal.PIN_TO_DRIVE_ENABLED,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="drive_rail",
         streaming_key=Signal.DRIVE_RAIL,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="driver_seat_belt",
         streaming_key=Signal.DRIVER_SEAT_BELT,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="driver_seat_occupied",
         streaming_key=Signal.DRIVER_SEAT_OCCUPIED,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="passenger_seat_belt",
         streaming_key=Signal.PASSENGER_SEAT_BELT,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="fast_charger_present",
         streaming_key=Signal.FAST_CHARGER_PRESENT,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="gps_state",
         streaming_key=Signal.GPS_STATE,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="guest_mode_enabled",
         streaming_key=Signal.GUEST_MODE_ENABLED,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
         streaming_value_fn=lambda x: x is True or x == "true",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="dc_dc_enable",
         streaming_key=Signal.DC_DC_ENABLE,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
 )
 
