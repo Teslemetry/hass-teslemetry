@@ -211,7 +211,7 @@
     },
     "cover": {
       "charge_state_charge_port_door_open": {
-        "name": "Charge door"
+        "name": "Charge port"
       },
       "vehicle_state_ft": {
         "name": "Frunk"
