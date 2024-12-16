@@ -58,7 +58,6 @@ class HandleVehicleData:
 
     def receive(self, data: dict) -> None:
         """Handle vehicle data from the stream."""
-        self.coordinator.updated_once = True
         self.coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
 
 class HandleVehicleState:
@@ -131,7 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
-            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, teslemetry, product)
             firmware = metadata[vin]["firmware"]
 
             device = DeviceInfo(
@@ -256,7 +255,6 @@ def create_handle_vehicle_stream(vin: str, coordinator) -> Callable[[dict], None
         """Handle vehicle data from the stream."""
         if "vehicle_data" in data:
             LOGGER.debug("Streaming received new vehicle data from %s", vin)
-            coordinator.updated_once = True
             coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
         elif "state" in data:
             if coordinator.data["state"] != data["state"]:
