@@ -431,7 +431,7 @@
         "name": "Scheduled departure time"
       },
       "charge_state_usable_battery_level": {
-        "name": "Battery Level Usable"
+        "name": "Battery Usable"
       },
       "climate_state_driver_temp_setting": {
         "name": "Driver temperature setting"
