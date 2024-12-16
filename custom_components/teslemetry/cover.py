@@ -22,7 +22,6 @@ from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryVehicleStreamEntity,
 )
-from .helpers import auto_type
 from .models import TeslemetryVehicleData
 
 CLOSED = 0
@@ -359,7 +358,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, TeslemetryWindowEntity):
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
         value = self._value
-        if value == None or value == "unknown":
+        if value is None or value == "unknown":
             self._attr_is_closed = None
         else:
             self._attr_is_closed = value == "closed"

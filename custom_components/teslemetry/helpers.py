@@ -2,8 +2,6 @@
 
 import asyncio
 from typing import Any
-from teslemetry_stream import TeslemetryStream
-from teslemetry_stream import Signal
 from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.exceptions import HomeAssistantError

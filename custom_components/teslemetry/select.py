@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryHeaterOptions, TeslemetryTimestamp
+from .const import TeslemetryHeaterOptions
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,

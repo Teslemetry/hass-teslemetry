@@ -186,7 +186,7 @@ class TeslemetryCoordinatorEntity(
 
     def get_number(self, key: str, default: float) -> float:
         """Return a specific number from coordinator data."""
-        if isinstance(value := self.coordinator.data.get(key), (int, float)):
+        if isinstance(value := self.coordinator.data.get(key), (int | float)):
             return value
         return default
 

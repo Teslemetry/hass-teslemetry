@@ -2,7 +2,6 @@
 
 import logging
 
-from tesla_fleet_api.exceptions import TeslaFleetError
 import voluptuous as vol
 from voluptuous import All, Range
 

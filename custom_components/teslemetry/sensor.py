@@ -53,7 +53,6 @@ from .entity import (
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
-from .helpers import ignore_drop
 
 class TeslemetryOptions:
     """Helper class to handle options for sensor entities."""
@@ -67,7 +66,6 @@ class TeslemetryOptions:
         """Get the value if it is a valid option."""
         if isinstance(value, str):
             option = value.replace(self.prefix, "").lower()
-            print(value,option)
             if option in self.options:
                 return option
         return default
@@ -82,28 +80,23 @@ DetailedChargeState = TeslemetryOptions("DetailedChargeState",
         "nopower",
     ]
 )
-
 ShiftState = TeslemetryOptions("ShiftState",["p", "d", "r", "n"])
-
 ForwardCollisionSensitivity = TeslemetryOptions("ForwardCollisionSensitivity", [
     "off",
     "late",
     "average",
     "early"
 ])
-
 ScheduledChargingMode = TeslemetryOptions("ScheduledChargingMode", [
     "off",
     "startat",
     "departby"
 ])
-
 LaneAssistLevel = TeslemetryOptions("LaneAssistLevel", [
     "off",
     "warning",
     "assist"
 ])
-
 SentryModeState = TeslemetryOptions("SentryModeState", ["off", "idle", "armed", "aware", "panic", "quiet"])
 SpeedAssistLevel = TeslemetryOptions("SpeedAssistLevel", ["none", "display", "chime"])
 DisplayState = TeslemetryOptions("DisplayState", [
@@ -117,6 +110,17 @@ DisplayState = TeslemetryOptions("DisplayState", [
     "sentry",
     "dog",
     "entertainment"
+])
+BMSState = TeslemetryOptions("BMSState", ["standby",
+    "drive",
+    "support",
+    "charge",
+    "feim",
+    "clearfault",
+    "fault",
+    "weld",
+    "test",
+    "sna"
 ])
 
 WALL_CONNECTOR_STATES = {
@@ -1172,6 +1176,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryTimeEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
+
     polling: bool = False
     variance: int = 60
     streaming_key: Signal | None = None

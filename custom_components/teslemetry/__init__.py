@@ -50,29 +50,6 @@ PLATFORMS: Final = [
     Platform.UPDATE,
 ]
 
-class HandleVehicleData:
-    """Handle streaming vehicle data."""
-
-    def __init__(self, coordinator: TeslemetryVehicleDataCoordinator):
-        self.coordinator = coordinator
-
-    def receive(self, data: dict) -> None:
-        """Handle vehicle data from the stream."""
-        self.coordinator.async_set_updated_data(flatten(data["vehicle_data"]))
-
-class HandleVehicleState:
-    """ Handle streaming vehicle state"""
-
-    def __init__(self, coordinator: TeslemetryVehicleDataCoordinator):
-        self.coordinator = coordinator
-
-    def receive(self, data: dict) -> None:
-        """Handle state from the stream."""
-        self.coordinator.data["state"] = data["state"]
-        self.coordinator.async_set_updated_data(self.coordinator.data)
-
-
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
     async_register_services(hass)

@@ -95,7 +95,6 @@ class TeslemetryMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
 class TeslemetryPollingMediaEntity(TeslemetryVehicleEntity, MediaPlayerEntity):
     """Polling vehicle media player class."""
 
-
     def __init__(
         self,
         data: TeslemetryVehicleData,

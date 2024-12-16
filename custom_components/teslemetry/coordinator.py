@@ -9,7 +9,6 @@ from tesla_fleet_api import EnergySpecific, Teslemetry
 from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
-    VehicleOffline,
     InvalidToken,
     SubscriptionRequired,
     Forbidden,
@@ -24,7 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
-from .const import LOGGER, TeslemetryState, DOMAIN, ENERGY_HISTORY_FIELDS
+from .const import LOGGER, DOMAIN, ENERGY_HISTORY_FIELDS
 from .helpers import flatten
 
 VEHICLE_INTERVAL = timedelta(minutes=15)

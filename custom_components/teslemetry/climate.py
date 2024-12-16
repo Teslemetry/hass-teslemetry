@@ -22,9 +22,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import TeslemetryClimateSide
+from .const import TeslemetryClimateSide, DOMAIN
 from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -162,6 +161,8 @@ class TeslemetryClimateEntity(ClimateEntity):
         self.async_write_ha_state()
 
 class TeslemetryPollingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicleEntity):
+    """Polling vehicle climate entity."""
+
     def __init__(
         self,
         data: TeslemetryVehicleData,
@@ -204,6 +205,8 @@ class TeslemetryPollingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicleE
 
 
 class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicleComplexStreamEntity):
+    """Teslemetry steering wheel climate control."""
+
     def __init__(
         self,
         data: TeslemetryVehicleData,
