@@ -166,6 +166,21 @@
       },
       "supercharger_session_trip_planner": {
         "name": "Supercharger session trip planner"
+      },
+      "wiper_heat_enabled": {
+        "name": "Wiper heat"
+      },
+      "rear_display_hvac_enabled": {
+        "name": "Rear display HVAC"
+      },
+      "offroad_lightbar_present": {
+        "name": "Offroad lightbar"
+      },
+      "homelink_nearby": {
+        "name": "Homelink nearby"
+      },
+      "europe_vehicle": {
+        "name": "Europe vehicle"
       }
     },
     "button": {
@@ -230,6 +245,9 @@
       },
       "vehicle_state_sun_roof_state": {
         "name": "Sun roof"
+      },
+      "tonneau": {
+        "name": "Tonnea"
       }
     },
     "device_tracker": {

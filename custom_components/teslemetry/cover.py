@@ -341,7 +341,7 @@ class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamEntity, Teslemet
         else:
             self._attr_is_closed = not value
 
-class TeslemetrySunroofEntity(TeslemetryVehicleEntity, TeslemetryWindowEntity):
+class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
     """Cover entity for the sunroof."""
 
     _attr_device_class = CoverDeviceClass.WINDOW
@@ -388,3 +388,34 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, TeslemetryWindowEntity):
         await self.handle_command(self.api.sun_roof_control(SunRoofCommand.STOP))
         self._attr_is_closed = False
         self.async_write_ha_state()
+
+class TeslemetryTonneau(TeslemetryVehicleComplexStreamEntity, CoverEntity):
+    """Cover entity for the Cybertruck Tonneau."""
+
+    _attr_device_class = CoverDeviceClass.SHUTTER
+    #_attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
+        """Initialize the sensor."""
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
+            self._attr_supported_features = CoverEntityFeature(0)
+        super().__init__(vehicle, "tonneau", [
+            Signal.TONNEAU_OPEN_PERCENT,
+            Signal.TONNEAU_POSITION,
+            #Signal.TONNEAU_TENT_MODE,
+        ])
+
+
+    def _async_data_from_stream(self, data) -> None:
+        """Update the entity attributes."""
+        if Signal.TONNEAU_OPEN_PERCENT in data:
+            self._attr_current_cover_position = data[Signal.TONNEAU_OPEN_PERCENT]
+        if Signal.TONNEAU_POSITION in data:
+            self._attr_is_closed = data[Signal.TONNEAU_POSITION] == "TonneauPositionStateClosed"
+
+        if isinstance(open, bool):
+            self._attr_is_closed = not open
+        else:
+            self._attr_is_closed = None
