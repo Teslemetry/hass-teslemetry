@@ -297,6 +297,36 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_key=Signal.SUPERCHARGER_SESSION_TRIP_PLANNER,
         entity_registry_enabled_default=False,
     ),
+    TeslemetryBinarySensorEntityDescription(
+        key="wiper_heat_enabled",
+        streaming_key=Signal.WIPER_HEAT_ENABLED,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="rear_display_hvac_enabled",
+        streaming_key=Signal.REAR_DISPLAY_HVAC_ENABLED,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="offroad_lightbar_present",
+        streaming_key=Signal.OFFROAD_LIGHTBAR_PRESENT,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="homelink_nearby",
+        streaming_key=Signal.HOMELINK_NEARBY,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="europe_vehicle",
+        streaming_key=Signal.EUROPE_VEHICLE,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    ),
 )
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
