@@ -162,6 +162,21 @@
       },
       "charge_state_trip_charging": {
         "default": "mdi:timeline-clock"
+      },
+      "wiper_heat_enabled": {
+        "default": "mdi:wiper-wash"
+      },
+      "rear_display_hvac_enabled": {
+        "default": "mdi:air-conditioner"
+      },
+      "offroad_lightbar_present": {
+        "default": "mdi:car-light-high"
+      },
+      "homelink_nearby": {
+        "default": "mdi:garage-alert"
+      },
+      "europe_vehicle": {
+        "default": "mdi:earth"
       }
     },
     "button": {
