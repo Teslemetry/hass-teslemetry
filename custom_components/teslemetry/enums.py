@@ -6,13 +6,13 @@ class TeslemetryEnum:
 
     def __init__(self, prefix: str, options: list[str]):
         """Create a new options list."""
-        self.prefix = prefix
-        self.options = options
+        self.prefix = prefix.lower()
+        self.options = [option.lower() for option in options]
 
-    def get(self, value, default:str|None=None) -> str | None:
+    def get(self, value, default: str | None = None) -> str | None:
         """Get the value if it is a valid option."""
         if isinstance(value, str):
-            option = value.replace(self.prefix, "").lower()
+            option = value.lower().replace(self.prefix, "")
             if option in self.options:
                 return option
         return default
@@ -129,6 +129,51 @@ TrailerAirStatus = TeslemetryEnum("TrailerAirStatus", [
     "exhaustingpressureintermediate",
     "exhausted"
 ])
+#HvacAutoModeState is climate
+#CabinOverheatProtectionModeState and CabinOverheatProtectionModeState is climate
+#DefrostModeState is a switch
+#ClimateKeeperModeState is climate
+#HvacPowerState is climate
+FastCharger = TeslemetryEnum("FastCharger", [
+    "supercharger",
+    "chademo",
+    "gb",
+    "acsinglewirecan",
+    "combo",
+    "mcsinglewirecan",
+    "other",
+    "sna"
+])
+CableType = TeslemetryEnum("CableType", [
+    "iec",
+    "sae",
+    "gb_ac",
+    "gb_dc",
+    "sna"
+])
+#TonneauTentModeState and TonneauPositionState are covers
+PowershareState = TeslemetryEnum("PowershareState", [
+    "inactive",
+    "handshaking",
+    "init",
+    "enabled",
+    "enabledreconnectingsoon",
+    "stopped"
+])
+PowershareStopReasonStatus = TeslemetryEnum("PowershareStopReasonStatus", [
+    "none",
+    "soctoolow",
+    "retry",
+    "fault",
+    "user",
+    "reconnecting",
+    "authentication"
+])
+PowershareTypeStatus = TeslemetryEnum("PowershareTypeStatus", [
+    "none",
+    "load",
+    "home"
+])
 DisplayState = TeslemetryEnum("DisplayState", [
     "off",
     "dim",
@@ -141,5 +186,3 @@ DisplayState = TeslemetryEnum("DisplayState", [
     "dog",
     "entertainment"
 ])
-#HvacAutoModeState is climate
-#CabinOverheatProtectionModeState and CabinOverheatProtectionModeState is climate

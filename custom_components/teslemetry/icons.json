@@ -80,14 +80,88 @@
         }
       },
       "charge_state_conn_charge_cable": {
-        "state": {
-          "default": "mdi:ev-plug-tesla"
-        }
+        "default": "mdi:ev-plug-tesla"
       },
       "charge_state_scheduled_charging_mode": {
+        "default": "mdi:battery-clock"
+      },
+      "emergency_lane_departure_avoidance": {
+        "default": "mdi:road-variant"
+      },
+      "dc_dc_enable": {
+        "default": "mdi:flash-triangle"
+      },
+      "guest_mode_enabled": {
+        "default": "mdi:account-clock"
+      },
+      "gps_state": {
+        "default": "mdi:crosshairs-gps"
+      },
+      "fast_charger_present": {
+        "default": "mdi:ev-plug-tesla"
+      },
+      "passenger_seat_belt": {
+        "default": "mdi:seatbelt"
+      },
+      "driver_seat_occupied": {
+        "default": "mdi:car-seat"
+      },
+      "driver_seat_belt": {
+        "default": "mdi:seatbelt"
+      },
+      "drive_rail": {
+        "default": "mdi:flash-triangle"
+      },
+      "pin_to_drive_enabled": {
+        "default": "mdi:car-key"
+      },
+      "service_mode": {
+        "default": "mdi:car-settings"
+      },
+      "charge_port_cold_weather_mode": {
+        "default": "mdi:snowflake"
+      },
+      "brake_pedal": {
+        "default": "mdi:car-brake-low-pressure"
+      },
+      "charge_state_charger_phases": {
         "state": {
-          "default": "mdi:battery-clock"
+          "off": "mdi:numeric-1-box",
+          "on": "mdi:plus-box"
         }
+      },
+      "charge_state_scheduled_charging_pending": {
+        "state": {
+          "off": "mdi:timeline-clock-outline",
+          "on": "mdi:timeline-clock"
+        }
+      },
+      "automatic_blind_spot_camera": {
+        "default": "mdi:camera-rear"
+      },
+      "automatic_emergency_braking_off": {
+        "default": "mdi:car-brake-alert"
+      },
+      "blind_spot_collision_warning_chime": {
+        "default": "mdi:car-sensor"
+      },
+      "bms_full_charge_complete": {
+        "default": "mdi:battery-check"
+      },
+      "supercharger_session_trip_planner": {
+        "default": "mdi:map-marker-path"
+      },
+      "backup_capable": {
+        "default": "mdi:backup-restore"
+      },
+      "grid_services_active": {
+        "default": "mdi:transmission-tower"
+      },
+      "components_grid_services_enabled": {
+        "default": "mdi:transmission-tower"
+      },
+      "charge_state_trip_charging": {
+        "default": "mdi:timeline-clock"
       }
     },
     "button": {
@@ -342,7 +416,7 @@
         "default": "mdi:battery-sync"
       },
       "brake_pedal_position": {
-        "default": "mdi:car-brake-alert"
+        "default": "mdi:car-brake-low-pressure"
       },
       "brick_voltage_max": {
         "default": "mdi:battery-arrow-up"
@@ -367,9 +441,6 @@
       },
       "dc_charging_power": {
         "default": "mdi:flash"
-      },
-      "dc_dc_enable": {
-        "default": "mdi:flash-triangle"
       },
       "di_axle_speed_front": {
         "default": "mdi:speedometer"
@@ -443,29 +514,11 @@
       "di_voltage_battery_rear_right": {
         "default": "mdi:battery-check"
       },
-      "drive_rail": {
-        "default": "mdi:flash-triangle"
-      },
-      "driver_seat_belt": {
-        "default": "mdi:seatbelt"
-      },
-      "driver_seat_occupied": {
-        "default": "mdi:car-seat"
-      },
       "energy_remaining": {
         "default": "mdi:lightning-bolt"
       },
-      "fast_charger_present": {
-        "default": "mdi:ev-plug-tesla"
-      },
       "forward_collision_warning": {
         "default": "mdi:car-multiple"
-      },
-      "gps_state": {
-        "default": "mdi:crosshairs-gps"
-      },
-      "guest_mode_enabled": {
-        "default": "mdi:account-clock"
       },
       "guest_mode_mobile_access_state": {
         "default": "mdi:account-clock"
@@ -475,9 +528,6 @@
       },
       "isolation_resistance": {
         "default": "mdi:resistor"
-      },
-      "emergency_lane_departure_avoidance": {
-        "default": "mdi:road-variant"
       },
       "lane_departure_avoidance": {
         "default": "mdi:road-variant"
@@ -518,12 +568,6 @@
       "paired_key_quantity": {
         "default": "mdi:cellphone-key"
       },
-      "passenger_seat_belt": {
-        "default": "mdi:seatbelt"
-      },
-      "pin_to_drive_enabled": {
-        "default": "mdi:car-key"
-      },
       "rated_range": {
         "default": "mdi:arrow-left-right"
       },
@@ -533,7 +577,7 @@
       "speed_limit_warning": {
         "default": "mdi:car-speed-limiter"
       },
-     "vehicle_config_exterior_color": {
+      "vehicle_config_exterior_color": {
         "default": "mdi:palette"
       },
       "charge_state_conn_charge_cable": {
@@ -547,6 +591,60 @@
       },
       "drive_state_active_route_traffic_minutes_delay": {
         "default": "mdi:traffic-light"
+      },
+      "vehicle_config_roof_color": {
+        "default": "mdi:palette"
+      },
+      "di_salve_torque_command": {
+        "default": "mdi:car-turbocharger"
+      },
+      "di_torque_actual_front": {
+        "default": "mdi:car-turbocharger"
+      },
+      "di_torque_actual_rear": {
+        "default": "mdi:car-turbocharger"
+      },
+      "di_torque_actual_rear_left": {
+        "default": "mdi:car-turbocharger"
+      },
+      "di_torque_actual_rear_right": {
+        "default": "mdi:car-turbocharger"
+      },
+      "di_torque_motor": {
+        "default": "mdi:car-turbocharger"
+      },
+      "gps_heading": {
+        "default": "mdi:compass"
+      },
+      "pedal_position": {
+        "default": "mdi:car-brake-hold"
+      },
+      "trim": {
+        "default": "mdi:car-info"
+      },
+      "vehicle_name": {
+        "default": "mdi:car"
+      },
+      "efficiency_package": {
+        "default": "mdi:leaf"
+      },
+      "homelink_device_count": {
+        "default": "mdi:garage"
+      },
+      "powershare_type": {
+        "default": "mdi:transmission-tower"
+      },
+      "tpms_hard_warnings": {
+        "default": "mdi:alert-circle"
+      },
+      "tpms_soft_warnings": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "wheel_type": {
+        "default": "mdi:car-tire-alert"
+      },
+      "grid_status": {
+        "default": "mdi:power-plug"
       }
     },
     "switch": {

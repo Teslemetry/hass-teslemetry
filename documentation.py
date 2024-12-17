@@ -27,9 +27,9 @@ from custom_components.teslemetry.switch import (
 )
 
 # Load strings.json
-strings = json.load(open("custom_components/teslemetry/strings.json"))
+#strings = json.load(open("custom_components/teslemetry/strings.json"))
 en = json.load(open("custom_components/teslemetry/translations/en.json"))
-
+icons = json.load(open("custom_components/teslemetry/icons.json"))
 
 # Recursively compare keys from strings.json and en.json
 def compare_keys(a, b, parent=""):
@@ -110,6 +110,9 @@ for domain, type, descriptions in (
             print(f"ISSUE: No en for {domain} {translation_key}")
         else:
             used.append((domain, translation_key))
+
+        if not description.device_class and translation_key not in icons["entity"][domain]:
+            print(f"ISSUE: No icon for {domain} {translation_key}")
 
         method = ""
         streaming = hasattr(description, "streaming_key") and description.streaming_key is not None

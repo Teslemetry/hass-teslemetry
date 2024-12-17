@@ -45,6 +45,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="state",
         polling=True,
         polling_value_fn=lambda x: x == TeslemetryState.ONLINE,
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
         key="charge_state_battery_heater_on",
@@ -229,11 +230,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
-        key="charge_enable_request",
-        streaming_key=Signal.CHARGE_ENABLE_REQUEST,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetryBinarySensorEntityDescription(
         key="charge_port_cold_weather_mode",
         streaming_key=Signal.CHARGE_PORT_COLD_WEATHER_MODE,
         entity_registry_enabled_default=False,
@@ -243,7 +239,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_key=Signal.SERVICE_MODE,
         entity_registry_enabled_default=False,
     ),
-    # NEEDS TRANSLATION
     TeslemetryBinarySensorEntityDescription(
         key="pin_to_drive_enabled",
         streaming_key=Signal.PIN_TO_DRIVE_ENABLED,
@@ -290,6 +285,16 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="dc_dc_enable",
         streaming_key=Signal.DC_DC_ENABLE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="emergency_lane_departure_avoidance",
+        streaming_key=Signal.EMERGENCY_LANE_DEPARTURE_AVOIDANCE,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="supercharger_session_trip_planner",
+        streaming_key=Signal.SUPERCHARGER_SESSION_TRIP_PLANNER,
         entity_registry_enabled_default=False,
     ),
 )

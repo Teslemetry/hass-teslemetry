@@ -52,8 +52,17 @@ from .entity import (
     TeslemetryEnergyHistoryEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .enum import (
+from .enums import (
+    CableType,
+    CarType,
+    ChargePort,
     DetailedChargeState,
+    FastCharger,
+    FollowDistance,
+    HvilStatus,
+    PowershareState,
+    PowershareStopReasonStatus,
+    PowershareTypeStatus,
     ShiftState,
     ScheduledChargingMode,
     BMSState,
@@ -78,9 +87,11 @@ WALL_CONNECTOR_STATES = {
     10: "charging_reduced",  # unseen
 }
 
-
-
-
+def ignoreNull(value, callable: Callable):
+    """Dont call callable on null values."""
+    if value is None:
+        return None
+    return callable(value)
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetrySensorEntityDescription(SensorEntityDescription):
@@ -88,7 +99,7 @@ class TeslemetrySensorEntityDescription(SensorEntityDescription):
 
     polling: bool = False
     polling_value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
-    polling_available_fn: Callable[[StateType], StateType | datetime] = lambda x: x is not None
+    available_fn: Callable[[StateType], StateType | datetime] = lambda x: x is not None
     streaming_key: Signal | None = None
     streaming_value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
     streaming_firmware: str = "2024.26"
@@ -168,14 +179,22 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_state_conn_charge_cable",
         polling=True,
+        polling_value_fn=CableType.get,
         streaming_key=Signal.CHARGING_CABLE_TYPE,
+        streaming_value_fn=CableType.get,
+        options=CableType.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="charge_state_fast_charger_type",
         polling=True,
+        polling_value_fn=FastCharger.get,
         streaming_key=Signal.FAST_CHARGER_TYPE,
+        streaming_value_fn=FastCharger.get,
+        options=FastCharger.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
@@ -234,7 +253,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         polling=True,
         streaming_key=Signal.GEAR,
         polling_value_fn=lambda x: ShiftState.get(x, "p"),
-        polling_available_fn=lambda x: True,
+        available_fn=lambda x: True,
         streaming_value_fn=lambda x: ShiftState.get(x, "p"),
         options=ShiftState.options,
         device_class=SensorDeviceClass.ENUM,
@@ -366,7 +385,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="charge_state_time_to_full_charge",
         polling=True,
         streaming_key=Signal.TIME_TO_FULL_CHARGE,
-        polling_available_fn=lambda x: x is not None and float(x) > 0,
+        available_fn=lambda x: x is not None and float(x) > 0,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -423,7 +442,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
-        key="charge_state_ScheduledChargingMode",
+        key="charge_state_scheduled_charging_mode",
         polling=True,
         streaming_key=Signal.SCHEDULED_CHARGING_MODE,
         streaming_value_fn=ScheduledChargingMode.get,
@@ -490,6 +509,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="car_type",
         streaming_key=Signal.CAR_TYPE,
+        streaming_value_fn=CarType.get,
+        options=CarType.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -503,12 +525,18 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="charge_port",
         streaming_key=Signal.CHARGE_PORT,
+        streaming_value_fn=ChargePort.get,
+        options=ChargePort.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="cruise_follow_distance",
         streaming_key=Signal.CRUISE_FOLLOW_DISTANCE,
         entity_registry_enabled_default=False,
+        streaming_value_fn=FollowDistance.get,
+        options=FollowDistance.options,
+        device_class=SensorDeviceClass.ENUM,
     ),
     TeslemetrySensorEntityDescription(
         key="cruise_set_speed",
@@ -766,11 +794,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
-        key="emergency_lane_departure_avoidance",
-        streaming_key=Signal.EMERGENCY_LANE_DEPARTURE_AVOIDANCE,
-        entity_registry_enabled_default=False,
-    ),
-    TeslemetrySensorEntityDescription(
         key="energy_remaining",
         streaming_key=Signal.ENERGY_REMAINING,
         streaming_value_fn=lambda x: float(x),
@@ -785,7 +808,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=Signal.FORWARD_COLLISION_WARNING,
         entity_registry_enabled_default=False,
         streaming_value_fn=ForwardCollisionSensitivity.get,
-        options=ForwardCollisionSensitivity.options
+        options=ForwardCollisionSensitivity.options,
+        device_class=SensorDeviceClass.ENUM,
+
     ),
     TeslemetrySensorEntityDescription(
         key="gps_heading",
@@ -807,7 +832,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         key="hvil",
         streaming_key=Signal.HVIL,
         entity_registry_enabled_default=False,
-        streaming_value_fn=lambda x: str(x).replace("HvilStatus", "")
+        streaming_value_fn=HvilStatus.get,
+        options=HvilStatus.options,
+        device_class=SensorDeviceClass.ENUM,
     ),
     TeslemetrySensorEntityDescription(
         key="isolation_resistance",
@@ -975,12 +1002,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENUM,
     ),
     TeslemetrySensorEntityDescription(
-        key="supercharger_session_trip_planner",
-        streaming_key=Signal.SUPERCHARGER_SESSION_TRIP_PLANNER,
-        entity_registry_enabled_default=False,
-        # Maybe a binary?
-    ),
-    TeslemetrySensorEntityDescription(
         key="trim",
         streaming_key=Signal.TRIM,
         entity_registry_enabled_default=False,
@@ -1060,15 +1081,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=Signal.POWERSHARE_STATUS,
         streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
-        options=[
-            "Inactive",
-            "Handshaking",
-            "Init",
-            "Enabled",
-            "EnabledReconnectingSoon",
-            "Stopped"
-        ],
-        streaming_value_fn=lambda x: str(x).replace("PowerShareState",""),
+        streaming_value_fn=PowershareState.get,
+        options=PowershareState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1076,16 +1091,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=Signal.POWERSHARE_STOP_REASON,
         streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
-        options=[
-            "None",
-            "SOCTooLow",
-            "Retry",
-            "Fault",
-            "User",
-            "Reconnecting",
-            "Authentication"
-        ],
-        streaming_value_fn=lambda x: str(x).replace("PowershareStopReasonStatus",""),
+        streaming_value_fn=PowershareStopReasonStatus.get,
+        options=PowershareStopReasonStatus.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1093,12 +1101,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         streaming_key=Signal.POWERSHARE_TYPE,
         streaming_firmware="2024.44.25",
         entity_category=EntityCategory.DIAGNOSTIC,
-        options=[
-            "None",
-            "Load",
-            "Home"
-        ],
-        streaming_value_fn=lambda x: str(x).replace("PowershareTypeStatus",""),
+        streaming_value_fn=PowershareTypeStatus.get,
+        options=PowershareTypeStatus.options,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -1369,7 +1373,7 @@ class TeslemetryVehiclePollingSensorEntity(TeslemetryVehicleEntity, SensorEntity
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
 
-        if self.entity_description.polling_available_fn(self._value):
+        if self.entity_description.available_fn(self._value):
             self._attr_available = True
             self._attr_native_value = self.entity_description.polling_value_fn(self._value)
         else:
@@ -1397,14 +1401,19 @@ class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamEntity, Restore
 
         if (sensor_data := await self.async_get_last_sensor_data()) is not None:
             if sensor_data.native_value is not None:
+                # This should be temporary
+                if isinstance(sensor_data.native_value, str):
+                    sensor_data.native_value = self.entity_description.streaming_value_fn(sensor_data.native_value)
                 self._attr_native_value = sensor_data.native_value
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        if (value is None):
-            self._attr_native_value = None
-        else:
+        if self.entity_description.available_fn(value):
+            self._attr_available = True
             self._attr_native_value = self.entity_description.streaming_value_fn(value)
+        else:
+            self._attr_available = False
+            self._attr_native_value = None
 
         if self._attr_native_value == "Unknown":
             self._attr_native_value = None
