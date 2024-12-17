@@ -52,6 +52,7 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
         self.streaming_key = streaming_key
         self.vehicle = data
 
+        self.api = data.api
         self.stream = data.stream
         self.vin = data.vin
         self.add_field = data.stream.get_vehicle(self.vin).add_field
@@ -102,8 +103,9 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.streaming_keys = streaming_keys
+        self.vehicle = data
 
-        self._attr_translation_key = key
+        self.api = data.api
         self.stream = data.stream
         self.vin = data.vin
 
