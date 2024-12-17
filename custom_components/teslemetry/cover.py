@@ -407,15 +407,9 @@ class TeslemetryTonneau(TeslemetryVehicleComplexStreamEntity, CoverEntity):
             #Signal.TONNEAU_TENT_MODE,
         ])
 
-
     def _async_data_from_stream(self, data) -> None:
         """Update the entity attributes."""
         if Signal.TONNEAU_OPEN_PERCENT in data:
             self._attr_current_cover_position = data[Signal.TONNEAU_OPEN_PERCENT]
         if Signal.TONNEAU_POSITION in data:
             self._attr_is_closed = data[Signal.TONNEAU_POSITION] == "TonneauPositionStateClosed"
-
-        if isinstance(open, bool):
-            self._attr_is_closed = not open
-        else:
-            self._attr_is_closed = None

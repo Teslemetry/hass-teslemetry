@@ -83,9 +83,6 @@
       "brake_pedal": {
         "name": "Brake pedal"
       },
-      "charge_enable_request": {
-        "name": "Charge enable request"
-      },
       "charge_port_cold_weather_mode": {
         "name": "Charge port cold weather mode"
       },
@@ -181,6 +178,9 @@
       },
       "europe_vehicle": {
         "name": "Europe vehicle"
+      },
+      "right_hand_drive": {
+        "name": "Right hand drive"
       }
     },
     "button": {
@@ -1001,7 +1001,7 @@
         "name": "Expected energy percent at trip arrival"
       },
       "homelink_device_count": {
-        "name": "Homelink device count"
+        "name": "Homelink devices"
       },
       "powershare_hours_left": {
         "name": "Powershare hours left"

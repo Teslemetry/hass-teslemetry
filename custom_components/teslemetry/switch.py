@@ -108,7 +108,14 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         on_func=lambda api: api.charge_start(),
         off_func=lambda api: api.charge_stop(),
         scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
-    )
+    ),
+    TeslemetrySwitchEntityDescription(
+        key="remote_start",
+        streaming_key=Signal.REMOTE_START_ENABLED,
+        on_func=lambda api: api.remote_start_drive(),
+        off_func=lambda api: raise NotImplementedError("Remote stop not supported"),
+        scopes=[Scope.VEHICLE_CMDS],
+    ),
 )
 
 

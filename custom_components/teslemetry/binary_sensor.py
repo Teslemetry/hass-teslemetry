@@ -327,6 +327,12 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_firmware = "2024.44.25",
         entity_registry_enabled_default=False,
     ),
+    TeslemetryBinarySensorEntityDescription(
+        key="right_hand_drive",
+        streaming_key=Signal.RIGHT_HAND_DRIVE,
+        streaming_firmware = "2024.44.25",
+        entity_registry_enabled_default=False,
+    )
 )
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (

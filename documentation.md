@@ -4,19 +4,19 @@
 |Energy site|Select|Operation mode|Polling|Yes|
 |Energy site|Switch|Allow charging from grid|Polling|Yes|
 |Energy site|Switch|Storm watch|Polling|Yes|
-|Vehicle|Button|Force refresh|Polling|Yes|
+|Vehicle|Button|Refresh|Polling|Yes|
 |Vehicle|Climate|Cabin overheat protection|Both^1|Yes|
 |Vehicle|Climate|Climate|Polling^1|Yes|
-|Vehicle|Cover|Charge port door|Both|Yes|
+|Vehicle|Cover|Charge port|Both|Yes|
 |Vehicle|Cover|Frunk|Polling|Yes|
 |Vehicle|Cover|Trunk|Polling|Yes|
-|Vehicle|Cover|Vent windows|Polling|Yes|
+|Vehicle|Cover|Windows|Polling|Yes|
 |Vehicle|Device tracker|Location|Both|Yes|
 |Vehicle|Device tracker|Route|Polling|Yes|
 |Vehicle|Lock|Charge cable lock|Both|Yes|
 |Vehicle|Lock|Lock|Both|Yes|
 |Vehicle|Lock|Speed limit|Both|Yes|
-|Vehicle|Media player|Media Player|Polling|Yes|
+|Vehicle|Media player|Media player|Polling|Yes|
 |Vehicle|Select|Steering wheel heater|Polling|Yes|
 |Vehicle|Sensor|Time at arrival|Polling|Yes|
 |Vehicle|Sensor|Time at full charge|Polling|Yes|
