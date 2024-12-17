@@ -187,9 +187,6 @@
       "boombox": {
         "name": "Fart"
       },
-      "enable_keyless_driving": {
-        "name": "Keyless driving"
-      },
       "flash_lights": {
         "name": "Flash"
       },
@@ -1077,6 +1074,9 @@
       },
       "vehicle_state_valet_mode": {
         "name": "Valet"
+      },
+      "vehicle_state_remote_start": {
+        "name": "Remote start"
       }
     },
     "update": {

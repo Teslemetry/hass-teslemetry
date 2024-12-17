@@ -183,9 +183,6 @@
       "boombox": {
         "default": "mdi:boombox"
       },
-      "enable_keyless_driving": {
-        "default": "mdi:car-key"
-      },
       "flash_lights": {
         "default": "mdi:car-light-high"
       },
@@ -695,6 +692,9 @@
       },
       "vehicle_state_valet_mode": {
         "default": "mdi:speedometer-slow"
+      },
+      "vehicle_state_remote_start": {
+        "default": "mdi:car-key"
       }
     }
   },

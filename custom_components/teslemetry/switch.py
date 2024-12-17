@@ -36,7 +36,7 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     """Describes Teslemetry Switch entity."""
 
     on_func: Callable
-    off_func: Callable
+    off_func: Callable | None = None
     scopes: list[Scope] | None = None
     polling_value_fn: Callable[[StateType], StateType] = bool
     streaming_key: Signal | None = None
@@ -110,10 +110,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
-        key="remote_start",
+        key="vehicle_state_remote_start",
         streaming_key=Signal.REMOTE_START_ENABLED,
         on_func=lambda api: api.remote_start_drive(),
-        off_func=lambda api: raise NotImplementedError("Remote stop not supported"),
         scopes=[Scope.VEHICLE_CMDS],
     ),
 )
@@ -171,6 +170,9 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
+        if not self.entity_description.off_func:
+            raise NotImplementedError
+
         self.raise_for_scope(Scope.VEHICLE_CMDS)
         await self.wake_up_if_asleep()
         await self.handle_command(self.entity_description.off_func(self.api))
