@@ -108,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, teslemetry, product)
-            firmware = metadata[vin]["firmware"]
+            firmware = metadata[vin].get("firmware","Unknown")
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, vin)},
@@ -117,7 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 name=product["display_name"],
                 model=MODELS.get(vin[3]),
                 serial_number=vin,
-                sw_version=firmware,
             )
 
             device_registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
@@ -206,6 +205,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 models.add(battery["part_name"])
         if models:
             energysite.device['model'] = ", ".join(models)
+
+    # Update firwmare
+    for vehicle in vehicles:
+        vehicle.firmware = vehicle.coordinator.data.get("vehicle_state_car_version", vehicle.firmware)
 
     # Setup Platforms
     entry.runtime_data = TeslemetryData(
