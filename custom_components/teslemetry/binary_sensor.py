@@ -396,11 +396,8 @@ class TeslemetryVehiclePollingBinarySensorEntity(TeslemetryVehicleEntity, Binary
     def _async_update_attrs(self) -> None:
         """Update the attributes of the binary sensor."""
 
-        if self._value is None:
-            self._attr_available = False
-            self._attr_is_on = None
-        else:
-            self._attr_available = True
+        self._attr_available = self._value is not None
+        if self._attr_available:
             self._attr_is_on = self.entity_description.polling_value_fn(self._value)
 
 
@@ -429,7 +426,9 @@ class TeslemetryVehicleStreamingBinarySensorEntity(
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        self._attr_is_on = self.entity_description.streaming_value_fn(value)
+        self._attr_avaliable = value is not None
+        if self._attr_avaliable:
+            self._attr_is_on = self.entity_description.streaming_value_fn(value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

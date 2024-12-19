@@ -1479,7 +1479,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             if seconds == self._last_value:
                 return
             self._last_value = seconds
-            self._attr_native_value = self._time_value(seconds)
+            self._attr_native_value = self._time_value(value)
 
 
 class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):

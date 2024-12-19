@@ -74,7 +74,6 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
-
         try:
             self._async_value_from_stream(data["data"][self.streaming_key])
         except Exception as e:
@@ -93,7 +92,7 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
     @cached_property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.stream.connected
+        return self.stream.connected and self._attr_available
 
 class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle Stream entities with multiple keys."""
