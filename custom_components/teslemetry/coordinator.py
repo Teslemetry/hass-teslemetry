@@ -6,7 +6,7 @@ from typing import Any
 from random import randint
 
 from tesla_fleet_api import EnergySpecific, Teslemetry
-from tesla_fleet_api.const import VehicleDataEndpoint
+from tesla_fleet_api.const import Method, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
     InvalidToken,
@@ -63,10 +63,13 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
-
-
         try:
-            data = (await self.api.vehicle_data_cached(self.vin, ENDPOINTS))["response"]
+            #Temporarily use a request until the backend change
+            data = (await self.api._request(
+                Method.GET,
+                f"api/x/vehicles/{self.vin}/vehicle_data",
+                {"endpoints": ";".join(ENDPOINTS)}
+            ))["response"]
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
         except (SubscriptionRequired,Forbidden,LoginRequired) as e:

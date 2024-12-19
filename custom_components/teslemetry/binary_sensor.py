@@ -356,7 +356,7 @@ async def async_setup_entry(
     entities = []
     for vehicle in entry.runtime_data.vehicles:
         for description in VEHICLE_DESCRIPTIONS:
-            if not vehicle.api.pre2021 and description.streaming_key and description.streaming_firmware >= vehicle.firmware:
+            if not vehicle.api.pre2021 and description.streaming_key and vehicle.firmware >= description.streaming_firmware:
                 entities.append(TeslemetryVehicleStreamingBinarySensorEntity(vehicle, description))
             elif description.polling:
                 entities.append(TeslemetryVehiclePollingBinarySensorEntity(vehicle, description))

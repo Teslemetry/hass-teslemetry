@@ -156,7 +156,7 @@
         "name": "Guest mode enabled"
       },
       "dc_dc_enable": {
-        "name": "DCDC enable"
+        "name": "DC DC"
       },
       "emergency_lane_departure_avoidance": {
         "name": "Emergency lane departure avoidance"
