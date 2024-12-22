@@ -1450,7 +1450,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetryTimeEntityDescription
-    _last_value: int | None = None
+    _last_value: float | None = None
 
     def __init__(
         self,
@@ -1485,7 +1485,7 @@ class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, Sen
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetryTimeEntityDescription
-    _last_value: int | None = None
+    _last_value: float | None = None
 
     def __init__(
         self,
