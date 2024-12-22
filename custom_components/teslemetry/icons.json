@@ -177,6 +177,15 @@
       },
       "europe_vehicle": {
         "default": "mdi:earth"
+      },
+      "located_at_home": {
+        "default": "mdi:home"
+      },
+      "located_at_work": {
+        "default": "mdi:briefcase"
+      },
+      "located_at_favorite": {
+        "default": "mdi:star"
       }
     },
     "button": {

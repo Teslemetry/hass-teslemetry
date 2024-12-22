@@ -966,7 +966,6 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="sentry_mode",
         streaming_key=Signal.SENTRY_MODE,
-        entity_registry_enabled_default=False,
         streaming_value_fn=SentryModeState.get,
         options=SentryModeState.options,
         device_class=SensorDeviceClass.ENUM,
@@ -1475,11 +1474,11 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         value = self._value
         self._attr_available = self.entity_description.available_fn(value)
         if(self._attr_available):
-            seconds: float = self.entity_description.value_fn(value).total_seconds()
-            if seconds == self._last_value:
+            delta = self.entity_description.value_fn(value)
+            if delta.total_seconds() == self._last_value:
                 return
-            self._last_value = seconds
-            self._attr_native_value = self._time_value(value)
+            self._last_value = delta.total_seconds()
+            self._attr_native_value = self._time_value(delta)
 
 
 class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
@@ -1509,11 +1508,11 @@ class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, Sen
 
         self._attr_available = self.entity_description.available_fn(value)
         if(self._attr_available):
-            seconds: float = self.entity_description.value_fn(value).total_seconds()
-            if seconds == self._last_value:
+            delta = self.entity_description.value_fn(value)
+            if delta.total_seconds() == self._last_value:
                 return
-            self._last_value = seconds
-            self._attr_native_value = self._time_value(seconds)
+            self._last_value = delta.total_seconds()
+            self._attr_native_value = self._time_value(delta)
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

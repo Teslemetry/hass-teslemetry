@@ -181,6 +181,15 @@
       },
       "right_hand_drive": {
         "name": "Right hand drive"
+      },
+      "located_at_home": {
+        "name": "Located at home"
+      },
+      "located_at_work": {
+        "name": "Located at work"
+      },
+      "located_at_favorite": {
+        "name": "Located at favorite"
       }
     },
     "button": {
