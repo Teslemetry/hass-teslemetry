@@ -98,6 +98,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="climate_state_defrost_mode",
         streaming_key=Signal.DEFROST_MODE,
+        streaming_firmware="2024.44.25",
         on_func=lambda api: api.set_preconditioning_max(on=True, manual_override=False),
         off_func=lambda api: api.set_preconditioning_max(
             on=False, manual_override=False
@@ -114,6 +115,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_remote_start",
         streaming_key=Signal.REMOTE_START_ENABLED,
+        streaming_firmware="2024.44.25",
         on_func=lambda api: api.remote_start_drive(),
         scopes=[Scope.VEHICLE_CMDS],
     ),
