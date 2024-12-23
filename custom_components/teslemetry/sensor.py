@@ -381,6 +381,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1
     ),
     TeslemetrySensorEntityDescription(
         # This entity isnt allowed in core

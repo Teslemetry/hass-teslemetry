@@ -14,6 +14,7 @@ from homeassistant.components.switch import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
@@ -29,6 +30,7 @@ from .models import (
     TeslemetryEnergyData,
     TeslemetryVehicleData,
 )
+from .const import DOMAIN
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -171,7 +173,11 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         if not self.entity_description.off_func:
-            raise NotImplementedError
+            raise ServiceValidationError(
+               translation_domain=DOMAIN,
+               translation_key="no_off",
+               translation_placeholders={"name": self.name},
+            )
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
         await self.wake_up_if_asleep()

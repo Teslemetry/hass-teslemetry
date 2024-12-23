@@ -1145,6 +1145,9 @@
     },
     "wake_up_timeout": {
       "message": "Timed out trying to wake up vehicle"
+    },
+    "no_off": {
+      "message": "{name} cannot be turned off"
     }
   },
   "issues": {
