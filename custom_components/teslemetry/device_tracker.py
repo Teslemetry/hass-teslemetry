@@ -115,3 +115,4 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleStreamEntity, Trac
         self._attr_available = isinstance(value, dict)
         self._attr_latitude = value.get("latitude")
         self._attr_longitude = value.get("longitude")
+        print(self.streaming_key, self._attr_latitude, self._attr_longitude, self._attr_available)

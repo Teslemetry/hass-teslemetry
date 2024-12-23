@@ -70,7 +70,11 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
                 {"vin": self.vin, "data": {self.streaming_key: None}},
             )
         )
-        self.hass.async_create_task(self.add_field(self.streaming_key))
+        self.vehicle.config_entry.async_create_background_task(
+            self.hass,
+            self.add_field(self.streaming_key),
+            f"Adding field {self.streaming_key.value} to {self.vehicle.vin}"
+        )
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:
         """Handle updated data from the stream."""
@@ -107,6 +111,7 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
         self.api = data.api
         self.stream = data.stream
         self.vin = data.vin
+        self.add_field = data.stream.get_vehicle(self.vin).add_field
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
@@ -115,12 +120,17 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        if self.stream.server:
-            self.async_on_remove(
-                self.stream.async_add_listener(
-                    self._handle_stream_update,
-                    {"vin": self.vin, "data": None},
-                )
+        self.async_on_remove(
+            self.stream.async_add_listener(
+                self._handle_stream_update,
+                {"vin": self.vin, "data": None},
+            )
+        )
+        for signal in self.streaming_keys:
+            self.vehicle.config_entry.async_create_background_task(
+                self.hass,
+                self.add_field(signal),
+                f"Adding field {signal.value} to {self.vehicle.vin}"
             )
 
     def _handle_stream_update(self, data: dict[str, Any]) -> None:

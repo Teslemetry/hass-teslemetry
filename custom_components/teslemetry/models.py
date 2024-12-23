@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from collections.abc import Callable
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 from tesla_fleet_api import Teslemetry
 import asyncio
@@ -36,6 +37,7 @@ class TeslemetryVehicleData:
     """Data for a vehicle in the Teslemetry integration."""
 
     api: VehicleSpecific
+    config_entry: ConfigEntry
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
     vin: str
