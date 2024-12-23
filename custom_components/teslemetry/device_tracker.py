@@ -112,8 +112,6 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleStreamEntity, Trac
 
     def _async_value_from_stream(self, value) -> None:
         """Update the value of the entity."""
-        if isinstance(value, dict):
-            self._attr_latitude = value["latitude"]
-            self._attr_longitude = value["longitude"]
-            self._attr_available = True
-        self._attr_available = False
+        self._attr_available = isinstance(value, dict)
+        self._attr_latitude = value.get("latitude")
+        self._attr_longitude = value.get("longitude")
