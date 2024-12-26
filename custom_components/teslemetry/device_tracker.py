@@ -12,9 +12,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from teslemetry_stream import Signal
 
-from .entity import TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
+from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
 from .models import TeslemetryVehicleData
 
 
@@ -23,6 +24,7 @@ class TeslemetryDeviceTrackerEntityDescription(TrackerEntityDescription):
     """Describe a Teslemetry device tracker entity."""
 
     streaming_key: Signal
+    streaming_name_key: Signal | None = None
     streaming_firmware: str
     polling_prefix: str | None = None
 
@@ -37,6 +39,7 @@ DESCRIPTIONS: tuple[TeslemetryDeviceTrackerEntityDescription,...] = (
         key="route",
         polling_prefix="drive_state_active_route",
         streaming_key=Signal.DESTINATION_LOCATION,
+        streaming_name_key=Signal.DESTINATION_NAME,
         streaming_firmware="2024.26"
     ),
     TeslemetryDeviceTrackerEntityDescription(
@@ -95,10 +98,10 @@ class TeslemetryPollingDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntit
             or self.exactly(None, f"{self.entity_description.polling_prefix}_latitude")
         )
 
-class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleStreamEntity, TrackerEntity):
+class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleComplexStreamEntity, TrackerEntity, RestoreEntity):
     """Base class for Teslemetry Tracker Entities."""
 
-    entity_description = TeslemetryDeviceTrackerEntityDescription
+    entity_description: TeslemetryDeviceTrackerEntityDescription
     _attr_entity_category = None
 
     def __init__(
@@ -107,11 +110,28 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleStreamEntity, Trac
         description: TeslemetryDeviceTrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(vehicle, description.key, description.streaming_key)
+        keys = [description.streaming_key]
+        if description.streaming_name_key:
+            keys.append(description.streaming_name_key)
+        super().__init__(vehicle, description.key, keys)
         self.entity_description = description
 
-    def _async_value_from_stream(self, value) -> None:
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            self._attr_state = state.state
+            self._attr_latitude = state.attributes.get('latitude')
+            self._attr_longitude = state.attributes.get('longitude')
+            self._attr_name = state.attributes.get('name')
+
+    def _async_data_from_stream(self, data) -> None:
         """Update the value of the entity."""
-        self._attr_available = isinstance(value, dict)
-        self._attr_latitude = value.get("latitude")
-        self._attr_longitude = value.get("longitude")
+        if self.entity_description.streaming_key in data:
+            value = data[self.entity_description.streaming_key]
+            self._attr_available = isinstance(value, dict)
+            if self._attr_available:
+                self._attr_latitude = value.get("latitude")
+                self._attr_longitude = value.get("longitude")
+        if self.entity_description.streaming_name_key and self.entity_description.streaming_name_key in data:
+            self._attr_name = data[self.entity_description.streaming_name_key]

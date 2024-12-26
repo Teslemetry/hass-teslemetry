@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues",
   "loggers": ["tesla_fleet_api", "teslemetry_stream"],
   "requirements": ["tesla-fleet-api==0.8.5", "teslemetry-stream==0.5.7"],
-  "version": "3.0.0"
+  "version": "3.0.1"
 }
