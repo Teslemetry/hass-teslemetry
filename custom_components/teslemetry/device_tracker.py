@@ -123,7 +123,7 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleComplexStreamEntit
             self._attr_state = state.state
             self._attr_latitude = state.attributes.get('latitude')
             self._attr_longitude = state.attributes.get('longitude')
-            self._attr_name = state.attributes.get('name')
+            self._attr_location_name = state.attributes.get('location_name')
 
     def _async_data_from_stream(self, data) -> None:
         """Update the value of the entity."""
@@ -134,4 +134,6 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleComplexStreamEntit
                 self._attr_latitude = value.get("latitude")
                 self._attr_longitude = value.get("longitude")
         if self.entity_description.streaming_name_key and self.entity_description.streaming_name_key in data:
-            self._attr_name = data[self.entity_description.streaming_name_key]
+            self._attr_location_name = data[self.entity_description.streaming_name_key]
+            if self._attr_location_name == "Home":
+                self._attr_location_name = STATE_HOME
