@@ -660,16 +660,40 @@
         "name": "Di slave torque command"
       },
       "di_state_front": {
-        "name": "Front DI state"
+        "name": "Front DI state",
+        "state": {
+          "standby": "Standby",
+          "fault": "Fault",
+          "abort": "Abort",
+          "enable": "Enable"
+        }
       },
       "di_state_rear": {
-        "name": "Rear DI state"
+        "name": "Rear DI state",
+        "state": {
+          "standby": "Standby",
+          "fault": "Fault",
+          "abort": "Abort",
+          "enable": "Enable"
+        }
       },
       "di_state_rear_left": {
-        "name": "Rear left DI state"
+        "name": "Rear left DI state",
+        "state": {
+          "standby": "Standby",
+          "fault": "Fault",
+          "abort": "Abort",
+          "enable": "Enable"
+        }
       },
       "di_state_rear_right": {
-        "name": "Rear right DI state"
+        "name": "Rear right DI state",
+        "state": {
+          "standby": "Standby",
+          "fault": "Fault",
+          "abort": "Abort",
+          "enable": "Enable"
+        }
       },
       "di_stator_temp_front": {
         "name": "Front DU stator temperature"
