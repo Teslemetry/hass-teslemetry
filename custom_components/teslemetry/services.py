@@ -168,7 +168,7 @@ def async_register_services(hass: HomeAssistant) -> None:  # noqa: C901
         await wake_up_vehicle(vehicle)
         await handle_vehicle_command(
             vehicle.api.navigation_request(
-                type=call.data.get(ATTR_TYPE),
+                type="share_ext_content_raw",
                 value=call.data.get(ATTR_VALUE),
                 locale=call.data.get(ATTR_LOCALE),
                 timestamp=call.data.get(ATTR_TIMESTAMP),

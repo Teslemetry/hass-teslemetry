@@ -5,7 +5,7 @@ from time import time
 from typing import Any
 from random import randint
 
-from tesla_fleet_api import EnergySpecific, Teslemetry
+from tesla_fleet_api import EnergySpecific, VehicleSpecific
 from tesla_fleet_api.const import Method, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
@@ -48,7 +48,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
     def __init__(
-        self, hass: HomeAssistant, api: Teslemetry, product: dict
+        self, hass: HomeAssistant, api: VehicleSpecific, product: dict
     ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
@@ -65,11 +65,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update vehicle data using Teslemetry API."""
         try:
             #Temporarily use a request until the backend change
-            data = (await self.api._request(
-                Method.GET,
-                f"api/x/vehicles/{self.vin}/vehicle_data",
-                {"endpoints": ";".join(ENDPOINTS)}
-            ))["response"]
+            data = (await self.api.vehicle_data(ENDPOINTS))["response"]
         except InvalidToken as e:
             raise ConfigEntryAuthFailed from e
         except (SubscriptionRequired,Forbidden,LoginRequired) as e:

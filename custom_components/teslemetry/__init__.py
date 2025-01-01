@@ -107,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             product.pop("cached_data", None)
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
-            coordinator = TeslemetryVehicleDataCoordinator(hass, teslemetry, product)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
             firmware = metadata[vin].get("firmware","Unknown")
 
             device = DeviceInfo(
