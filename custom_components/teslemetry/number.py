@@ -28,6 +28,7 @@ from homeassistant.util.unit_conversion import SpeedConverter
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .entity import (
+    TeslemetryVehicleComplexStreamEntity,
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
     TeslemetryVehicleStreamEntity,
@@ -47,6 +48,7 @@ class TeslemetryNumberEntityDescription(NumberEntityDescription):
     scopes: list[Scope] | None = None
     requires: str | None = None
     streaming_key: Signal | None = None
+    streaming_max_key: Signal | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
@@ -60,6 +62,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberEntityDescription, ...] = (
         device_class=NumberDeviceClass.CURRENT,
         mode=NumberMode.AUTO,
         max_key="charge_state_charge_current_request_max",
+        streaming_max_key=Signal.CHARGE_CURRENT_REQUEST_MAX,
         func=lambda api, value: api.set_charging_amps(value),
         scopes=[Scope.VEHICLE_CHARGING_CMDS],
     ),
@@ -229,7 +232,7 @@ class TeslemetryPollingNumberEntity(TeslemetryVehicleEntity, TeslemetryVehicleNu
         )
 
 
-class TeslemetryStreamingNumberEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleNumberEntity, RestoreEntity):
+class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleNumberEntity, RestoreEntity):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription
@@ -244,8 +247,11 @@ class TeslemetryStreamingNumberEntity(TeslemetryVehicleStreamEntity, TeslemetryV
         self.scoped = any(scope in scopes for scope in description.scopes)
         self.entity_description = description
         assert description.streaming_key
+        keys = [description.streaming_key]
+        if description.streaming_max_key:
+            keys.append(description.streaming_max_key)
         super().__init__(
-            data, description.key, description.streaming_key
+            data, description.key, keys
         )
 
     async def async_added_to_hass(self) -> None:
@@ -255,12 +261,20 @@ class TeslemetryStreamingNumberEntity(TeslemetryVehicleStreamEntity, TeslemetryV
             if (state.state.isdigit()):
                 self._attr_native_value = float(state.state)
 
-    def _async_value_from_stream(self, value) -> None:
+    def _async_data_from_stream(self, data) -> None:
         """Update the value of the entity."""
-        if isinstance(value, float | int):
-            self._attr_native_value = float(value)
-        else:
-            self._attr_native_value = None
+        if self.entity_description.streaming_key in data:
+            value = data[self.entity_description.streaming_key]
+            if isinstance(value, float | int):
+                self._attr_native_value = float(value)
+            else:
+                self._attr_native_value = None
+        if self.entity_description.streaming_max_key in data:
+            value = data[self.entity_description.streaming_max_key]
+            if isinstance(value, float | int):
+                self._attr_native_max_value = float(value)
+            else:
+                self._attr_native_max_value = self.entity_description.native_max_value
 
 
 class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
