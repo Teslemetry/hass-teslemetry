@@ -141,7 +141,7 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         if Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE in data:
             self._install_percentage = data[Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE]
         if Signal.VERSION in data:
-            self._installed_version = data[Signal.SOFTWARE_UPDATE_VERSION].split(" ")[0]
+            self._installed_version = data[Signal.VERSION].split(" ")[0]
         if Signal.SOFTWARE_UPDATE_VERSION in data:
             self._attr_latest_version = data[Signal.SOFTWARE_UPDATE_VERSION]
 
