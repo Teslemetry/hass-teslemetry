@@ -66,6 +66,17 @@ async def async_setup_entry(
         )
     )
 
+class CoverRestoreEntity(RestoreEntity):
+    """Restore entity for covers."""
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            if (state.state == "open"):
+                self._attr_is_closed = False
+            elif (state.state == "closed"):
+                self._attr_is_closed = True
 
 class TeslemetryWindowEntity(CoverEntity):
     """Cover entity for windows."""
@@ -113,7 +124,7 @@ class TeslemetryPollingWindowEntity(TeslemetryVehicleEntity, TeslemetryWindowEnt
         else:
             self._attr_is_closed = True
 
-class TeslemetryStreamingWindowEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryWindowEntity, RestoreEntity):
+class TeslemetryStreamingWindowEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryWindowEntity, CoverRestoreEntity):
     """Streaming cover entity for windows."""
 
     fd: bool | None = None
@@ -133,16 +144,6 @@ class TeslemetryStreamingWindowEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         if not self.scoped:
             self._attr_supported_features = CoverEntityFeature(0)
         self._attr_is_closed = None
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity which will be added."""
-        await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
-            if (state.state == "open"):
-                self._attr_is_closed = False
-            elif (state.state == "closed"):
-                self._attr_is_closed = True
-            #self._attr_current_cover_position = state.attributes.get("current_cover_position")
 
     def _async_data_from_stream(self, data) -> None:
         """Update the entity attributes."""
@@ -205,7 +206,7 @@ class TeslemetryPollingChargePortEntity(TeslemetryVehicleEntity, TeslemetryCharg
         """Update the entity attributes."""
         self._attr_is_closed = self.exactly(False)
 
-class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamEntity, TeslemetryChargePortEntity):
+class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamEntity, TeslemetryChargePortEntity, CoverRestoreEntity):
     """Streaming cover entity for the charge port."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -261,7 +262,7 @@ class TeslemetryPollingFrontTrunkEntity(TeslemetryVehicleEntity, TeslemetryFront
         """Update the entity attributes."""
         self._attr_is_closed = self.exactly(CLOSED)
 
-class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryFrontTrunkEntity):
+class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryFrontTrunkEntity, CoverRestoreEntity):
     """Streaming cover entity for the front trunk."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -322,7 +323,7 @@ class TeslemetryPollingRearTrunkEntity(TeslemetryVehicleEntity, TeslemetryRearTr
         self._attr_is_closed = self.exactly(CLOSED)
 
 
-class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryRearTrunkEntity):
+class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryRearTrunkEntity, CoverRestoreEntity):
     """Polling Cover entity for the rear trunk."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -389,7 +390,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
         self._attr_is_closed = False
         self.async_write_ha_state()
 
-class TeslemetryTonneau(TeslemetryVehicleComplexStreamEntity, CoverEntity):
+class TeslemetryTonneau(TeslemetryVehicleComplexStreamEntity, CoverEntity, CoverRestoreEntity):
     """Cover entity for the Cybertruck Tonneau."""
 
     _attr_device_class = CoverDeviceClass.SHUTTER
