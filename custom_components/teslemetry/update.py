@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.helpers.restore_state import RestoreEntity
 from tesla_fleet_api.const import Scope
 from teslemetry_stream import Signal
 
@@ -107,7 +108,7 @@ class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEnt
             self._attr_in_progress = False
 
 
-class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryUpdateEntity):
+class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryUpdateEntity, RestoreEntity):
     """Teslemetry Updates entity."""
 
     _download_percentage: int = 0
@@ -133,6 +134,15 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, Tesl
             ]
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            self._attr_state = state.state
+            self._attr_in_progress = state.attributes.get("in_progress", False)
+            self._attr_installed_version = state.attributes.get("installed_version")
+            self._attr_latest_version = state.attributes.get("latest_version")
+
     def _async_data_from_stream(self, data) -> None:
         """Update the attributes of the entity."""
 
@@ -141,9 +151,10 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         if Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE in data:
             self._install_percentage = data[Signal.SOFTWARE_UPDATE_INSTALLATION_PERCENT_COMPLETE]
         if Signal.VERSION in data:
-            self._installed_version = data[Signal.VERSION].split(" ")[0]
+            self._attr_installed_version = data[Signal.VERSION].split(" ")[0]
         if Signal.SOFTWARE_UPDATE_VERSION in data:
-            self._attr_latest_version = data[Signal.SOFTWARE_UPDATE_VERSION]
+            latest = data[Signal.SOFTWARE_UPDATE_VERSION]
+            self._attr_latest_version = latest if latest and latest != " " else self._attr_installed_version
 
 
         # Supported Features
@@ -156,9 +167,9 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleComplexStreamEntity, Tesl
 
 
         # In Progress
-        if self._download_percentage > 0:
+        if self._download_percentage > 1:
             self._attr_in_progress = self._download_percentage
-        elif self._install_percentage > 0:
+        elif self._install_percentage > 1:
             self._attr_in_progress = self._install_percentage
         else:
             self._attr_in_progress = False
