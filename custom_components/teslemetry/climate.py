@@ -245,13 +245,14 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
 
     def _async_data_from_stream(self, data) -> None:
         """Update the attributes of the entity."""
-        if (state := data.get(Signal.HVAC_AC_ENABLED)) is not None:
-            self._attr_hvac_mode = HVACMode.HEAT_COOL if state else HVACMode.OFF
+        if (value := data.get(Signal.HVAC_AC_ENABLED)) is not None:
+            self._attr_hvac_mode = HVACMode.HEAT_COOL if value else HVACMode.OFF
 
-        if (state := data.get(Signal.HVAC_AUTO_MODE)) is not None:
-            self._attr_hvac_mode = state
+        if (value := data.get(Signal.HVAC_AUTO_MODE)) is not None:
+            self._attr_hvac_mode = value
 
-
+        if (value := data.get(Signal.INSIDE_TEMP)) is not None:
+            self._attr_current_temperature = value
 
         self._attr_current_temperature = self.get("climate_state_inside_temp")
         self._attr_target_temperature = self.get(f"climate_state_{self.key}_setting")

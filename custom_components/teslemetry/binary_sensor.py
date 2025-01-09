@@ -28,6 +28,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
+from .enums import WindowState
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
@@ -148,6 +149,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="vehicle_state_fd_window",
         polling=True,
         streaming_key=Signal.FD_WINDOW,
+        streaming_value_fn = lambda x: WindowState.get(x) != "closed",
         device_class=BinarySensorDeviceClass.WINDOW,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -155,6 +157,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="vehicle_state_fp_window",
         polling=True,
         streaming_key=Signal.FP_WINDOW,
+        streaming_value_fn = lambda x: WindowState.get(x) != "closed",
         device_class=BinarySensorDeviceClass.WINDOW,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -162,6 +165,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="vehicle_state_rd_window",
         polling=True,
         streaming_key=Signal.RD_WINDOW,
+        streaming_value_fn = lambda x: WindowState.get(x) != "closed",
         device_class=BinarySensorDeviceClass.WINDOW,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -169,6 +173,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="vehicle_state_rp_window",
         polling=True,
         streaming_key=Signal.RP_WINDOW,
+        streaming_value_fn = lambda x: WindowState.get(x) != "closed",
         device_class=BinarySensorDeviceClass.WINDOW,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -177,7 +182,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.DOOR,
         streaming_key=Signal.DOOR_STATE,
-        streaming_value_fn=lambda x: x.get("DriverFront") in [True,"true"],
+        streaming_value_fn=lambda x: x.get("DriverFront"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -185,7 +190,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.DOOR,
         streaming_key=Signal.DOOR_STATE,
-        streaming_value_fn=lambda x: x.get("DriverRear") in [True,"true"],
+        streaming_value_fn=lambda x: x.get("DriverRear"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -193,7 +198,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.DOOR,
         streaming_key=Signal.DOOR_STATE,
-        streaming_value_fn=lambda x: x.get("PassengerFront") in [True,"true"],
+        streaming_value_fn=lambda x: x.get("PassengerFront"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -201,7 +206,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         device_class=BinarySensorDeviceClass.DOOR,
         streaming_key=Signal.DOOR_STATE,
-        streaming_value_fn=lambda x: x.get("PassengerRear") in [True,"true"],
+        streaming_value_fn=lambda x: x.get("PassengerRear"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(

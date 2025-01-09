@@ -106,7 +106,7 @@ DriveInverterState = TeslemetryEnum("DriveInverterState", [
     "enable"
 ])
 HvilStatus = TeslemetryEnum("HvilStatus", ["fault","ok"])
-#WindowState is cover
+WindowState = TeslemetryEnum("WindowState", ["opened","partiallyopen","closed"])
 SeatFoldPosition = TeslemetryEnum("SeatFoldPosition", ["sna",
     "faulted",
     "notconfigured",

@@ -23,6 +23,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData
+from .enums import WindowState
 
 CLOSED = 0
 OPEN = 1
@@ -147,16 +148,17 @@ class TeslemetryStreamingWindowEntity(TeslemetryVehicleComplexStreamEntity, Tesl
 
     def _async_data_from_stream(self, data) -> None:
         """Update the entity attributes."""
-        if value := data.get(Signal.FD_WINDOW):
-            self.fd = value == "WindowStateOpen"
-        if value := data.get(Signal.FP_WINDOW):
-            self.fp = value == "WindowStateOpen"
-        if value := data.get(Signal.RD_WINDOW):
-            self.rd = value == "WindowStateOpen"
-        if value := data.get(Signal.RP_WINDOW):
-            self.rp = value == "WindowStateOpen"
 
-        if True in (self.fd, self.fp, self.rd, self.rp):
+        if value := data.get(Signal.FD_WINDOW):
+            self.fd = WindowState.get(value) == "closed"
+        if value := data.get(Signal.FP_WINDOW):
+            self.fp = WindowState.get(value) == "closed"
+        if value := data.get(Signal.RD_WINDOW):
+            self.rd = WindowState.get(value) == "closed"
+        if value := data.get(Signal.RP_WINDOW):
+            self.rp = WindowState.get(value) == "closed"
+
+        if False in (self.fd, self.fp, self.rd, self.rp):
             self._attr_is_closed = False
         elif None in (self.fd, self.fp, self.rd, self.rp):
             self._attr_is_closed = None
