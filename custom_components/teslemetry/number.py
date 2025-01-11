@@ -260,6 +260,7 @@ class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         if (state := await self.async_get_last_state()) is not None:
             if (state.state.isdigit()):
                 self._attr_native_value = float(state.state)
+                self._attr_native_max_value = float(state.attributes.get("max_value", self.entity_description.native_max_value))
 
     def _async_data_from_stream(self, data) -> None:
         """Update the value of the entity."""
