@@ -47,7 +47,7 @@ from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
     TeslemetryVehicleEntity,
-    TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
     TeslemetryWallConnectorEntity,
     TeslemetryEnergyHistoryEntity,
 )
@@ -1366,7 +1366,7 @@ class TeslemetryVehiclePollingSensorEntity(TeslemetryVehicleEntity, SensorEntity
             self._attr_available = False
             self._attr_native_value = None
 
-class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamEntity, RestoreSensor):
+class TeslemetryVehicleStreamSensorEntity(TeslemetryVehicleStreamSingleEntity, RestoreSensor):
     """Base class for Teslemetry vehicle streaming sensors."""
 
     entity_description: TeslemetrySensorEntityDescription
@@ -1482,7 +1482,7 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             self._attr_native_value = self._time_value(delta)
 
 
-class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamEntity, SensorEntity):
+class TeslemetryVehicleTimeStreamSensorEntity(TeslemetryVehicleStreamSingleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
 
     entity_description: TeslemetryTimeEntityDescription

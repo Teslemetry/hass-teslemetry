@@ -46,6 +46,45 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
     """Parent class for Teslemetry Vehicle Stream entities."""
 
     def __init__(
+        self, data: TeslemetryVehicleData, key: str
+    ) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        self.vehicle = data
+
+        self.api = data.api
+        self.vin = data.vin
+        self.stream = data.stream.get_vehicle(data.vin)
+
+        self._attr_translation_key = key
+        self._attr_unique_id = f"{data.vin}-{key}"
+        self._attr_device_info = data.device
+
+    def _handle_stream_update(self, data: dict[str, Any]) -> None:
+        """Handle updated data from the stream."""
+        try:
+            self._async_value_from_stream(data["data"][self.streaming_key])
+        except Exception as e:
+            LOGGER.error("Error updating %s: %s", self._attr_translation_key, e)
+            LOGGER.debug(data)
+        self.async_write_ha_state()
+
+    def _async_value_from_stream(self, value: Any) -> None:
+        """Update the entity with the latest value from the stream."""
+        raise NotImplementedError()
+
+    async def wake_up_if_asleep(self) -> None:
+        """Wake up the vehicle if its asleep."""
+        await wake_up_vehicle(self.vehicle)
+
+    @cached_property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.stream.stream.connected and self._attr_available
+
+class TeslemetryVehicleStreamSingleEntity(TeslemetryEntity):
+    """Parent class for Teslemetry Vehicle Stream entities."""
+
+    def __init__(
         self, data: TeslemetryVehicleData, key: str, streaming_key: Signal
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""

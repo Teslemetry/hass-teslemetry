@@ -20,7 +20,7 @@ from teslemetry_stream import Signal
 from .entity import (
     TeslemetryVehicleComplexStreamEntity,
     TeslemetryVehicleEntity,
-    TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
 )
 from .models import TeslemetryVehicleData
 from .enums import WindowState
@@ -208,7 +208,7 @@ class TeslemetryPollingChargePortEntity(TeslemetryVehicleEntity, TeslemetryCharg
         """Update the entity attributes."""
         self._attr_is_closed = self.exactly(False)
 
-class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamEntity, TeslemetryChargePortEntity, CoverRestoreEntity):
+class TeslemetryStreamingChargePortEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryChargePortEntity, CoverRestoreEntity):
     """Streaming cover entity for the charge port."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -264,7 +264,7 @@ class TeslemetryPollingFrontTrunkEntity(TeslemetryVehicleEntity, TeslemetryFront
         """Update the entity attributes."""
         self._attr_is_closed = self.exactly(CLOSED)
 
-class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryFrontTrunkEntity, CoverRestoreEntity):
+class TeslemetryStreamingFrontTrunkEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryFrontTrunkEntity, CoverRestoreEntity):
     """Streaming cover entity for the front trunk."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
@@ -325,7 +325,7 @@ class TeslemetryPollingRearTrunkEntity(TeslemetryVehicleEntity, TeslemetryRearTr
         self._attr_is_closed = self.exactly(CLOSED)
 
 
-class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamEntity, TeslemetryRearTrunkEntity, CoverRestoreEntity):
+class TeslemetryStreamingRearTrunkEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryRearTrunkEntity, CoverRestoreEntity):
     """Polling Cover entity for the rear trunk."""
 
     def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:

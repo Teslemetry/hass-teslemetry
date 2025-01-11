@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from teslemetry_stream import Signal
 
-from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
+from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamSingleEntity
 from .models import TeslemetryVehicleData
 
 

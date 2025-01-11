@@ -23,7 +23,7 @@ from .const import TeslemetryHeaterOptions
 from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
-    TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -183,7 +183,7 @@ class TeslemetryPollingSeatHeaterSelectEntity(TeslemetryVehicleEntity, Teslemetr
         else:
             self._attr_current_option = None
 
-class TeslemetryStreamingSeatHeaterSelectEntity(TeslemetryVehicleStreamEntity, TeslemetrySeatHeaterSelectEntity, RestoreEntity):
+class TeslemetryStreamingSeatHeaterSelectEntity(TeslemetryVehicleStreamSingleEntity, TeslemetrySeatHeaterSelectEntity, RestoreEntity):
     """Select entity for vehicle seat heater."""
 
     def __init__(
@@ -262,7 +262,7 @@ class TeslemetrPollingWheelHeaterSelectEntity(TeslemetryVehicleEntity, Teslemetr
         else:
             self._attr_current_option = None
 
-class TeslemetryStreamingWheelHeaterSelectEntity(TeslemetryVehicleStreamEntity, TeslemetryWheelHeaterSelectEntity):
+class TeslemetryStreamingWheelHeaterSelectEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryWheelHeaterSelectEntity):
     """Select entity for vehicle steering wheel heater."""
 
     def __init__(

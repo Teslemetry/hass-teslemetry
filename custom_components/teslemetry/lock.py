@@ -16,7 +16,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .const import DOMAIN, TeslemetryChargeCableLockStates
 from .entity import (
     TeslemetryVehicleEntity,
-    TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
 )
 from .models import TeslemetryVehicleData
 
@@ -89,7 +89,7 @@ class TeslemetryPollingVehicleLockEntity(TeslemetryVehicleEntity, TeslemetryVehi
         """Update entity attributes."""
         self._attr_is_locked = self._value
 
-class TeslemetryStreamingVehicleLockEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleLockEntity, LockRestoreEntity):
+class TeslemetryStreamingVehicleLockEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryVehicleLockEntity, LockRestoreEntity):
     """Streaming vehicle lock entity for Teslemetry."""
 
     def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
@@ -149,7 +149,7 @@ class TeslemetryPollingCableLockEntity(TeslemetryVehicleEntity, TeslemetryCableL
             self._attr_is_locked = None
         self._attr_is_locked = self._value == TeslemetryChargeCableLockStates.ENGAGED
 
-class TeslemetryStreamingCableLockEntity(TeslemetryVehicleStreamEntity, TeslemetryCableLockEntity, LockRestoreEntity):
+class TeslemetryStreamingCableLockEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryCableLockEntity, LockRestoreEntity):
     """Streaming cable lock entity for Teslemetry."""
 
     def __init__(

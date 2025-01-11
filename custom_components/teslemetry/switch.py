@@ -24,7 +24,7 @@ from teslemetry_stream import Signal
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryVehicleEntity,
-    TeslemetryVehicleStreamEntity
+    TeslemetryVehicleStreamSingleEntity
 )
 from .models import (
     TeslemetryEnergyData,
@@ -216,7 +216,7 @@ class TeslemetryPollingVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetryVe
             self._attr_is_on = self.entity_description.polling_value_fn(self._value)
 
 
-class TeslemetryStreamingVehicleSwitchEntity(TeslemetryVehicleStreamEntity, TeslemetryVehicleSwitchEntity, RestoreEntity):
+class TeslemetryStreamingVehicleSwitchEntity(TeslemetryVehicleStreamSingleEntity, TeslemetryVehicleSwitchEntity, RestoreEntity):
     """Base class for Teslemetry vehicle switch entities."""
 
     def __init__(

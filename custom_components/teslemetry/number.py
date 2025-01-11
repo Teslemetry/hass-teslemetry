@@ -31,7 +31,7 @@ from .entity import (
     TeslemetryVehicleComplexStreamEntity,
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
-    TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
 
