@@ -196,7 +196,7 @@ class TeslemetryVehicleNumberEntity(NumberEntity):
         """Set new value."""
         value = int(value)
         self.raise_for_scope(self.entity_description.scopes[0])
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.entity_description.func(self.api, value))
         self._attr_native_value = value
         self.async_write_ha_state()
@@ -318,7 +318,7 @@ class TeslemetryImperialSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity)
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.speed_limit_set_limit(value))
         self._attr_native_value = value
         self.async_write_ha_state()
@@ -382,7 +382,7 @@ class TeslemetryMetricSpeedNumberEntity(TeslemetryVehicleEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(
             self.api.speed_limit_set_limit(round(self.convert_from(value), 4))
         )

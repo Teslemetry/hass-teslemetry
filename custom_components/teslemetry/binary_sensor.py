@@ -28,7 +28,6 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .models import TeslemetryVehicleData, TeslemetryEnergyData
-from .enums import WindowState
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
@@ -239,7 +238,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="bms_full_charge_complete",
         streaming_key=Signal.BMS_FULL_CHARGE_COMPLETE,
-        streaming_listener=lambda s: s.listen_BMSFullChargeComplete,
+        streaming_listener=lambda s: s.listen_BmsFullchargecomplete,
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -374,16 +373,19 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="located_at_home",
         streaming_key=Signal.LOCATED_AT_HOME,
+        streaming_listener=lambda s: s.listen_LocatedAtHome,
         streaming_firmware = "2024.44.32",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="located_at_work",
         streaming_key=Signal.LOCATED_AT_WORK,
+        streaming_listener=lambda s: s.listen_LocatedAtWork,
         streaming_firmware = "2024.44.32",
     ),
     TeslemetryBinarySensorEntityDescription(
         key="located_at_favorite",
         streaming_key=Signal.LOCATED_AT_FAVORITE,
+        streaming_listener=lambda s: s.listen_LocatedAtFavorite,
         streaming_firmware = "2024.44.32",
         entity_registry_enabled_default=False,
     ),
@@ -489,12 +491,19 @@ class TeslemetryVehicleStreamingBinarySensorEntity(
         if (state := await self.async_get_last_state()) is not None:
             self._attr_is_on = state.state == STATE_ON
 
-    def _async_value_from_stream(self, value: bool | None) -> None:
+    def _async_value_from_stream(self, value: StateType) -> None:
         """Update the value of the entity."""
         self._attr_avaliable = value is not None
         if self._attr_avaliable:
             self._attr_is_on = self.entity_description.streaming_value_fn(value)
 
+    def create_callback(self, value_fn: Callable = lambda x: x) -> Callable:
+        """Create a callback for the entity."""
+        def callback(value):
+            self._attr_avaliable = value is not None
+            if self._attr_avaliable:
+                self._attr_is_on = value_fn(value)
+        return callback
 
 class TeslemetryEnergyLiveBinarySensorEntity(
     TeslemetryEnergyLiveEntity, BinarySensorEntity

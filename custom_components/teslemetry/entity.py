@@ -21,7 +21,7 @@ from .coordinator import (
     TeslemetryEnergyHistoryCoordinator
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
-from .helpers import wake_up_vehicle, handle_command, handle_vehicle_command
+from .helpers import handle_command, handle_vehicle_command
 
 
 class TeslemetryEntity(Entity):
@@ -59,22 +59,6 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
         self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
 
-    def _handle_stream_update(self, data: dict[str, Any]) -> None:
-        """Handle updated data from the stream."""
-        try:
-            self._async_value_from_stream(data["data"][self.streaming_key])
-        except Exception as e:
-            LOGGER.error("Error updating %s: %s", self._attr_translation_key, e)
-            LOGGER.debug(data)
-        self.async_write_ha_state()
-
-    def _async_value_from_stream(self, value: Any) -> None:
-        """Update the entity with the latest value from the stream."""
-        raise NotImplementedError()
-
-    async def wake_up_if_asleep(self) -> None:
-        """Wake up the vehicle if its asleep."""
-        await wake_up_vehicle(self.vehicle)
 
     @cached_property
     def available(self) -> bool:
@@ -127,10 +111,6 @@ class TeslemetryVehicleStreamSingleEntity(TeslemetryEntity):
     def _async_value_from_stream(self, value: Any) -> None:
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
-
-    async def wake_up_if_asleep(self) -> None:
-        """Wake up the vehicle if its asleep."""
-        await wake_up_vehicle(self.vehicle)
 
     @cached_property
     def available(self) -> bool:
@@ -186,9 +166,7 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 
-    async def wake_up_if_asleep(self) -> None:
-        """Wake up the vehicle if its asleep."""
-        await wake_up_vehicle(self.vehicle)
+
 
     @cached_property
     def available(self) -> bool:
@@ -291,9 +269,7 @@ class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
         self._async_update_attrs()
         self.async_write_ha_state()
 
-    async def wake_up_if_asleep(self) -> None:
-        """Wake up the vehicle if its asleep."""
-        await wake_up_vehicle(self)
+
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a vehicle command."""

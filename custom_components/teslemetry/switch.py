@@ -20,6 +20,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 from tesla_fleet_api.const import Scope, Seat
 from teslemetry_stream import Signal
+from teslemetry_stream.const import SentryModeState
 
 from .entity import (
     TeslemetryEnergyInfoEntity,
@@ -53,7 +54,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         on_func=lambda api: api.set_sentry_mode(on=True),
         off_func=lambda api: api.set_sentry_mode(on=False),
         scopes=[Scope.VEHICLE_CMDS],
-        streaming_value_fn=lambda x: x != "SentryModeStateOff",
+        streaming_value_fn=lambda x: SentryModeState.get(x) != "Off",
     ),
     TeslemetrySwitchEntityDescription(
         key="vehicle_state_valet_mode",
@@ -155,9 +156,6 @@ async def async_setup_entry(
     )
 
 
-
-
-
 class TeslemetryVehicleSwitchEntity(SwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
 
@@ -167,7 +165,7 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.entity_description.on_func(self.api))
         self._attr_is_on = True
         self.async_write_ha_state()
@@ -182,7 +180,7 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
             )
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.entity_description.off_func(self.api))
         self._attr_is_on = False
         self.async_write_ha_state()

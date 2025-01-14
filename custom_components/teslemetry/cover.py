@@ -88,7 +88,7 @@ class TeslemetryWindowEntity(CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Vent windows."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.window_control(command=WindowCommand.VENT))
         self._attr_is_closed = False
         self.async_write_ha_state()
@@ -96,7 +96,7 @@ class TeslemetryWindowEntity(CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.window_control(command=WindowCommand.CLOSE))
         self._attr_is_closed = True
         self.async_write_ha_state()
@@ -174,7 +174,7 @@ class TeslemetryChargePortEntity(CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open windows."""
         self.raise_for_scope(Scope.VEHICLE_CHARGING_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.charge_port_door_open())
         self._attr_is_closed = False
         self.async_write_ha_state()
@@ -182,7 +182,7 @@ class TeslemetryChargePortEntity(CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close windows."""
         self.raise_for_scope(Scope.VEHICLE_CHARGING_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.charge_port_door_close())
         self._attr_is_closed = True
         self.async_write_ha_state()
@@ -243,7 +243,7 @@ class TeslemetryFrontTrunkEntity(CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open front trunk."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.actuate_trunk(Trunk.FRONT))
         self._attr_is_closed = False
         self.async_write_ha_state()
@@ -295,7 +295,7 @@ class TeslemetryRearTrunkEntity(CoverEntity):
         """Open rear trunk."""
         if self.is_closed is not False:
             self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
+
             await self.handle_command(self.api.actuate_trunk(Trunk.REAR))
             self._attr_is_closed = False
             self.async_write_ha_state()
@@ -304,7 +304,7 @@ class TeslemetryRearTrunkEntity(CoverEntity):
         """Close rear trunk."""
         if self.is_closed is not True:
             self.raise_for_scope(Scope.VEHICLE_CMDS)
-            await self.wake_up_if_asleep()
+
             await self.handle_command(self.api.actuate_trunk(Trunk.REAR))
             self._attr_is_closed = True
             self.async_write_ha_state()
@@ -371,7 +371,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open sunroof."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.sun_roof_control(SunRoofCommand.VENT))
         self._attr_is_closed = False
         self.async_write_ha_state()
@@ -379,7 +379,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close sunroof."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.sun_roof_control(SunRoofCommand.CLOSE))
         self._attr_is_closed = True
         self.async_write_ha_state()
@@ -387,7 +387,7 @@ class TeslemetrySunroofEntity(TeslemetryVehicleEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Close sunroof."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.sun_roof_control(SunRoofCommand.STOP))
         self._attr_is_closed = False
         self.async_write_ha_state()

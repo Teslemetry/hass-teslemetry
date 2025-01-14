@@ -42,7 +42,7 @@ class TeslemetryUpdateEntity(UpdateEntity):
     ) -> None:
         """Install an update."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await self.wake_up_if_asleep()
+
         await self.handle_command(self.api.schedule_software_update(offset_sec=60))
         self._attr_state = TeslemetryUpdateStatus.INSTALLING
         self.async_write_ha_state()
