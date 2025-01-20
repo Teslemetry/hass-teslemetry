@@ -15,9 +15,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from teslemetry_stream import Signal
 
-from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamSingleEntity
+from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
+PARALLEL_UPDATES = 0
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryDeviceTrackerEntityDescription(TrackerEntityDescription):
@@ -74,7 +75,7 @@ async def async_setup_entry(
 class TeslemetryPollingDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntity):
     """Base class for Teslemetry Tracker Entities."""
 
-    entity_description = TeslemetryDeviceTrackerEntityDescription
+    entity_description: TeslemetryDeviceTrackerEntityDescription
     _attr_entity_category = None
 
     def __init__(
@@ -93,10 +94,7 @@ class TeslemetryPollingDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntit
         self._attr_location_name = self.get(f"{self.entity_description.polling_prefix}_destination")
         if self._attr_location_name == "Home":
             self._attr_location_name = STATE_HOME
-        self._attr_available = not (
-            self.exactly(None, f"{self.entity_description.polling_prefix}_longitude")
-            or self.exactly(None, f"{self.entity_description.polling_prefix}_latitude")
-        )
+            self._attr_available = self._attr_latitude is not None and self._attr_longitude is not None
 
 class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleComplexStreamEntity, TrackerEntity, RestoreEntity):
     """Base class for Teslemetry Tracker Entities."""

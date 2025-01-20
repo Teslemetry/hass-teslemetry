@@ -13,11 +13,14 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
     NumberMode,
+    RestoreNumber,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     PRECISION_WHOLE,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
     UnitOfElectricCurrent,
     UnitOfSpeed,
 )
@@ -25,7 +28,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.util.unit_conversion import SpeedConverter
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from .entity import (
     TeslemetryVehicleComplexStreamEntity,
@@ -232,7 +234,7 @@ class TeslemetryPollingNumberEntity(TeslemetryVehicleEntity, TeslemetryVehicleNu
         )
 
 
-class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleNumberEntity, RestoreEntity):
+class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleNumberEntity, RestoreNumber):
     """Number entity for current charge."""
 
     entity_description: TeslemetryNumberEntityDescription
@@ -250,6 +252,7 @@ class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, Tesl
         keys = [description.streaming_key]
         if description.streaming_max_key:
             keys.append(description.streaming_max_key)
+        self._attr_native_max_value = self.entity_description.native_max_value
         super().__init__(
             data, description.key, keys
         )
@@ -257,10 +260,11 @@ class TeslemetryStreamingNumberEntity(TeslemetryVehicleComplexStreamEntity, Tesl
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
-        if (state := await self.async_get_last_state()) is not None:
-            if (state.state.isdigit()):
-                self._attr_native_value = float(state.state)
-                self._attr_native_max_value = float(state.attributes.get("max_value", self.entity_description.native_max_value))
+        if ((last_state := await self.async_get_last_state()) and (last_number_data := await self.async_get_last_number_data())):
+            if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+                self._attr_native_value = last_number_data.native_value
+            if last_number_data.native_max_value:
+                self._attr_native_max_value = last_number_data.native_max_value
 
     def _async_data_from_stream(self, data) -> None:
         """Update the value of the entity."""

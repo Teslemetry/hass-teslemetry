@@ -50,6 +50,8 @@ PLATFORMS: Final = [
     Platform.UPDATE,
 ]
 
+type TeslemetryConfigEntry = ConfigEntry[TeslemetryData]
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
     async_register_services(hass)

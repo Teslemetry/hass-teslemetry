@@ -1,11 +1,10 @@
 """Teslemetry helper functions."""
 
-import asyncio
 from typing import Any
 from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.exceptions import HomeAssistantError
-from .const import DOMAIN, LOGGER, TeslemetryState
+from .const import DOMAIN, LOGGER
 
 
 def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
