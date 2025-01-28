@@ -30,6 +30,7 @@ class TeslemetryData:
     energysites: list[TeslemetryEnergyData]
     scopes: list[Scope]
     teslemetry: Teslemetry
+    stream: TeslemetryStream
 
 
 @dataclass

@@ -666,6 +666,9 @@
       },
       "grid_status": {
         "default": "mdi:power-plug"
+      },
+      "credit_balance": {
+        "default": "mdi:credit-card"
       }
     },
     "switch": {

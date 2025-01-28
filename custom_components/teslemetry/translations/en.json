@@ -1054,6 +1054,9 @@
       },
       "wheel_type": {
         "name": "Wheel type"
+      },
+      "credit_balance": {
+        "name": "Command credits"
       }
     },
     "switch": {

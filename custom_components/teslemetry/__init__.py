@@ -215,7 +215,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup Platforms
     entry.runtime_data = TeslemetryData(
-        vehicles, energysites, scopes, teslemetry
+        vehicles, energysites, scopes, teslemetry, stream
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
