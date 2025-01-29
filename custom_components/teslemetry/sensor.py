@@ -1,13 +1,12 @@
 """Sensor platform for Teslemetry integration."""
 
 from __future__ import annotations
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any
 
 from teslemetry_stream import Signal, TeslemetryStream
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from typing import cast
 
 from homeassistant.components.sensor import (
@@ -1325,7 +1324,7 @@ async def async_setup_entry(
 
     for energysite in entry.runtime_data.energysites:
         for description in ENERGY_LIVE_DESCRIPTIONS:
-            if description.key in energysite.live_coordinator.data:
+            if description.key in energysite.live_coordinator.data or description.key == "percentage_charged":
                 entities.append(TeslemetryEnergyLiveSensorEntity(energysite, description))
         for din in energysite.live_coordinator.data.get("wall_connectors", {}):
             for description in WALL_CONNECTOR_DESCRIPTIONS:
