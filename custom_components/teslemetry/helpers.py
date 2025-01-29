@@ -23,22 +23,22 @@ def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
 async def handle_command(command) -> dict[str, Any]:
     """Handle a command."""
     try:
-        result = await command
+        res = await command
     except TeslaFleetError as e:
         raise HomeAssistantError(
             translation_domain=DOMAIN,
             translation_key="command_exception",
             translation_placeholders={"message": e.message},
         ) from e
-    LOGGER.debug("Command result: %s", result)
-    return result
+    LOGGER.debug("Command result: %s", res)
+    return res
 
 
-async def handle_vehicle_command(command) -> dict[str, Any]:
+async def handle_vehicle_command(command) -> bool:
     """Handle a vehicle command."""
-    result = await handle_command(command)
-    if (response := result.get("response")) is None:
-        if error := result.get("error"):
+    res = await handle_command(command)
+    if (response := res.get("response")) is None:
+        if error := res.get("error"):
             # No response with error
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -50,11 +50,11 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
             translation_domain=DOMAIN,
             translation_key="command_no_response",
         )
-    if (result := response.get("result")) is not True:
+    if (response.get("result")) is not True:
         if reason := response.get("reason"):
             if reason in ("already_set", "not_charging", "requested"):
                 # Reason is acceptable
-                return result
+                return False
             # Result of false with reason
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -67,7 +67,7 @@ async def handle_vehicle_command(command) -> dict[str, Any]:
             translation_key="command_no_result"
         )
     # Response with result of true
-    return result
+    return True
 
 
 def auto_type(value) -> int | float | bool | str:

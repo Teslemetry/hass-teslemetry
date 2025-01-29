@@ -14,13 +14,13 @@ from homeassistant.components.switch import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 from tesla_fleet_api.const import Scope, Seat
 from teslemetry_stream import Signal
-from teslemetry_stream.const import SentryModeState
+from teslemetry_stream.const import SentryModeState, DetailedChargeState
 
 from .entity import (
     TeslemetryEnergyInfoEntity,
@@ -32,6 +32,7 @@ from .models import (
     TeslemetryVehicleData,
 )
 from .const import DOMAIN
+from .helpers import handle_vehicle_command, handle_command
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -41,10 +42,11 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
     on_func: Callable
     off_func: Callable | None = None
     scopes: list[Scope] | None = None
-    polling_value_fn: Callable[[StateType], StateType] = bool
+    polling_value_fn: Callable[[StateType], bool] = bool
     streaming_key: Signal | None = None
-    streaming_value_fn: Callable[[StateType], StateType] = bool
+    streaming_value_fn: Callable[[StateType], bool] = bool
     streaming_firmware: str = "2024.26"
+    unique_id: str | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
@@ -107,10 +109,12 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
-        key="charge_state_user_charge_enable_request",
-        streaming_key=Signal.CHARGE_ENABLE_REQUEST,
+        key="charge_state_charging_state",
+        unique_id="charge_state_user_charge_enable_request",
+        streaming_key=Signal.DETAILED_CHARGE_STATE,
         on_func=lambda api: api.charge_start(),
         off_func=lambda api: api.charge_stop(),
+        streaming_value_fn=lambda state: DetailedChargeState.get(state) in {"Starting", "Charging"},
         scopes=[Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
@@ -120,6 +124,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         on_func=lambda api: api.remote_start_drive(),
         scopes=[Scope.VEHICLE_CMDS],
     ),
+
 )
 
 
@@ -166,7 +171,7 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
         """Turn on the Switch."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await self.handle_command(self.entity_description.on_func(self.api))
+        await handle_vehicle_command(self.entity_description.on_func(self.api))
         self._attr_is_on = True
         self.async_write_ha_state()
 
@@ -181,9 +186,10 @@ class TeslemetryVehicleSwitchEntity(SwitchEntity):
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await self.handle_command(self.entity_description.off_func(self.api))
+        await handle_vehicle_command(self.entity_description.off_func(self.api))
         self._attr_is_on = False
         self.async_write_ha_state()
+
 
 class TeslemetryPollingVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetryVehicleSwitchEntity):
     """Base class for Teslemetry vehicle switch entities."""
@@ -202,6 +208,8 @@ class TeslemetryPollingVehicleSwitchEntity(TeslemetryVehicleEntity, TeslemetryVe
         super().__init__(
             data, description.key
         )
+        if description.unique_id:
+            self._attr_unique_id = f"{data.vin}-{description.unique_id}"
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
@@ -232,6 +240,8 @@ class TeslemetryStreamingVehicleSwitchEntity(TeslemetryVehicleStreamSingleEntity
         super().__init__(
             data, description.key, description.streaming_key
         )
+        if description.unique_id:
+            self._attr_unique_id = f"{data.vin}-{description.unique_id}"
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
@@ -275,16 +285,16 @@ class TeslemetryStormModeSwitchEntity(
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
         self.raise_for_scope(Scope.ENERGY_CMDS)
-        await self.handle_command(self.api.storm_mode(enabled=True))
-        self._attr_is_on = True
-        self.async_write_ha_state()
+        if(await handle_command(self.api.storm_mode(enabled=True))):
+            self._attr_is_on = True
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope(Scope.ENERGY_CMDS)
-        await self.handle_command(self.api.storm_mode(enabled=False))
-        self._attr_is_on = False
-        self.async_write_ha_state()
+        if(await handle_command(self.api.storm_mode(enabled=False))):
+            self._attr_is_on = False
+            self.async_write_ha_state()
 
 
 class TeslemetryChargeFromGridSwitchEntity(
@@ -315,21 +325,21 @@ class TeslemetryChargeFromGridSwitchEntity(
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
         self.raise_for_scope(Scope.ENERGY_CMDS)
-        await self.handle_command(
+        if(await handle_command(
             self.api.grid_import_export(
                 disallow_charge_from_grid_with_solar_installed=False
             )
-        )
-        self._attr_is_on = True
-        self.async_write_ha_state()
+        )):
+            self._attr_is_on = True
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
         self.raise_for_scope(Scope.ENERGY_CMDS)
-        await self.handle_command(
+        if(await handle_command(
             self.api.grid_import_export(
                 disallow_charge_from_grid_with_solar_installed=True
             )
-        )
-        self._attr_is_on = False
-        self.async_write_ha_state()
+        )):
+            self._attr_is_on = False
+            self.async_write_ha_state()
