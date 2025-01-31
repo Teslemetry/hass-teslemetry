@@ -14,13 +14,13 @@ from homeassistant.components.switch import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 from tesla_fleet_api.const import Scope, Seat
 from teslemetry_stream import Signal
-from teslemetry_stream.const import SentryModeState, DetailedChargeState
+from teslemetry_stream.const import DefrostModeState, SentryModeState, DetailedChargeState
 
 from .entity import (
     TeslemetryEnergyInfoEntity,
@@ -102,6 +102,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         key="climate_state_defrost_mode",
         streaming_key=Signal.DEFROST_MODE,
         streaming_firmware="2024.44.25",
+        streaming_value_fn=lambda state: DefrostModeState.get(state) != "Off",
         on_func=lambda api: api.set_preconditioning_max(on=True, manual_override=False),
         off_func=lambda api: api.set_preconditioning_max(
             on=False, manual_override=False
