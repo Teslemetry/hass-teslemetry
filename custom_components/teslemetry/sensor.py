@@ -1607,9 +1607,10 @@ class TeslemetryWallConnectorVehicleSensorEntity(
                 }
                 return
         self._attr_native_value = value
+        model = MODELS.get(value[3]) if isinstance(value, str) and len(value) > 3 else None
         self._attr_extra_state_attributes = {
             "vin": value,
-            "model": MODELS.get(value[3]),
+            "model": model,
         }
 
 
