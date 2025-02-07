@@ -212,6 +212,17 @@
         "name": "Wake"
       }
     },
+    "calendar": {
+      "charge_schedule_data_charge_schedules": {
+        "name": "Charging schedule"
+      },
+      "preconditioning_schedule_data_precondition_schedules": {
+        "name": "Precondition schedule"
+      },
+      "tariff_content": {
+        "name": "Tariffs"
+      }
+    },
     "climate": {
       "climate_state_cabin_overheat_protection": {
         "name": "Cabin overheat protection"

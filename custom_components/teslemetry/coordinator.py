@@ -39,9 +39,9 @@ ENDPOINTS = [
     VehicleDataEndpoint.LOCATION_DATA,
     VehicleDataEndpoint.VEHICLE_STATE,
     VehicleDataEndpoint.VEHICLE_CONFIG,
+    VehicleDataEndpoint.CHARGE_SCHEDULE_DATA,
+    VehicleDataEndpoint.PRECONDITIONING_SCHEDULE_DATA,
 ]
-
-
 
 
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -180,7 +180,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
         self.hass.bus.fire("teslemetry_site_info", data)
 
-        return flatten(data)
+        return flatten(data, exceptions=["tariff_content","tariff_content_v2"])
 
 class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""

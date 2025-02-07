@@ -7,14 +7,16 @@ from homeassistant.exceptions import HomeAssistantError
 from .const import DOMAIN, LOGGER
 
 
-def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
+def flatten(data: dict[str, Any], parent: str | None = None, exceptions: list[str]=[]) -> dict[str, Any]:
     """Flatten the data structure."""
     result = {}
     for key, value in data.items():
         if parent:
             key = f"{parent}_{key}"
-        if isinstance(value, dict):
-            result.update(flatten(value, key))
+        if key in exceptions:
+            result[key] = value
+        elif isinstance(value, dict):
+            result.update(flatten(value, key, exceptions))
         else:
             result[key] = value
     return result
