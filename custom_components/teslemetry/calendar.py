@@ -1,28 +1,23 @@
 """Calandar platform for Teslemetry integration."""
 
-from typing import Any, cast
-from itertools import chain
 from datetime import datetime, timedelta
-from dateutil.rrule import rrulestr
+from itertools import chain
+from typing import Any
 
 from attr import dataclass
-from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
-from teslemetry_stream import Signal
-
 from homeassistant.components.calendar import (
-    CalendarEvent,
     CalendarEntity,
+    CalendarEvent,
 )
 from homeassistant.components.calendar.const import CalendarEntityFeature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
-from voluptuous.validators import Number
+from tesla_fleet_api.const import Scope
 
 from . import TeslemetryConfigEntry
-from .const import LOGGER, TeslemetryClimateSide, DOMAIN
-from .entity import TeslemetryEnergyInfoEntity, TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity
+from .entity import TeslemetryEnergyInfoEntity, TeslemetryVehicleEntity
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
 RRULE_DAYS = {
@@ -53,9 +48,13 @@ async def async_setup_entry(
             )
             for vehicle in entry.runtime_data.vehicles
         ),(
-            TeslemetryTariffSchedule(energy)
+            TeslemetryTariffSchedule(energy, "tariff_content_v2")
             for energy in entry.runtime_data.energysites
-            if energy.info_coordinator.data.get("tariff_content")
+            if energy.info_coordinator.data.get("tariff_content_v2_seasons")
+        ),(
+            TeslemetryTariffSchedule(energy, "tariff_content_v2_sell_tariff")
+            for energy in entry.runtime_data.energysites
+            if energy.info_coordinator.data.get("tariff_content_v2_sell_tariff_seasons")
         ))
     )
 
@@ -234,11 +233,11 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
 class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
     """Vehicle Precondition Schedule Calendar."""
 
-    _attr_supported_features = (
-        CalendarEntityFeature.CREATE_EVENT
-        | CalendarEntityFeature.DELETE_EVENT
-        | CalendarEntityFeature.UPDATE_EVENT
-    )
+    _attr_supported_features = (0)
+        #CalendarEntityFeature.CREATE_EVENT
+        #| CalendarEntityFeature.DELETE_EVENT
+        #| CalendarEntityFeature.UPDATE_EVENT
+    #)
     events: list[CalendarEvent]
     summary: str
 
@@ -339,7 +338,6 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
     async def async_create_event(self, **kwargs: Any) -> None:
         """Add a new event to calendar."""
-        print(kwargs)
         if "dtend" not in kwargs:
             raise ServiceValidationError("Missing start or end")
         if "description" in kwargs and kwargs["description"]:
@@ -357,7 +355,6 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         if "rrule" in kwargs:
             one_time = False
             rrule_str = kwargs["rrule"]
-            print(rrule_str)
             if "FREQ=WEEKLY" not in rrule_str:
                 raise ServiceValidationError("Repeat must be weekly")
             if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
@@ -372,8 +369,6 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         else:
             days_of_week = DAYS[kwargs["dtend"].weekday()]
             one_time = True
-
-        print(days_of_week,latitude,longitude,kwargs["dtend"].hour * 60 + kwargs["dtend"].minute,one_time)
 
         await self.api.add_precondition_schedule(
             days_of_week=days_of_week,
@@ -394,7 +389,7 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
             """Update an event on the calendar."""
 
             try:
-                latitude, longitude = kwargs["location"].split(",")
+                latitude, longitude = event.description.split(",")
                 latitude = float(latitude)
                 longitude = float(longitude)
             except ValueError:
@@ -419,22 +414,60 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         """Delete an event on the calendar."""
         await self.api.remove_precondition_schedule(int(uid))
 
+@dataclass
+class TarrifPeriod:
+    """A single tariff period"""
+    name: str
+    price: float
+    fromHour: int = 0
+    fromMinute: int = 0
+    toHour: int = 0
+    toMinute: int = 0
+
 class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
     """Vehicle Charge Schedule Calendar."""
 
+    seasons: dict[str, dict[str, Any]]
+    charges: dict[str, dict[str, Any]]
+
     def __init__(
         self,
-        data: TeslemetryEnergyData
+        data: TeslemetryEnergyData,
+        key: str,
     ) -> None:
         """Initialize the climate."""
-        super().__init__(data, "tariff_content_v2")
-        assert self._value
-        self._attr_name = f"{self._value.get('utility')} {self._value.get('name')}"
+        super().__init__(data, key)
 
 
     @property
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event."""
+
+        for season in self.seasons:
+            if not self.seasons[season]:
+                continue
+            now = dt_util.now()
+            start = datetime(now.year, self.seasons[season]["fromMonth"], self.seasons[season]["fromDay"], tzinfo=now.tzinfo)
+            end = datetime(now.year, self.seasons[season]["toMonth"], self.seasons[season]["toDay"], tzinfo=now.tzinfo) + timedelta(days=1)
+            if end <= now or start >= now:
+                continue
+            for name in self.seasons[season]["tou_periods"]:
+                for period in self.seasons[season]["tou_periods"][name]["periods"]:
+                    day = now.weekday()
+                    if day < period.get("fromDayOfWeek",0) or day > period.get("toDayOfWeek",6):
+                        continue
+                    start_time = datetime(now.year, now.month, now.day, period.get("fromHour",0) % 24, period.get("fromMinute",0) % 60, tzinfo=now.tzinfo)
+                    end_time = datetime(now.year, now.month, now.day, period.get("toHour",0) % 24, period.get("toMinute",0) % 60, tzinfo=now.tzinfo)
+                    if end_time < start_time:
+                        end_time += timedelta(days=1)
+                    if end_time > now and start_time < now:
+                        price = self.charges.get(season, self.charges["ALL"])["rates"].get(name,self.charges["ALL"]["rates"]["ALL"])
+                        return CalendarEvent(
+                            start=start_time,
+                            end=end_time,
+                            summary=f"{price}/kWh",
+                            description=f"Seasons: {season}\nPeriod: {name}\nPrice: {price}/kWh",
+                        )
         return None
 
     async def async_get_events(
@@ -445,57 +478,50 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
         events: list[CalendarEvent] = []
-        tarrifs = self._value or {}
-        seasons = tarrifs.get("seasons", {})
-        energy_charges = tarrifs.get("energy_charges", {})
+
         TZ = dt_util.get_default_time_zone()
 
         for year in range(start_date.year, end_date.year + 1):
-            print(year)
-            for season in seasons:
-                if not seasons[season]:
+            for season in self.seasons:
+                if not self.seasons[season]:
                     continue
-                print(season)
-                start = datetime(year, seasons[season]["fromMonth"], seasons[season]["fromDay"], tzinfo=TZ)
-                end = datetime(year, seasons[season]["toMonth"], seasons[season]["toDay"], tzinfo=TZ) + timedelta(days=1)
+                start = datetime(year, self.seasons[season]["fromMonth"], self.seasons[season]["fromDay"], tzinfo=TZ)
+                end = datetime(year, self.seasons[season]["toMonth"], self.seasons[season]["toDay"], tzinfo=TZ) + timedelta(days=1)
 
                 if end <= start_date or start >= end_date:
                     continue
 
-                week: list[list[dict[str,str|int]]] = [[],[],[],[],[],[],[]]
-                for name in seasons[season]["tou_periods"]:
-                    print(name)
-                    for period in seasons[season]["tou_periods"][name]["periods"]:
-                        print(period)
+                week: list[list[TarrifPeriod]] = [[],[],[],[],[],[],[]]
+                for name in self.seasons[season]["tou_periods"]:
+                    for period in self.seasons[season]["tou_periods"][name]["periods"]:
                         for day in range(period.get("fromDayOfWeek",0),period.get("toDayOfWeek",6)+1):
-                            print(day)
-                            week[day].append({
-                                "name": name,
-                                "from": period.get("fromHour",0),
-                                "to": period.get("toHour",23),
-                                "price": energy_charges.get(season, energy_charges["ALL"])["rates"].get(name,energy_charges["ALL"]["rates"]["ALL"])
-                            })
+                            week[day].append(TarrifPeriod(
+                                name,
+                                self.charges.get(season, self.charges["ALL"])["rates"].get(name,self.charges["ALL"]["rates"]["ALL"]),
+                                period.get("fromHour",0) % 24,
+                                period.get("fromMinute",0) % 60,
+                                period.get("toHour",0) % 24,
+                                period.get("toMinute",0) % 60
+                            ))
 
                 start = max(start_date, start)
                 end = min(end_date, end)
-
-                print(week)
 
                 day = start
                 while day < end:
                     weekday = day.weekday()
                     for period in week[weekday]:
-                        start_time = datetime(day.year, day.month, day.day, period["from"], tzinfo=TZ)
-                        end_time = datetime(day.year, day.month, day.day, period["to"], tzinfo=TZ)
-                        if period["to"] < period["from"]:
+                        start_time = datetime(day.year, day.month, day.day, period.fromHour, period.fromMinute, tzinfo=TZ)
+                        end_time = datetime(day.year, day.month, day.day, period.toHour, period.toMinute, tzinfo=TZ)
+                        if end_time < start_time:
                             end_time += timedelta(days=1)
                         if end_time > start_date or start_time < end_date:
                             events.append(
                                 CalendarEvent(
                                     start=start_time,
                                     end=end_time,
-                                    summary=period['name'],
-                                    description=f"Seasons: {season}\nPrice: {period["price"]}/kWh",
+                                    summary=f"{period.price}/kWh",
+                                    description=f"Seasons: {season}\nPeriod: {period.name}\nPrice: {period.price}/kWh",
                                 )
                             )
                     day += timedelta(days=1)
@@ -505,4 +531,9 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
 
     def _async_update_attrs(self) -> None:
         """Update the calandar events."""
-        pass
+        seasons = self.get(f"{self.key}_seasons")
+        assert seasons
+        self.seasons = seasons
+        charges = self.get(f"{self.key}_energy_charges")
+        assert charges
+        self.charges = charges

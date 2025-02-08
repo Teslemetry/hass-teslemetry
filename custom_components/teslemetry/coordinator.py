@@ -6,7 +6,7 @@ from typing import Any
 from random import randint
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
-from tesla_fleet_api.const import Method, VehicleDataEndpoint
+from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
     InvalidToken,
@@ -180,7 +180,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
         self.hass.bus.fire("teslemetry_site_info", data)
 
-        return flatten(data, exceptions=["tariff_content","tariff_content_v2"])
+        return flatten(data, exceptions=["daily_charges","demand_charges","energy_charges","seasons"])
 
 class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""

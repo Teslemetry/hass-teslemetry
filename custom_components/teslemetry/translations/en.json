@@ -219,8 +219,11 @@
       "preconditioning_schedule_data_precondition_schedules": {
         "name": "Precondition schedule"
       },
-      "tariff_content": {
-        "name": "Tariffs"
+      "tariff_content_v2": {
+        "name": "Buy tariff"
+      },
+      "tariff_content_v2_sell_tariff": {
+        "name": "Sell tariff"
       }
     },
     "climate": {

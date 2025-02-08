@@ -11,11 +11,10 @@ def flatten(data: dict[str, Any], parent: str | None = None, exceptions: list[st
     """Flatten the data structure."""
     result = {}
     for key, value in data.items():
+        exception = key in exceptions
         if parent:
             key = f"{parent}_{key}"
-        if key in exceptions:
-            result[key] = value
-        elif isinstance(value, dict):
+        if isinstance(value, dict) and not exception:
             result.update(flatten(value, key, exceptions))
         else:
             result[key] = value
