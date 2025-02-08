@@ -465,8 +465,8 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                         return CalendarEvent(
                             start=start_time,
                             end=end_time,
-                            summary=f"{price}/kWh",
-                            description=f"Seasons: {season}\nPeriod: {name}\nPrice: {price}/kWh",
+                            summary=f"{price} $/kWh",
+                            description=f"Seasons: {season}\nPeriod: {name}\nPrice: {price} $/kWh",
                         )
         return None
 
@@ -520,8 +520,8 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                                 CalendarEvent(
                                     start=start_time,
                                     end=end_time,
-                                    summary=f"{period.price}/kWh",
-                                    description=f"Seasons: {season}\nPeriod: {period.name}\nPrice: {period.price}/kWh",
+                                    summary=f"{period.price} $/kWh",
+                                    description=f"Seasons: {season}\nPeriod: {period.name}\nPrice: {period.price} $/kWh",
                                 )
                             )
                     day += timedelta(days=1)
