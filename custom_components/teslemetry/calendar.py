@@ -107,12 +107,11 @@ class Schedule:
 class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
     """Vehicle Charge Schedule Calendar."""
 
-    _attr_supported_features = CalendarEntityFeature(0)
-    #(
-    #    CalendarEntityFeature.CREATE_EVENT
-    #    | CalendarEntityFeature.DELETE_EVENT
-    #    | CalendarEntityFeature.UPDATE_EVENT
-    #)
+    _attr_supported_features = CalendarEntityFeature(
+        CalendarEntityFeature.CREATE_EVENT
+        | CalendarEntityFeature.DELETE_EVENT
+        | CalendarEntityFeature.UPDATE_EVENT
+    )
     schedules: list[Schedule] = []
     summary: str
 
@@ -220,6 +219,71 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
                 )
             )
 
+    async def _change(self, event: dict[str,Any]):
+        """Add or update an event on the calendar."""
+
+        if "dtend" not in event and "dtstart" not in event:
+            raise ServiceValidationError("Missing start or end")
+        if "description" in event and event["description"]:
+            try:
+                latitude, longitude = event["location"].split(",")
+                latitude = float(latitude)
+                longitude = float(longitude)
+            except ValueError:
+                raise ServiceValidationError("Description must be a comma separated latitude and longitude, or left blank")
+        elif self.hass.config.latitude and self.hass.config.longitude:
+            latitude = self.hass.config.latitude
+            longitude = self.hass.config.longitude
+        else:
+            raise ServiceValidationError("Missing location")
+        if "rrule" in event:
+            one_time = False
+            rrule_str = event["rrule"]
+            if "FREQ=WEEKLY" not in rrule_str:
+                raise ServiceValidationError("Repeat must be weekly")
+            if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
+                raise ServiceValidationError("Repeat interval must be 1 week")
+            if "UNTIL=" in rrule_str or "COUNT=" in rrule_str:
+                raise ServiceValidationError("End must be Never")
+            if "BYDAY=" not in rrule_str:
+                raise ServiceValidationError("Missing days of week")
+            byday = rrule_str.split("BYDAY=")[1].split(";")[0].split(",")
+            days_of_week = ",".join([RRULE_DAYS[day] for day in byday])
+            one_time = False
+        else:
+            days_of_week = DAYS[event["dtend"].weekday()]
+            one_time = True
+
+        start_time = event["dtstart"].hour * 60 + event["dtstart"].minute if "dtstart" in event else None
+        end_time = event["dtend"].hour * 60 + event["dtend"].minute if "dtend" in event else None
+
+        await self.api.add_charge_schedule(
+            id=event.get("id"),
+            days_of_week=days_of_week,
+            enabled=True,
+            lat=latitude,
+            lon=longitude,
+            start_time=start_time,
+            end_time=end_time,
+            one_time=one_time
+        )
+
+    async def async_create_event(self, **kwargs: Any) -> None:
+        """Add a new event to calendar."""
+        await self._change(kwargs)
+
+    async def async_update_event(
+            self,
+            uid: str,
+            event: dict[str, Any],
+            recurrence_id: str | None = None,
+            recurrence_range: str | None = None,
+        ) -> None:
+        """Update an event on the calendar."""
+
+        event["id"] = int(uid)
+        await self._change(event)
+
     async def async_delete_event(
         self,
         uid: str,
@@ -227,17 +291,17 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Delete an event on the calendar."""
-        self.api.remove_charge_schedule(int(uid))
+        await self.api.remove_charge_schedule(int(uid))
 
 
 class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
     """Vehicle Precondition Schedule Calendar."""
 
-    _attr_supported_features = (0)
-        #CalendarEntityFeature.CREATE_EVENT
-        #| CalendarEntityFeature.DELETE_EVENT
-        #| CalendarEntityFeature.UPDATE_EVENT
-    #)
+    _attr_supported_features = (
+        CalendarEntityFeature.CREATE_EVENT
+        | CalendarEntityFeature.DELETE_EVENT
+        | CalendarEntityFeature.UPDATE_EVENT
+    )
     events: list[CalendarEvent]
     summary: str
 
@@ -336,25 +400,26 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
                 )
             )
 
-    async def async_create_event(self, **kwargs: Any) -> None:
-        """Add a new event to calendar."""
-        if "dtend" not in kwargs:
+    async def _change(self, event) -> None:
+        """Add or change a schedule"""
+
+        if "dtend" not in event:
             raise ServiceValidationError("Missing start or end")
-        if "description" in kwargs and kwargs["description"]:
+        if "description" in event and event["description"]:
             try:
-                latitude, longitude = kwargs["location"].split(",")
+                latitude, longitude = event["location"].split(",")
                 latitude = float(latitude)
                 longitude = float(longitude)
             except ValueError:
-                raise ServiceValidationError("Location must be a comma separated latitude and longitude")
+                raise ServiceValidationError("Description must be a comma separated latitude and longitude, or left blank")
         elif self.hass.config.latitude and self.hass.config.longitude:
             latitude = self.hass.config.latitude
             longitude = self.hass.config.longitude
         else:
             raise ServiceValidationError("Missing location")
-        if "rrule" in kwargs:
+        if "rrule" in event:
             one_time = False
-            rrule_str = kwargs["rrule"]
+            rrule_str = event["rrule"]
             if "FREQ=WEEKLY" not in rrule_str:
                 raise ServiceValidationError("Repeat must be weekly")
             if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
@@ -367,17 +432,22 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
             days_of_week = ",".join([RRULE_DAYS[day] for day in byday])
             one_time = False
         else:
-            days_of_week = DAYS[kwargs["dtend"].weekday()]
+            days_of_week = DAYS[event["dtend"].weekday()]
             one_time = True
 
         await self.api.add_precondition_schedule(
+            id=event.get("id"),
             days_of_week=days_of_week,
             enabled=True,
             lat=latitude,
             lon=longitude,
-            precondition_time=kwargs["dtend"].hour * 60 + kwargs["dtend"].minute,
+            precondition_time=event["dtend"].hour * 60 + event["dtend"].minute,
             one_time=one_time
         )
+
+    async def async_create_event(self, **kwargs: Any) -> None:
+        """Add a new event to calendar."""
+        await self._change(kwargs)
 
     async def async_update_event(
             self,
@@ -386,24 +456,10 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
             recurrence_id: str | None = None,
             recurrence_range: str | None = None,
         ) -> None:
-            """Update an event on the calendar."""
+        """Update an event on the calendar."""
 
-            try:
-                latitude, longitude = event.description.split(",")
-                latitude = float(latitude)
-                longitude = float(longitude)
-            except ValueError:
-                raise ServiceValidationError("Location must be a comma separated latitude and longitude")
-            #if "rrule" in kwargs:
-
-            await self.api.add_precondition_schedule(
-                id=int(uid),
-                days_of_week="Monday",
-                enabled=True,
-                lat=latitude,
-                lon=longitude,
-                precondition_time=event["end"].hour * 60 + event["end"].minute,
-            )
+        event["id"] = int(uid)
+        await self._change(event)
 
     async def async_delete_event(
         self,
@@ -416,7 +472,8 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
 @dataclass
 class TarrifPeriod:
-    """A single tariff period"""
+    """A single tariff period."""
+
     name: str
     price: float
     fromHour: int = 0
@@ -429,6 +486,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
 
     seasons: dict[str, dict[str, Any]]
     charges: dict[str, dict[str, Any]]
+    currency: str
 
     def __init__(
         self,
@@ -465,7 +523,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                         return CalendarEvent(
                             start=start_time,
                             end=end_time,
-                            summary=f"{price}/kWh",
+                            summary=f"{price}{self.hass.config.currency}/kWh",
                             description=f"Seasons: {season}\nPeriod: {name}\nPrice: {price}/kWh",
                         )
         return None
@@ -520,7 +578,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                                 CalendarEvent(
                                     start=start_time,
                                     end=end_time,
-                                    summary=f"{period.price}/kWh",
+                                    summary=f"{period.price}{self.hass.config.currency}/kWh",
                                     description=f"Seasons: {season}\nPeriod: {period.name}\nPrice: {period.price}/kWh",
                                 )
                             )

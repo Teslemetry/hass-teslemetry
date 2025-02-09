@@ -247,6 +247,8 @@ class TeslemetryCoordinatorEntity(
 class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
     """Parent class for polled Teslemetry Vehicle entities."""
 
+    api: VehicleSpecific
+
     def __init__(
         self,
         data: TeslemetryVehicleData,
@@ -279,6 +281,8 @@ class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
 class TeslemetryEnergyLiveEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Live entities."""
 
+    api: EnergySpecific
+
     def __init__(
         self,
         data: TeslemetryEnergyData,
@@ -296,6 +300,8 @@ class TeslemetryEnergyLiveEntity(TeslemetryCoordinatorEntity):
 class TeslemetryEnergyInfoEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
+    api: EnergySpecific
+
     def __init__(
         self,
         data: TeslemetryEnergyData,
@@ -311,6 +317,8 @@ class TeslemetryEnergyInfoEntity(TeslemetryCoordinatorEntity):
 
 class TeslemetryEnergyHistoryEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy History Entities."""
+
+    api: EnergySpecific
 
     def __init__(
         self,
@@ -331,6 +339,8 @@ class TeslemetryWallConnectorEntity(
     TeslemetryCoordinatorEntity, CoordinatorEntity[TeslemetryEnergySiteLiveCoordinator]
 ):
     """Parent class for Teslemetry Wall Connector Entities."""
+
+    api: EnergySpecific
 
     _attr_has_entity_name = True
 
