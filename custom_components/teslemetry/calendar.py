@@ -523,7 +523,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                         return CalendarEvent(
                             start=start_time,
                             end=end_time,
-                            summary=f"{price}{self.hass.config.currency}/kWh",
+                            summary=f"{price}/kWh",
                             description=f"Seasons: {season}\nPeriod: {name}\nPrice: {price}/kWh",
                         )
         return None
@@ -578,7 +578,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                                 CalendarEvent(
                                     start=start_time,
                                     end=end_time,
-                                    summary=f"{period.price}{self.hass.config.currency}/kWh",
+                                    summary=f"{period.price}/kWh",
                                     description=f"Seasons: {season}\nPeriod: {period.name}\nPrice: {period.price}/kWh",
                                 )
                             )
