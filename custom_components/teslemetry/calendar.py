@@ -1,6 +1,7 @@
 """Calandar platform for Teslemetry integration."""
 
 from datetime import datetime, timedelta
+from time import time
 from itertools import chain
 from typing import Any
 
@@ -19,6 +20,7 @@ from tesla_fleet_api.const import Scope
 from . import TeslemetryConfigEntry
 from .entity import TeslemetryEnergyInfoEntity, TeslemetryVehicleEntity
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .helpers import handle_vehicle_command
 
 RRULE_DAYS = {
     "MO": "Monday",
@@ -96,6 +98,7 @@ def get_delta(minutes: int, days_of_week: int, start: datetime) -> timedelta:
 class Schedule:
     """A schedule for a vehicle."""
 
+    name: str
     startMins: timedelta
     endMins: timedelta
     days_of_week: int
@@ -143,7 +146,8 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
                         event = CalendarEvent(
                                 start=start,
                                 end=end,
-                                summary=self.summary,
+                                summary=schedule.name,
+                                description=schedule.location,
                                 location=schedule.location,
                                 uid=schedule.uid,
                                 rrule=schedule.rrule
@@ -161,11 +165,11 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
         events = []
         for schedule in self.schedules:
-            day = dt_util.start_of_local_day(start_date)
+            day = dt_util.start_of_local_day()
             count = 0
 
             while day < end_date and (count < 7 or schedule.rrule):
-                if test_days_of_week(day, schedule.days_of_week):
+                if day >= start_date and test_days_of_week(day, schedule.days_of_week):
                     start = day + schedule.startMins
                     end = day + schedule.endMins
                     if (end > start_date) and (start < end_date):
@@ -173,7 +177,8 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
                             CalendarEvent(
                                 start=start,
                                 end=end,
-                                summary=self.summary,
+                                summary=schedule.name,
+                                description=schedule.location,
                                 location=schedule.location,
                                 uid=schedule.uid,
                                 rrule=schedule.rrule
@@ -189,7 +194,7 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         schedules = self._value or []
         self.schedules = []
         for schedule in schedules:
-            if not schedule["enabled"]:
+            if not schedule["enabled"] or not schedule["days_of_week"]:
                 continue
             if not schedule["end_enabled"]:
                 startMins = timedelta(minutes=schedule["start_time"])
@@ -204,12 +209,14 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
                 startMins = timedelta(minutes=schedule["start_time"])
                 endMins = timedelta(minutes=schedule["end_time"])
 
-            rrule = None
-            if not schedule["one_time"]:
-                rrule = f"FREQ=WEEKLY;WKST=MO;BYDAY={','.join(get_rrule_days(schedule['days_of_week']))}"
+            rrule = f"FREQ=WEEKLY;WKST=MO;BYDAY={','.join(get_rrule_days(schedule['days_of_week']))}"
+            if schedule["one_time"]:
+                rrule += ";COUNT=1"
+
 
             self.schedules.append(
                 Schedule(
+                    name=schedule["name"] or self.summary,
                     startMins=startMins,
                     endMins=endMins,
                     days_of_week=schedule["days_of_week"],
@@ -226,7 +233,7 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
             raise ServiceValidationError("Missing start or end")
         if "description" in event and event["description"]:
             try:
-                latitude, longitude = event["location"].split(",")
+                latitude, longitude = event["description"].split(",")
                 latitude = float(latitude)
                 longitude = float(longitude)
             except ValueError:
@@ -239,17 +246,19 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         if "rrule" in event:
             one_time = False
             rrule_str = event["rrule"]
-            if "FREQ=WEEKLY" not in rrule_str:
-                raise ServiceValidationError("Repeat must be weekly")
             if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
                 raise ServiceValidationError("Repeat interval must be 1 week")
-            if "UNTIL=" in rrule_str or "COUNT=" in rrule_str:
-                raise ServiceValidationError("End must be Never")
-            if "BYDAY=" not in rrule_str:
-                raise ServiceValidationError("Missing days of week")
-            byday = rrule_str.split("BYDAY=")[1].split(";")[0].split(",")
-            days_of_week = ",".join([RRULE_DAYS[day] for day in byday])
-            one_time = False
+            if "UNTIL=" in rrule_str or ("COUNT=" in rrule_str and "COUNT=1" not in rrule_str):
+                raise ServiceValidationError("End must be Never or 1")
+            if "FREQ=DAILY" in rrule_str:
+                days_of_week = "All"
+            else:
+                if "FREQ=WEEKLY" not in rrule_str:
+                    raise ServiceValidationError("Repeat must be daily or weekly")
+                raise ServiceValidationError("Repeat must be daily or weekly")
+                if "BYDAY=" not in rrule_str:
+                    raise ServiceValidationError("Missing days of week")
+                days_of_week = ",".join([RRULE_DAYS[day] for day in rrule_str.split("BYDAY=")[1].split(";")[0].split(",")])
         else:
             days_of_week = DAYS[event["dtend"].weekday()]
             one_time = True
@@ -257,8 +266,9 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         start_time = event["dtstart"].hour * 60 + event["dtstart"].minute if "dtstart" in event else None
         end_time = event["dtend"].hour * 60 + event["dtend"].minute if "dtend" in event else None
 
-        await self.api.add_charge_schedule(
+        await handle_vehicle_command(self.api.add_charge_schedule(
             id=event.get("id"),
+            name=event.get("name"),
             days_of_week=days_of_week,
             enabled=True,
             lat=latitude,
@@ -266,7 +276,21 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
             start_time=start_time,
             end_time=end_time,
             one_time=one_time
-        )
+        ))
+        self.coordinator.data["preconditioning_schedule_data_precondition_schedules"].append({
+            "id": id,
+            "name": event.get("name"),
+            "days_of_week": days_of_week,
+            "enabled": True,
+            "lat": latitude,
+            "lon": longitude,
+            "start_enabled": bool(start_time),
+            "start_time": start_time,
+            "end_enabled": bool(end_time),
+            "end_time": end_time,
+            "one_time": one_time
+        })
+        self.async_write_ha_state()
 
     async def async_create_event(self, **kwargs: Any) -> None:
         """Add a new event to calendar."""
@@ -291,8 +315,12 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Delete an event on the calendar."""
-        await self.api.remove_charge_schedule(int(uid))
-
+        id = int(uid)
+        await handle_vehicle_command(self.api.remove_charge_schedule(id))
+        self.coordinator.data["preconditioning_schedule_data_precondition_schedules"] = [
+            s for s in self.coordinator.data["preconditioning_schedule_data_precondition_schedules"] if s["id"] != id
+        ]
+        self.async_write_ha_state()
 
 class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
     """Vehicle Precondition Schedule Calendar."""
@@ -333,7 +361,8 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
                         event = CalendarEvent(
                                 start=start,
                                 end=end,
-                                summary=self.summary,
+                                summary=schedule.name,
+                                description=schedule.location,
                                 location=schedule.location,
                                 uid=schedule.uid,
                                 rrule=schedule.rrule
@@ -351,11 +380,11 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
         events = []
         for schedule in self.schedules:
-            day = dt_util.start_of_local_day(max(start_date, dt_util.now()))
+            day = dt_util.start_of_local_day()
             count = 0
 
             while day < end_date and (count < 7 or schedule.rrule):
-                if test_days_of_week(day, schedule.days_of_week):
+                if day >= start_date and test_days_of_week(day, schedule.days_of_week):
                     start = day + schedule.startMins
                     end = day + schedule.endMins
                     if (end > start_date) and (start < end_date):
@@ -363,7 +392,7 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
                             CalendarEvent(
                                 start=start,
                                 end=end,
-                                summary=self.summary,
+                                summary=schedule.name,
                                 description=schedule.location,
                                 location=schedule.location,
                                 uid=schedule.uid,
@@ -380,7 +409,7 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         schedules = self._value or []
         self.schedules = []
         for schedule in schedules:
-            if not schedule["enabled"]:
+            if not schedule["enabled"] or not schedule["days_of_week"]:
                 continue
             startMins = timedelta(minutes=schedule["precondition_time"])
             endMins = timedelta(minutes=schedule["precondition_time"])
@@ -391,23 +420,25 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
             self.schedules.append(
                 Schedule(
+                    name=schedule["name"] or self.summary,
                     startMins=startMins,
                     endMins=endMins,
                     days_of_week=schedule["days_of_week"],
                     uid=str(schedule["id"]),
                     location=f"{schedule['latitude']},{schedule['longitude']}",
-                    rrule=rrule
+                    rrule=rrule,
+
                 )
             )
 
     async def _change(self, event) -> None:
-        """Add or change a schedule"""
+        """Add or change a schedule."""
 
         if "dtend" not in event:
             raise ServiceValidationError("Missing start or end")
         if "description" in event and event["description"]:
             try:
-                latitude, longitude = event["location"].split(",")
+                latitude, longitude = event["description"].split(",")
                 latitude = float(latitude)
                 longitude = float(longitude)
             except ValueError:
@@ -420,30 +451,43 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         if "rrule" in event:
             one_time = False
             rrule_str = event["rrule"]
-            if "FREQ=WEEKLY" not in rrule_str:
-                raise ServiceValidationError("Repeat must be weekly")
             if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
                 raise ServiceValidationError("Repeat interval must be 1 week")
-            if "UNTIL=" in rrule_str or "COUNT=" in rrule_str:
-                raise ServiceValidationError("End must be Never")
-            if "BYDAY=" not in rrule_str:
-                raise ServiceValidationError("Missing days of week")
-            byday = rrule_str.split("BYDAY=")[1].split(";")[0].split(",")
-            days_of_week = ",".join([RRULE_DAYS[day] for day in byday])
-            one_time = False
+            if "UNTIL=" in rrule_str or ("COUNT=" in rrule_str and "COUNT=1" not in rrule_str):
+                raise ServiceValidationError("End must be Never or 1")
+            if "FREQ=DAILY" in rrule_str:
+                days_of_week = "All"
+            else:
+                if "FREQ=WEEKLY" not in rrule_str:
+                    raise ServiceValidationError("Repeat must be daily or weekly")
+                if "BYDAY=" not in rrule_str:
+                    raise ServiceValidationError("Missing days of week")
+                days_of_week = ",".join([RRULE_DAYS[day] for day in rrule_str.split("BYDAY=")[1].split(";")[0].split(",")])
         else:
             days_of_week = DAYS[event["dtend"].weekday()]
             one_time = True
 
-        await self.api.add_precondition_schedule(
-            id=event.get("id"),
+        id = event.get("id",int(time()))
+        await handle_vehicle_command(self.api.add_precondition_schedule(
+            id=id,
             days_of_week=days_of_week,
             enabled=True,
             lat=latitude,
             lon=longitude,
             precondition_time=event["dtend"].hour * 60 + event["dtend"].minute,
             one_time=one_time
-        )
+        ))
+        self.coordinator.data["preconditioning_schedule_data_precondition_schedules"].append({
+            "id": id,
+            "name": event.get("name"),
+            "days_of_week": days_of_week,
+            "enabled": True,
+            "lat": latitude,
+            "lon": longitude,
+            "precondition_time": event["dtend"].hour * 60 + event["dtend"].minute,
+            "one_time": one_time
+        })
+        self.async_write_ha_state()
 
     async def async_create_event(self, **kwargs: Any) -> None:
         """Add a new event to calendar."""
@@ -468,7 +512,12 @@ class TeslemetryPreconditionSchedule(TeslemetryVehicleEntity, CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Delete an event on the calendar."""
-        await self.api.remove_precondition_schedule(int(uid))
+        id = int(uid)
+        await handle_vehicle_command(self.api.remove_precondition_schedule(id))
+        self.coordinator.data["preconditioning_schedule_data_precondition_schedules"] = [
+            schedule for schedule in self.coordinator.data["preconditioning_schedule_data_precondition_schedules"] if schedule["id"] != id
+        ]
+        self.async_write_ha_state()
 
 @dataclass
 class TarrifPeriod:
