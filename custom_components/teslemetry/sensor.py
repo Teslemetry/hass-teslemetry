@@ -64,6 +64,7 @@ from .enums import (
     ShiftState,
     ScheduledChargingMode,
     BMSState,
+    DriveInverterState,
     ForwardCollisionSensitivity,
     GuestModeMobileAccess,
     LaneAssistLevel,
@@ -669,21 +670,33 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="di_state_front",
         streaming_key=Signal.DI_STATE_F,
+        streaming_value_fn=DriveInverterState.get,
+        options=DriveInverterState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="di_state_rear",
         streaming_key=Signal.DI_STATE_R,
+        streaming_value_fn=DriveInverterState.get,
+        options=DriveInverterState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="di_state_rear_left",
         streaming_key=Signal.DI_STATE_REL,
+        streaming_value_fn=DriveInverterState.get,
+        options=DriveInverterState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
         key="di_state_rear_right",
         streaming_key=Signal.DI_STATE_RER,
+        streaming_value_fn=DriveInverterState.get,
+        options=DriveInverterState.options,
+        device_class=SensorDeviceClass.ENUM,
         entity_registry_enabled_default=False,
     ),
     TeslemetrySensorEntityDescription(
@@ -887,7 +900,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=0,
+        suggested_display_precision=1,
     ),
     TeslemetrySensorEntityDescription(
         key="module_temp_min",
@@ -896,7 +909,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
-        suggested_display_precision=0
+        suggested_display_precision=1
     ),
     TeslemetrySensorEntityDescription(
         key="no_enough_power_to_heat",
