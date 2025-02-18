@@ -1,15 +1,11 @@
 """Climate platform for Teslemetry integration."""
 
-from collections.abc import Callable
-from typing import Any, cast
 from itertools import chain
+from typing import Any, cast
 
-from tesla_fleet_api.const import Scope, CabinOverheatProtectionTemp
-from teslemetry_stream import Signal
-
-from homeassistant.components.climate import (
+from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
-    ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
 )
@@ -21,13 +17,31 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
+from tesla_fleet_api.const import CabinOverheatProtectionTemp, Scope
+from teslemetry_stream import Signal
 
-from .const import TeslemetryClimateSide, DOMAIN
-from .entity import TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
+from .const import DOMAIN, TeslemetryClimateSide
+from .entity import (
+    TeslemetryVehicleComplexStreamEntity,
+    TeslemetryVehicleEntity,
+    TeslemetryVehicleStreamEntity,
+)
 from .models import TeslemetryVehicleData
+
+DEFAULT_MIN_TEMP = 15
+DEFAULT_MAX_TEMP = 28
+
+STREAMING_MODES = {
+    'Off': "off",
+    'On': "keep",
+    'Dog': "dog",
+    'Party': "camp"
+}
+
+PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -55,16 +69,6 @@ async def async_setup_entry(
             for vehicle in entry.runtime_data.vehicles
         ))
     )
-
-DEFAULT_MIN_TEMP = 15
-DEFAULT_MAX_TEMP = 28
-
-STREAMING_MODES = {
-    'Off': "off",
-    'On': "keep",
-    'Dog': "dog",
-    'Party': "camp"
-}
 
 class TeslemetryClimateEntity(ClimateEntity):
     """Vehicle Climate Control."""
@@ -406,7 +410,7 @@ class TeslemetryPollingCabinOverheatProtectionEntity(TeslemetryVehicleEntity, Te
             ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         )
         if self.get("vehicle_config_cop_user_set_temp_supported"):
-            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+            self._attr_supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
 
         # Scopes
         self.scoped = Scope.VEHICLE_CMDS in scopes
@@ -416,12 +420,12 @@ class TeslemetryPollingCabinOverheatProtectionEntity(TeslemetryVehicleEntity, Te
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
 
-        if state := self.get("climate_state_cabin_overheat_protection") is None:
+        if (state := self.get("climate_state_cabin_overheat_protection")) is None:
             self._attr_hvac_mode = None
         else:
             self._attr_hvac_mode = COP_MODES.get(state)
 
-        if level := self.get("climate_state_cop_activation_temperature") is None:
+        if (level := self.get("climate_state_cop_activation_temperature")) is None:
             self._attr_target_temperature = None
         else:
             self._attr_target_temperature = COP_LEVELS.get(level)
@@ -454,7 +458,7 @@ class TeslemetryStreamingCabinOverheatProtectionEntity(TeslemetryVehicleComplexS
             ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         )
         if data.coordinator.data.get("vehicle_config_cop_user_set_temp_supported"):
-            self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+            self._attr_supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
 
         # Scopes
         self.scoped = Scope.VEHICLE_CMDS in scopes

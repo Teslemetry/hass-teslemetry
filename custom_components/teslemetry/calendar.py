@@ -80,6 +80,10 @@ def get_rrule_days(days_of_week: int) -> list[str]:
         rrule_days.append("SU")
     return rrule_days
 
+def parse_rrule(rrule: str) -> dict[str,str]:
+    """Parse an rrule string into a dictionary of configurations."""
+    return dict(s.split("=") for s in rrule.split(";"))
+
 def test_days_of_week(date: datetime, test_days_of_week: int) -> bool:
     """Check if a specific day is in the days_of_week binary."""
     return test_days_of_week & 1 << date.weekday() > 0
@@ -144,14 +148,14 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
                     if (end > now and (not event or start < event.start)):
                         event = CalendarEvent(
-                                start=start,
-                                end=end,
-                                summary=schedule.name,
-                                description=schedule.location,
-                                location=schedule.location,
-                                uid=schedule.uid,
-                                rrule=schedule.rrule
-                            )
+                            start=start,
+                            end=end,
+                            summary=schedule.name,
+                            description=schedule.location,
+                            location=schedule.location,
+                            uid=schedule.uid,
+                            rrule=schedule.rrule
+                        )
                 day += timedelta(days=1)
         return event
 
@@ -245,20 +249,21 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
             raise ServiceValidationError("Missing location")
         if "rrule" in event:
             one_time = False
-            rrule_str = event["rrule"]
-            if "INTERVAL=" in rrule_str and "INTERVAL=1" not in rrule_str:
+            rrule = parse_rrule(event["rrule"])
+            print(rrule)
+
+            if "INTERVAL" in rrule and rrule["INTERVAL"] != 1:
                 raise ServiceValidationError("Repeat interval must be 1 week")
-            if "UNTIL=" in rrule_str or ("COUNT=" in rrule_str and "COUNT=1" not in rrule_str):
+            if "UNTIL" in rrule or ("COUNT" in rrule and rrule["COUNT"] == 1):
                 raise ServiceValidationError("End must be Never or 1")
-            if "FREQ=DAILY" in rrule_str:
+            if rrule["FREQ"]=="DAILY" in rrule:
                 days_of_week = "All"
             else:
-                if "FREQ=WEEKLY" not in rrule_str:
+                if rrule["FREQ"]!="WEEKLY":
                     raise ServiceValidationError("Repeat must be daily or weekly")
-                raise ServiceValidationError("Repeat must be daily or weekly")
-                if "BYDAY=" not in rrule_str:
+                if "BYDAY" not in rrule:
                     raise ServiceValidationError("Missing days of week")
-                days_of_week = ",".join([RRULE_DAYS[day] for day in rrule_str.split("BYDAY=")[1].split(";")[0].split(",")])
+                days_of_week = ",".join([RRULE_DAYS[day] for day in rrule["BYDAY"].split(",")])
         else:
             days_of_week = DAYS[event["dtend"].weekday()]
             one_time = True
@@ -268,7 +273,7 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
 
         await handle_vehicle_command(self.api.add_charge_schedule(
             id=event.get("id"),
-            name=event.get("name"),
+            name=event.get("name",self.summary),
             days_of_week=days_of_week,
             enabled=True,
             lat=latitude,

@@ -23,20 +23,26 @@ from .coordinator import (
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 from .helpers import handle_command, handle_vehicle_command
 
-
-class TeslemetryEntity(Entity):
-    """Base class for all Teslemetry classes."""
+class TeslemetryRootEntity(Entity):
+    """Parent class for all Teslemetry entities."""
 
     _attr_has_entity_name = True
+    scoped: bool
+    api: VehicleSpecific | EnergySpecific
 
     def raise_for_scope(self, scope: Scope):
         """Raise an error if a scope is not available."""
         if not self.scoped:
-             raise ServiceValidationError(
+            raise ServiceValidationError(
                 translation_domain=DOMAIN,
                 translation_key="missing_scope",
                 translation_placeholders={"scope": scope},
-             )
+            )
+
+class TeslemetryEntity(TeslemetryRootEntity):
+    """Base class for all Teslemetry classes."""
+
+    # This needs to be removed
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a command."""

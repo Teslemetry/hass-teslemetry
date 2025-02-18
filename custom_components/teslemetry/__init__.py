@@ -128,6 +128,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 create_handle_vehicle_stream(vin, coordinator),
                 {"vin": vin},
             )
+            stream_vehicle = stream.get_vehicle(vin)
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -135,6 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     config_entry=entry,
                     coordinator=coordinator,
                     stream=stream,
+                    stream_vehicle=stream_vehicle,
                     vin=vin,
                     firmware=firmware,
                     device=device,
