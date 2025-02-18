@@ -34,6 +34,6 @@ jobs:
         with:
           files: ${{ github.workspace }}/custom_components/teslemetry/teslemetry.zip
       - name: "Github Releases To Discord"
-        uses: SethCohen/github-releases-to-discord@v1.15.0
+        uses: SethCohen/github-releases-to-discord@v1.16.2
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
