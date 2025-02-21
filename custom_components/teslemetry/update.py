@@ -48,7 +48,7 @@ class TeslemetryUpdateEntity(TeslemetryRootEntity, UpdateEntity):
         """Install an update."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await handle_vehicle_command(self.api.schedule_software_update(offset_sec=60))
+        await handle_vehicle_command(self.api.schedule_software_update(offset_sec=120))
         self._attr_in_progress = True
         self.async_write_ha_state()
 
@@ -140,6 +140,8 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleStreamEntity, TeslemetryU
             self._install_percentage = state.attributes.get("install_percentage", False)
             self._attr_installed_version = state.attributes.get("installed_version")
             self._attr_latest_version = state.attributes.get("latest_version")
+            self._attr_supported_features = state.attributes.get("supported_features",self._attr_supported_features)
+            self.async_write_ha_state()
 
         self.async_on_remove(
             self.vehicle.stream_vehicle.listen_SoftwareUpdateDownloadPercentComplete(
@@ -178,33 +180,46 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleStreamEntity, TeslemetryU
         else:
             self._attr_supported_features = UpdateEntityFeature.PROGRESS
         self._async_update_progress()
+        self.async_write_ha_state()
+
 
     def _async_handle_software_update_installation_percent_complete(self, value: float | None):
         """Handle software update installation percent complete."""
 
         self._install_percentage = round(value) if value is not None else 0
         self._async_update_progress()
+        self.async_write_ha_state()
+
 
     def _async_handle_software_update_scheduled_start_time(self, value: str | None):
         """Handle software update scheduled start time."""
-        self._scheduled_start_time = value
+
+        self._attr_in_progress = value is not None
+        self.async_write_ha_state()
+
 
     def _async_handle_software_update_version(self, value: str | None):
         """Handle software update version."""
+
         self._attr_latest_version = value if value and value != " " else self._attr_installed_version
+        self.async_write_ha_state()
+
 
     def _async_handle_version(self, value: str | None):
         """Handle version."""
+
         if value is not None:
             self._attr_installed_version = value.split(" ")[0]
+            self.async_write_ha_state()
+
 
     def _async_update_progress(self) -> None:
         """Update the progress of the update."""
 
-        if self._download_percentage > 1:
+        if self._download_percentage > 1 and self._download_percentage < 100:
             self._attr_in_progress = True
             self._attr_update_percentage = self._download_percentage
-        elif self._install_percentage > 1:
+        elif self._install_percentage > 10:
             self._attr_in_progress = True
             self._attr_update_percentage = self._install_percentage
         else:
