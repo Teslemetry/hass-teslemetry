@@ -140,7 +140,7 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleStreamEntity, TeslemetryU
             self._install_percentage = state.attributes.get("install_percentage", False)
             self._attr_installed_version = state.attributes.get("installed_version")
             self._attr_latest_version = state.attributes.get("latest_version")
-            self._attr_supported_features = state.attributes.get("supported_features",self._attr_supported_features)
+            self._attr_supported_features = UpdateEntityFeature(state.attributes.get("supported_features",self._attr_supported_features))
             self.async_write_ha_state()
 
         self.async_on_remove(
