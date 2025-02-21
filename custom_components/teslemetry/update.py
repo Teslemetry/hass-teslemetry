@@ -48,7 +48,7 @@ class TeslemetryUpdateEntity(TeslemetryRootEntity, UpdateEntity):
         """Install an update."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await handle_vehicle_command(self.api.schedule_software_update(offset_sec=120))
+        await handle_vehicle_command(self.api.schedule_software_update(offset_sec=0))
         self._attr_in_progress = True
         self.async_write_ha_state()
 
@@ -219,7 +219,7 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleStreamEntity, TeslemetryU
         if self._download_percentage > 1 and self._download_percentage < 100:
             self._attr_in_progress = True
             self._attr_update_percentage = self._download_percentage
-        elif self._install_percentage > 10:
+        elif self._install_percentage > 1:
             self._attr_in_progress = True
             self._attr_update_percentage = self._install_percentage
         else:
