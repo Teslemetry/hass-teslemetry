@@ -4,23 +4,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.const import STATE_ON
 from homeassistant.helpers.restore_state import RestoreEntity
 from tesla_fleet_api import VehicleSpecific
 from tesla_fleet_api.const import Scope
-from teslemetry_stream import Signal
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.teslemetry.helpers import handle_vehicle_command
-
-from .const import TeslemetryUpdateStatus
-from .entity import TeslemetryRootEntity, TeslemetryVehicleEntity, TeslemetryVehicleComplexStreamEntity, TeslemetryVehicleStreamEntity
+from .helpers import handle_vehicle_command
+from .entity import TeslemetryRootEntity, TeslemetryVehicleEntity, TeslemetryVehicleStreamEntity
 from .models import TeslemetryVehicleData
 
+AVAILABLE = "available"
+DOWNLOADING = "downloading"
+INSTALLING = "installing"
+WIFI_WAIT = "downloading_wifi_wait"
+SCHEDULED = "scheduled"
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -29,9 +30,9 @@ async def async_setup_entry(
 
 
     async_add_entities(
-        TeslemetryPollingUpdateEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        TeslemetryPollingUpdateEntity(vehicle, entry.runtime_data.scopes)
         if vehicle.api.pre2021 or vehicle.firmware < "2024.44.25"
-        else TeslemetryStreamingUpdateEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        else TeslemetryStreamingUpdateEntity(vehicle, entry.runtime_data.scopes)
         for vehicle in entry.runtime_data.vehicles
     )
 
@@ -58,10 +59,10 @@ class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEnt
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Update."""
-        self.scoped = scoped
+        self.scoped = Scope.VEHICLE_CMDS in scopes
         super().__init__(
             data,
             "vehicle_state_software_update_status",
@@ -72,8 +73,8 @@ class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEnt
 
         # Supported Features
         if self.scoped and self._value in (
-            TeslemetryUpdateStatus.AVAILABLE,
-            TeslemetryUpdateStatus.SCHEDULED,
+            AVAILABLE,
+            SCHEDULED,
         ):
             self._attr_supported_features = (
                 UpdateEntityFeature.PROGRESS | UpdateEntityFeature.INSTALL
@@ -89,11 +90,11 @@ class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEnt
 
         # Latest Version
         if self._value in (
-            TeslemetryUpdateStatus.AVAILABLE,
-            TeslemetryUpdateStatus.SCHEDULED,
-            TeslemetryUpdateStatus.INSTALLING,
-            TeslemetryUpdateStatus.DOWNLOADING,
-            TeslemetryUpdateStatus.WIFI_WAIT,
+            AVAILABLE,
+            SCHEDULED,
+            INSTALLING,
+            DOWNLOADING,
+            WIFI_WAIT,
         ):
             self._attr_latest_version = self.coordinator.data[
                 "vehicle_state_software_update_version"
@@ -103,8 +104,8 @@ class TeslemetryPollingUpdateEntity(TeslemetryVehicleEntity, TeslemetryUpdateEnt
 
         # In Progress
         if self._value in (
-            TeslemetryUpdateStatus.SCHEDULED,
-            TeslemetryUpdateStatus.INSTALLING,
+            SCHEDULED,
+            INSTALLING,
         ):
             self._attr_in_progress = True
             if install_perc := self.get("vehicle_state_software_update_install_perc"):
@@ -123,10 +124,10 @@ class TeslemetryStreamingUpdateEntity(TeslemetryVehicleStreamEntity, TeslemetryU
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the Update."""
-        self.scoped = scoped
+        self.scoped = Scope.VEHICLE_CMDS in scopes
         super().__init__(
             data,
             "vehicle_state_software_update_status",

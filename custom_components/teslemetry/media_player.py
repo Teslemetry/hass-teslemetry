@@ -49,9 +49,9 @@ async def async_setup_entry(
 
 
     async_add_entities(
-        TeslemetryPollingMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        TeslemetryPollingMediaEntity(vehicle, entry.runtime_data.scopes)
         if vehicle.api.pre2021 or vehicle.firmware < "2025.2.6"
-        else TeslemetryStreamingMediaEntity(vehicle, Scope.VEHICLE_CMDS in entry.runtime_data.scopes)
+        else TeslemetryStreamingMediaEntity(vehicle, entry.runtime_data.scopes)
         for vehicle in entry.runtime_data.vehicles
     )
 
@@ -109,7 +109,7 @@ class TeslemetryPollingMediaEntity(TeslemetryVehicleEntity, TeslemetryMediaEntit
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the media player entity."""
         super().__init__(data, "media")
@@ -121,7 +121,7 @@ class TeslemetryPollingMediaEntity(TeslemetryVehicleEntity, TeslemetryMediaEntit
             | MediaPlayerEntityFeature.PREVIOUS_TRACK
             | MediaPlayerEntityFeature.VOLUME_SET
         )
-        self.scoped = scoped
+        self.scoped = Scope.VEHICLE_CMDS in scopes
         if not scoped:
             self._attr_supported_features = MediaPlayerEntityFeature(0)
 
@@ -163,7 +163,7 @@ class TeslemetryStreamingMediaEntity(TeslemetryVehicleStreamEntity, TeslemetryMe
     def __init__(
         self,
         data: TeslemetryVehicleData,
-        scoped: bool,
+        scopes: list[Scope],
     ) -> None:
         """Initialize the media player entity."""
         super().__init__(data, "media")
@@ -175,8 +175,8 @@ class TeslemetryStreamingMediaEntity(TeslemetryVehicleStreamEntity, TeslemetryMe
             | MediaPlayerEntityFeature.PREVIOUS_TRACK
             | MediaPlayerEntityFeature.VOLUME_SET
         )
-        self.scoped = scoped
-        if not scoped:
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
             self._attr_supported_features = MediaPlayerEntityFeature(0)
 
 
