@@ -1129,6 +1129,13 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.SPEED,
         entity_registry_enabled_default=False,
     ),
+    TeslemetrySensorEntityDescription(
+        key="lights_turn_signal",
+        streaming_key=Signal.LIGHTS_TURN_SIGNAL,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
 )
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryTimeEntityDescription(SensorEntityDescription):

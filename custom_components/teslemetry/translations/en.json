@@ -194,9 +194,6 @@
       "lights_hazards_active": {
         "name": "Hazard lights"
       },
-      "lights_turn_signal": {
-        "name": "Turn signal"
-      },
       "lights_high_beams": {
         "name": "High beams"
       },
@@ -1092,6 +1089,9 @@
       },
       "charge_rate_mile_per_hour": {
         "name": "Charge rate miles per hour"
+      },
+      "lights_turn_signal": {
+        "name": "Turn signal"
       }
     },
     "switch": {
