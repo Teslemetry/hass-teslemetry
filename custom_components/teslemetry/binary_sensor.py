@@ -395,6 +395,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="lights_hazards_active",
         streaming_key=Signal.LIGHTS_HAZARDS_ACTIVE,
+        streaming_listener=lambda s: s.listen_LightsHazardsActive,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -402,6 +403,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="lights_turn_signal",
         streaming_key=Signal.LIGHTS_TURN_SIGNAL,
+        streaming_listener=lambda s: s.listen_LightsTurnSignal,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -409,6 +411,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="lights_high_beams",
         streaming_key=Signal.LIGHTS_HIGH_BEAMS,
+        streaming_listener=lambda s: s.listen_LightsHighBeams,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -416,6 +419,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="sunroof_installed",
         streaming_key=Signal.SUNROOF_INSTALLED,
+        streaming_listener=lambda s: s.listen_SunroofInstalled,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -423,6 +427,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="seat_vent_enabled",
         streaming_key=Signal.SEAT_VENT_ENABLED,
+        streaming_listener=lambda s: s.listen_SeatVentEnabled,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -430,6 +435,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="rear_defrost_enabled",
         streaming_key=Signal.REAR_DEFROST_ENABLED,
+        streaming_listener=lambda s: s.listen_RearDefrostEnabled,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
@@ -526,13 +532,6 @@ class TeslemetryVehicleStreamingBinarySensorEntity(
 
         assert self.entity_description.streaming_listener
         self.async_on_remove(self.entity_description.streaming_listener(self.stream)(self._async_value_from_stream))
-
-        assert self.entity_description.streaming_key
-        self.vehicle.config_entry.async_create_background_task(
-            self.hass,
-            self.stream.add_field(self.entity_description.streaming_key),
-            f"Adding field {self.entity_description.streaming_key.value} to {self.vehicle.vin}"
-        )
 
         if (state := await self.async_get_last_state()) is not None:
             self._attr_is_on = state.state == STATE_ON
