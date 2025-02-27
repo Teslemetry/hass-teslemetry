@@ -4,7 +4,8 @@ from typing import Any
 from propcache import cached_property
 
 from homeassistant.helpers.entity import Entity
-from tesla_fleet_api import EnergySpecific, VehicleSpecific
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.tesla.energysite import EnergySite
 from tesla_fleet_api.const import Scope
 from teslemetry_stream import Signal
 
@@ -28,7 +29,7 @@ class TeslemetryRootEntity(Entity):
 
     _attr_has_entity_name = True
     scoped: bool
-    api: VehicleSpecific | EnergySpecific
+    api: TeslemetryVehicleFleet | EnergySite
 
     def raise_for_scope(self, scope: Scope):
         """Raise an error if a scope is not available."""
@@ -196,7 +197,7 @@ class TeslemetryCoordinatorEntity(
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator
         | TeslemetryEnergyHistoryCoordinator,
-        api: VehicleSpecific | EnergySpecific,
+        api: TeslemetryVehicleFleet | EnergySite,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
@@ -253,7 +254,7 @@ class TeslemetryCoordinatorEntity(
 class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
     """Parent class for polled Teslemetry Vehicle entities."""
 
-    api: VehicleSpecific
+    api: TeslemetryVehicleFleet
 
     def __init__(
         self,
@@ -287,7 +288,7 @@ class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
 class TeslemetryEnergyLiveEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Live entities."""
 
-    api: EnergySpecific
+    api: EnergySite
 
     def __init__(
         self,
@@ -306,7 +307,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryCoordinatorEntity):
 class TeslemetryEnergyInfoEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
-    api: EnergySpecific
+    api: EnergySite
 
     def __init__(
         self,
@@ -324,7 +325,7 @@ class TeslemetryEnergyInfoEntity(TeslemetryCoordinatorEntity):
 class TeslemetryEnergyHistoryEntity(TeslemetryCoordinatorEntity):
     """Parent class for Teslemetry Energy History Entities."""
 
-    api: EnergySpecific
+    api: EnergySite
 
     def __init__(
         self,
@@ -346,7 +347,7 @@ class TeslemetryWallConnectorEntity(
 ):
     """Parent class for Teslemetry Wall Connector Entities."""
 
-    api: EnergySpecific
+    api: EnergySite
 
     _attr_has_entity_name = True
 

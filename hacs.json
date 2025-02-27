@@ -1,8 +1,8 @@
 {
-	"filename": "teslemetry.zip",
-	"hide_default_branch": true,
-	"homeassistant": "2024.9.0",
-	"name": "Teslemetry",
-	"render_readme": true,
-	"zip_release": true
+  "filename": "teslemetry.zip",
+  "hide_default_branch": true,
+  "homeassistant": "2025.2.0",
+  "name": "Teslemetry",
+  "render_readme": true,
+  "zip_release": true
 }

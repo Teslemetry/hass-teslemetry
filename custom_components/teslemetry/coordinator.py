@@ -5,7 +5,8 @@ from time import time
 from typing import Any
 from random import randint
 
-from tesla_fleet_api import EnergySpecific, VehicleSpecific
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.tesla.energysite import EnergySite
 from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     TeslaFleetError,
@@ -48,7 +49,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
     def __init__(
-        self, hass: HomeAssistant, api: VehicleSpecific, product: dict
+        self, hass: HomeAssistant, api: TeslemetryVehicleFleet, product: dict
     ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(
@@ -96,7 +97,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
     failures: int = 0
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySite) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
         super().__init__(
             hass,
@@ -146,7 +147,7 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
 
     failures: int = 0
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySite, product: dict) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
             hass,
@@ -187,7 +188,7 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     failures: int = 0
 
-    def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
+    def __init__(self, hass: HomeAssistant, api: EnergySite) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
         super().__init__(
             hass,

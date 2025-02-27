@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable
 from typing import Final
 
-from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
+from tesla_fleet_api import Teslemetry
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     InvalidToken,
@@ -109,7 +109,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Remove the protobuff 'cached_data' that we do not use to save memory
             product.pop("cached_data", None)
             vin = product["vin"]
-            api = VehicleSpecific(teslemetry.vehicle, vin)
+            api = teslemetry.vehicles.create(vin)
             coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
             firmware = metadata[vin].get("firmware","Unknown")
 
@@ -151,7 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 continue
 
             site_id = product["energy_site_id"]
-            api = EnergySpecific(teslemetry.energy, site_id)
+            api = teslemetry.energySites.create(site_id)
 
             device = DeviceInfo(
                 identifiers={(DOMAIN, str(site_id))},
