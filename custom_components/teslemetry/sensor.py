@@ -70,8 +70,10 @@ from .enums import (
     LaneAssistLevel,
     SentryModeState,
     SpeedAssistLevel,
-    DisplayState
+    DisplayState,
 )
+
+from teslemetry_stream.const import TurnSignalState
 
 WALL_CONNECTOR_STATES = {
     0: "booting",
@@ -1132,6 +1134,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
     TeslemetrySensorEntityDescription(
         key="lights_turn_signal",
         streaming_key=Signal.LIGHTS_TURN_SIGNAL,
+        streaming_value_fn=TurnSignalState.get, #Not translated
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         streaming_firmware = "2025.2.6",
