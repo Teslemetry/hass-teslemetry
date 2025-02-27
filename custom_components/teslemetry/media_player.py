@@ -185,7 +185,10 @@ class TeslemetryStreamingMediaEntity(TeslemetryVehicleStreamEntity, TeslemetryMe
 
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._attr_state = None if state.state == "Unknown" else MediaPlayerState(state.state)
+            try:
+                self._attr_state = MediaPlayerState(state.state)
+            except ValueError:
+                self._attr_state = None
             self._attr_volume_level = state.attributes.get("volume_level")
             self._attr_media_title = state.attributes.get("media_title")
             self._attr_media_artist = state.attributes.get("media_artist")
