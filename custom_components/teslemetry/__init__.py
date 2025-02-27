@@ -214,7 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Update firwmare
     for vehicle in vehicles:
-        vehicle.firmware = vehicle.coordinator.data.get("vehicle_state_car_version", vehicle.firmware)
+        vehicle.firmware = vehicle.coordinator.data.get("vehicle_state_car_version", vehicle.firmware).split(" ")[0]
 
     # Setup Platforms
     entry.runtime_data = TeslemetryData(

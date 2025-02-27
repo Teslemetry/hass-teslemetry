@@ -1120,6 +1120,15 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    TeslemetrySensorEntityDescription(
+        key="charge_rate_mile_per_hour",
+        streaming_key=Signal.CHARGE_RATE_MILE_PER_HOUR,
+        streaming_firmware = "2025.2.6",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
+        device_class=SensorDeviceClass.SPEED,
+        entity_registry_enabled_default=False,
+    ),
 )
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryTimeEntityDescription(SensorEntityDescription):

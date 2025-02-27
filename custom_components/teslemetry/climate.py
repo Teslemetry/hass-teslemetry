@@ -259,7 +259,7 @@ class TeslemetryStreamingClimateEntity(TeslemetryClimateEntity, TeslemetryVehicl
         """Handle entity which will be added."""
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._attr_hvac_mode = state.state
+            self._attr_hvac_mode = HVACMode(state.state) if (state.state and state.state != "unknown") else None
             self._attr_current_temperature = state.attributes.get('current_temperature')
             self._attr_target_temperature = state.attributes.get('target_temperature')
             #self._attr_fan_mode = state.attributes.get('fan_mode')

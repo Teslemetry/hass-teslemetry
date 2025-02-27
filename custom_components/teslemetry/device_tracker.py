@@ -84,8 +84,8 @@ class TeslemetryPollingDeviceTrackerEntity(TeslemetryVehicleEntity, TrackerEntit
         description: TeslemetryDeviceTrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(vehicle, description.key)
         self.entity_description = description
+        super().__init__(vehicle, description.key)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
@@ -108,11 +108,12 @@ class TeslemetryStreamingDeviceTrackerEntity(TeslemetryVehicleComplexStreamEntit
         description: TeslemetryDeviceTrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
+        self.entity_description = description
         keys = [description.streaming_key]
         if description.streaming_name_key:
             keys.append(description.streaming_name_key)
         super().__init__(vehicle, description.key, keys)
-        self.entity_description = description
+
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""

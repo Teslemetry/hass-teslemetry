@@ -250,7 +250,6 @@ class TeslemetryChargeSchedule(TeslemetryVehicleEntity, CalendarEntity):
         if "rrule" in event:
             one_time = False
             rrule = parse_rrule(event["rrule"])
-            print(rrule)
 
             if "INTERVAL" in rrule and rrule["INTERVAL"] != 1:
                 raise ServiceValidationError("Repeat interval must be 1 week")

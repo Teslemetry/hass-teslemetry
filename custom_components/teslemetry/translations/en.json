@@ -190,6 +190,24 @@
       },
       "located_at_favorite": {
         "name": "Located at favorite"
+      },
+      "lights_hazards_active": {
+        "name": "Hazard lights"
+      },
+      "lights_turn_signal": {
+        "name": "Turn signal"
+      },
+      "lights_high_beams": {
+        "name": "High beams"
+      },
+      "sunroof_installed": {
+        "name": "Sunroof installed"
+      },
+      "seat_vent_enabled": {
+        "name": "Seat ventilation enabled"
+      },
+      "rear_defrost_enabled": {
+        "name": "Rear defrost enabled"
       }
     },
     "button": {
@@ -1071,6 +1089,9 @@
       },
       "credit_balance": {
         "name": "Command credits"
+      },
+      "charge_rate_mile_per_hour": {
+        "name": "Charge rate miles per hour"
       }
     },
     "switch": {

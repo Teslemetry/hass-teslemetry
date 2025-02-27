@@ -392,6 +392,48 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_firmware = "2024.44.32",
         entity_registry_enabled_default=False,
     ),
+    TeslemetryBinarySensorEntityDescription(
+        key="lights_hazards_active",
+        streaming_key=Signal.LIGHTS_HAZARDS_ACTIVE,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="lights_turn_signal",
+        streaming_key=Signal.LIGHTS_TURN_SIGNAL,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="lights_high_beams",
+        streaming_key=Signal.LIGHTS_HIGH_BEAMS,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="sunroof_installed",
+        streaming_key=Signal.SUNROOF_INSTALLED,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="seat_vent_enabled",
+        streaming_key=Signal.SEAT_VENT_ENABLED,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
+    TeslemetryBinarySensorEntityDescription(
+        key="rear_defrost_enabled",
+        streaming_key=Signal.REAR_DEFROST_ENABLED,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        streaming_firmware = "2025.2.6",
+    ),
 )
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
@@ -415,6 +457,7 @@ async def async_setup_entry(
     entities = []
     for vehicle in entry.runtime_data.vehicles:
         for description in VEHICLE_DESCRIPTIONS:
+            print(not vehicle.api.pre2021, description.streaming_key, vehicle.firmware , description.streaming_firmware,vehicle.firmware >= description.streaming_firmware)
             if not vehicle.api.pre2021 and description.streaming_key and vehicle.firmware >= description.streaming_firmware:
                 entities.append(TeslemetryVehicleStreamingBinarySensorEntity(vehicle, description))
             elif description.polling:

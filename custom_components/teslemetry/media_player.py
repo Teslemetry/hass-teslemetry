@@ -12,7 +12,7 @@ from homeassistant.components.media_player import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from tesla_fleet_api.teslemetry.vehicles import VehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
 
 from custom_components.teslemetry.helpers import handle_vehicle_command
 
@@ -59,7 +59,7 @@ async def async_setup_entry(
 class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
     """Base vehicle media player class."""
 
-    api: VehicleFleet
+    api: TeslemetryVehicleFleet
 
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_volume_step = VOLUME_STEP
@@ -122,7 +122,7 @@ class TeslemetryPollingMediaEntity(TeslemetryVehicleEntity, TeslemetryMediaEntit
             | MediaPlayerEntityFeature.VOLUME_SET
         )
         self.scoped = Scope.VEHICLE_CMDS in scopes
-        if not scoped:
+        if not self.scoped:
             self._attr_supported_features = MediaPlayerEntityFeature(0)
 
     def _async_update_attrs(self) -> None:
