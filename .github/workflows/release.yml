@@ -37,4 +37,4 @@ jobs:
         uses: SethCohen/github-releases-to-discord@v1.16.2
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
-          display_name: Teslemetry integration for HACS
+          username: Teslemetry integration for HACS
