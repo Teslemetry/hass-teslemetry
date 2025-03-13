@@ -860,28 +860,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySensorEntityDescription, ...] = (
         suggested_display_precision=3,
     ),
     TeslemetrySensorEntityDescription(
-        key="lifetime_energy_gained_regen",
-        streaming_key=Signal.LIFETIME_ENERGY_GAINED_REGEN,
-        entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        suggested_display_precision=2,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    TeslemetrySensorEntityDescription(
         key="lifetime_energy_used",
         streaming_key=Signal.LIFETIME_ENERGY_USED,
-        entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        suggested_display_precision=2,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    TeslemetrySensorEntityDescription(
-        key="lifetime_energy_used_drive",
-        streaming_key=Signal.LIFETIME_ENERGY_USED_DRIVE,
         entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -1637,7 +1617,7 @@ class TeslemetryWallConnectorVehicleSensorEntity(
                     "model": vehicle.device["model"],
                 }
                 return
-                
+
         self._attr_native_value = value
         model = MODELS.get(value[3]) if isinstance(value, str) and len(value) > 3 else None
         self._attr_extra_state_attributes = {
