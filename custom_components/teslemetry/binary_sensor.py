@@ -278,6 +278,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="driver_seat_belt",
         streaming_key=Signal.DRIVER_SEAT_BELT,
         streaming_listener=lambda s: s.listen_DriverSeatBelt,
+        streaming_value_fn=lambda s: not s,
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -290,6 +291,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         key="passenger_seat_belt",
         streaming_key=Signal.PASSENGER_SEAT_BELT,
         streaming_listener=lambda s: s.listen_PassengerSeatBelt,
+        streaming_value_fn=lambda s: not s,
         entity_registry_enabled_default=False,
     ),
     TeslemetryBinarySensorEntityDescription(
