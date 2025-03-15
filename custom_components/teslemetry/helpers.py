@@ -1,5 +1,7 @@
 """Teslemetry helper functions."""
 
+import time
+import json
 from typing import Any
 from tesla_fleet_api.exceptions import TeslaFleetError
 
@@ -23,20 +25,26 @@ def flatten(data: dict[str, Any], parent: str | None = None, exceptions: list[st
 
 async def handle_command(command) -> dict[str, Any]:
     """Handle a command."""
+    start_time = time.time()
     try:
         res = await command
     except TeslaFleetError as e:
+        elapsed_time = time.time() - start_time
+        LOGGER.warning("Command execution took %.2f seconds and failed with %s", elapsed_time, e)
         raise HomeAssistantError(
             translation_domain=DOMAIN,
             translation_key="command_exception",
             translation_placeholders={"message": e.message},
         ) from e
-    LOGGER.debug("Command result: %s", res)
+
+    elapsed_time = time.time() - start_time
+    LOGGER.info("Command execution took %.2f seconds and returned %s", elapsed_time, json.dumps(res))
     return res
 
 
 async def handle_vehicle_command(command) -> bool:
     """Handle a vehicle command."""
+
     res = await handle_command(command)
     if (response := res.get("response")) is None:
         if error := res.get("error"):

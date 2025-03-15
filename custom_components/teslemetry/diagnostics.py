@@ -48,5 +48,7 @@ async def async_get_config_entry_diagnostics(
         for x in entry.runtime_data.energysites
     ]
 
+    session = entry.runtime_data.teslemetry.session
+
     # Return only the relevant children
-    return {"library": VERSION, "vehicles": vehicles, "energysites": energysites, "scopes": entry.runtime_data.scopes}
+    return {"library": VERSION, "vehicles": vehicles, "energysites": energysites, "scopes": entry.runtime_data.scopes, "timeout": str(session.timeout)}
