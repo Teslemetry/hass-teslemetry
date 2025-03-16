@@ -18,7 +18,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
-from tesla_fleet_api.const import Scope, Seat
+from tesla_fleet_api.const import Scope
 from teslemetry_stream import Signal
 from teslemetry_stream.const import DefrostModeState, SentryModeState, DetailedChargeState
 
@@ -69,9 +69,9 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
     TeslemetrySwitchEntityDescription(
         key="climate_state_auto_seat_climate_left",
         streaming_key=Signal.AUTO_SEAT_CLIMATE_LEFT,
-        on_func=lambda api: api.remote_auto_seat_climate_request(Seat.FRONT_LEFT, True),
+        on_func=lambda api: api.remote_auto_seat_climate_request(1, True),
         off_func=lambda api: api.remote_auto_seat_climate_request(
-            Seat.FRONT_LEFT, False
+            1, False
         ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
@@ -79,10 +79,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         key="climate_state_auto_seat_climate_right",
         streaming_key=Signal.AUTO_SEAT_CLIMATE_RIGHT,
         on_func=lambda api: api.remote_auto_seat_climate_request(
-            Seat.FRONT_RIGHT, True
+            2, True
         ),
         off_func=lambda api: api.remote_auto_seat_climate_request(
-            Seat.FRONT_RIGHT, False
+            2, False
         ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
