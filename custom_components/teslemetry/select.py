@@ -29,6 +29,7 @@ from .entity import (
     TeslemetryVehicleEntity,
     TeslemetryEnergyInfoEntity,
     TeslemetryVehicleStreamEntity,
+    TeslemetryVehicleStreamSingleEntity,
 )
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
 
@@ -218,7 +219,7 @@ class TeslemetryStreamingSeatHeaterSelectEntity(TeslemetryVehicleStreamEntity, T
 
         # Restore state
         if (state := await self.async_get_last_state()) is not None:
-            if state.state in self.entity_description.options:
+            if state.state in self._attr_options:
                 self._attr_current_option = state.state
 
         # Listen for streaming data
@@ -238,7 +239,7 @@ class TeslemetryStreamingSeatHeaterSelectEntity(TeslemetryVehicleStreamEntity, T
         if value is None:
             self._attr_current_option = None
         else:
-            self._attr_current_option = self.entity_description.options[value]
+            self._attr_current_option = self._attr_options[value]
         self.async_write_ha_state()
 
     def _climate_callback(self, value: bool | None) -> None:
