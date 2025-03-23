@@ -87,8 +87,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TypeError as e:
             raise UpdateFailed("Invalid response from Teslemetry") from e
 
-        self.hass.bus.fire("teslemetry_vehicle_data", data)
-
         return flatten(data)
 
 
@@ -128,8 +126,6 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         # If the data isnt valid, placeholder it for safety
         if(not isinstance(data, dict)):
             return {}
-
-        self.hass.bus.fire("teslemetry_live_status", data)
 
         # Convert Wall Connectors from array to dict
         if isinstance(data.get("wall_connectors"),list):
@@ -178,8 +174,6 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         # If the data isnt valid, placeholder it for safety
         if(not isinstance(data, dict)):
             data = {}
-
-        self.hass.bus.fire("teslemetry_site_info", data)
 
         return flatten(data, exceptions=["daily_charges","demand_charges","energy_charges","seasons"])
 
