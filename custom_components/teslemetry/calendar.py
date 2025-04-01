@@ -82,7 +82,10 @@ def get_rrule_days(days_of_week: int) -> list[str]:
 
 def parse_rrule(rrule: str) -> dict[str,str]:
     """Parse an rrule string into a dictionary of configurations."""
-    return dict(s.split("=") for s in rrule.split(";"))
+    rrule_dict = dict(s.split("=") for s in rrule.split(";"))
+    if "BYDAY" in rrule_dict:
+        rrule_dict["BYDAY"] = rrule_dict["BYDAY"].split(",")
+    return rrule_dict
 
 def test_days_of_week(date: datetime, test_days_of_week: int) -> bool:
     """Check if a specific day is in the days_of_week binary."""
