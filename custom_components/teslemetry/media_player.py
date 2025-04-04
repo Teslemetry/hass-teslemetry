@@ -12,7 +12,7 @@ from homeassistant.components.media_player import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicle
 
 from custom_components.teslemetry.helpers import handle_vehicle_command
 
@@ -59,7 +59,7 @@ async def async_setup_entry(
 class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
     """Base vehicle media player class."""
 
-    api: TeslemetryVehicleFleet
+    api: TeslemetryVehicle
 
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_volume_step = VOLUME_STEP

@@ -9,7 +9,7 @@ from tesla_fleet_api.const import (
     EnergyExportMode,
     EnergyOperationMode,
 )
-from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicle
 from teslemetry_stream import Signal
 
 from dataclasses import dataclass
@@ -147,7 +147,7 @@ async def async_setup_entry(
 class TeslemetrySeatHeaterSelectEntity(TeslemetryRootEntity, SelectEntity):
     """Select entity for vehicle seat heater."""
 
-    api: TeslemetryVehicleFleet
+    api: TeslemetryVehicle
     entity_description: SeatHeaterDescription
     _attr_options = [
         TeslemetryHeaterOptions.OFF,

@@ -5,7 +5,7 @@ from time import time
 from typing import Any
 from random import randint
 
-from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicle
 from tesla_fleet_api.tesla.energysite import EnergySite
 from tesla_fleet_api.const import VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
@@ -49,7 +49,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
     def __init__(
-        self, hass: HomeAssistant, api: TeslemetryVehicleFleet, product: dict
+        self, hass: HomeAssistant, api: TeslemetryVehicle, product: dict
     ) -> None:
         """Initialize Teslemetry Vehicle Update Coordinator."""
         super().__init__(

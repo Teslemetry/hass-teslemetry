@@ -4,7 +4,7 @@ from typing import Any
 from propcache import cached_property
 
 from homeassistant.helpers.entity import Entity
-from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicle
 from tesla_fleet_api.tesla.energysite import EnergySite
 from tesla_fleet_api.const import Scope
 from teslemetry_stream import Signal
@@ -29,7 +29,7 @@ class TeslemetryRootEntity(Entity):
 
     _attr_has_entity_name = True
     scoped: bool
-    api: TeslemetryVehicleFleet | EnergySite
+    api: TeslemetryVehicle | EnergySite
 
     def raise_for_scope(self, scope: Scope):
         """Raise an error if a scope is not available."""
@@ -197,7 +197,7 @@ class TeslemetryCoordinatorEntity(
         | TeslemetryEnergySiteLiveCoordinator
         | TeslemetryEnergySiteInfoCoordinator
         | TeslemetryEnergyHistoryCoordinator,
-        api: TeslemetryVehicleFleet | EnergySite,
+        api: TeslemetryVehicle | EnergySite,
         key: str,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
@@ -254,7 +254,7 @@ class TeslemetryCoordinatorEntity(
 class TeslemetryVehicleEntity(TeslemetryCoordinatorEntity):
     """Parent class for polled Teslemetry Vehicle entities."""
 
-    api: TeslemetryVehicleFleet
+    api: TeslemetryVehicle
 
     def __init__(
         self,

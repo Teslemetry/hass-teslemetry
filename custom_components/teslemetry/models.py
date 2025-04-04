@@ -8,7 +8,7 @@ from tesla_fleet_api import Teslemetry
 import asyncio
 from dataclasses import dataclass
 
-from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicleFleet
+from tesla_fleet_api.teslemetry.vehicles import TeslemetryVehicle
 from tesla_fleet_api.tesla.energysite import EnergySite
 from tesla_fleet_api.const import Scope
 
@@ -38,7 +38,7 @@ class TeslemetryData:
 class TeslemetryVehicleData:
     """Data for a vehicle in the Teslemetry integration."""
 
-    api: TeslemetryVehicleFleet
+    api: TeslemetryVehicle
     config_entry: ConfigEntry
     coordinator: TeslemetryVehicleDataCoordinator
     stream: TeslemetryStream
