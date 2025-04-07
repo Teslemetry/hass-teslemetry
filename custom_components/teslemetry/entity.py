@@ -65,9 +65,10 @@ class TeslemetryVehicleStreamEntity(TeslemetryEntity):
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
+        #self._attr_avaliable = True
 
 
-    @cached_property
+    @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.stream.stream.connected and self._attr_available
@@ -119,7 +120,7 @@ class TeslemetryVehicleStreamSingleEntity(TeslemetryEntity):
         """Update the entity with the latest value from the stream."""
         raise NotImplementedError()
 
-    @cached_property
+    @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.stream.connected and self._attr_available
@@ -175,7 +176,7 @@ class TeslemetryVehicleComplexStreamEntity(TeslemetryEntity):
 
 
 
-    @cached_property
+    @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.stream.connected

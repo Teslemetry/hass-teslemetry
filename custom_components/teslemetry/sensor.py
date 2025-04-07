@@ -1701,7 +1701,6 @@ class TeslemetryVehicleEventEntity(RestoreSensor):
 
     def _handle_stream_update(self, data: dict[str, list]) -> None:
         """Handle updated data from the stream."""
-        self._attr_available = self.stream.connected
         self._attr_native_value = data[self.key][0]['name']
         self.async_write_ha_state()
 

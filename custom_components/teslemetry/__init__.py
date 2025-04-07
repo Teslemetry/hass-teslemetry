@@ -100,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create the stream
     stream = TeslemetryStream(
-        session, access_token, server=f"{region.lower()}.teslemetry.com"
+        session, access_token, server="api.teslemetry.com", manual=True
     )
 
 
@@ -221,6 +221,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         vehicles, energysites, scopes, teslemetry, stream
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    entry.async_create_background_task(hass, stream.listen(), "Teslemetry Stream")
 
     return True
 
