@@ -10,9 +10,8 @@ read VERSION
 git branch -D v$VERSION
 git checkout -b v$VERSION
 
-for PR in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number,title --jq '.[] | [.number, .title] | @tsv'); do
-    PR_NUMBER=$(echo "$PR" | cut -f1)
-    PR_TITLE=$(echo "$PR" | cut -f2)
+for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number | jq -r '.[].number'); do
+    PR_TITLE=$(gh pr view $PR_NUMBER --repo home-assistant/core --json title | jq -r '.title')
     echo "Applying patch from PR #$PR_NUMBER: $PR_TITLE"
     curl -L https://github.com/home-assistant/core/pull/$PR_NUMBER.patch -o $PR_NUMBER.patch
     git apply -3 $PR_NUMBER.patch
