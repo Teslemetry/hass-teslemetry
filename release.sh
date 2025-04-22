@@ -1,6 +1,7 @@
 # Get everything up to date
 git fetch upstream dev
 git rebase upstream/dev
+git push --force-with-lease
 script/setup
 uv pip install -r requirements_test_all.txt
 
