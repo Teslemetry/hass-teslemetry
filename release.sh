@@ -1,7 +1,8 @@
+# Get everything up to date
 git fetch upstream dev
 git rebase upstream/dev
-
 script/setup
+uv pip install -r requirements_test_all.txt
 
 # Ask for version
 echo "Enter the target version:"
