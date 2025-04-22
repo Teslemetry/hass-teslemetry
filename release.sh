@@ -25,7 +25,7 @@ done
 yq -i -o json '.version="$VERSION"' "homeassistant/components/teslemetry/manifest.json"
 git commit -am "v$VERSION" --no-verify
 
-pytest tests/components/teslemetry --snapshot-update
+pytest tests/components/teslemetry
 
 read -p "Press Enter to continue..."
 
