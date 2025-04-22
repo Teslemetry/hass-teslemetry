@@ -1,28 +1,27 @@
-TARGET="2025.4.0"
-
-git fetch upstream $TARGET
-git rebase upstream/$TARGET
+git fetch upstream dev
+git rebase upstream/dev
 
 # Ask for version
-echo "Enter the target version (default: $TARGET):"
-read NEW_TARGET
-if [ ! -z "$NEW_TARGET" ]; then
-    TARGET="$NEW_TARGET"
-    git branch -D v$TARGET
-    git checkout -b v$TARGET
+echo "Enter the target version:"
+read VERSION
 
-    for PR in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number,title --jq '.[] | [.number, .title] | @tsv'); do
-        PR_NUMBER=$(echo "$PR" | cut -f1)
-        PR_TITLE=$(echo "$PR" | cut -f2)
-        echo "Applying patch from PR #$PR_NUMBER: $PR_TITLE"
-        curl -L https://github.com/home-assistant/core/pull/$PR_NUMBER.patch -o $PR_NUMBER.patch
-        git apply -3 $PR_NUMBER.patch
-        git mergetool
-        rm *.patch
-        git commit -am "#$PR_NUMBER: $PR_TITLE"
-    done
+git branch -D v$VERSION
+git checkout -b v$VERSION
 
-    git tag -a v$TARGET -m "Release $TARGET"
-    git push origin v$TARGET
-    git checkout main
-fi
+for PR in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number,title --jq '.[] | [.number, .title] | @tsv'); do
+    PR_NUMBER=$(echo "$PR" | cut -f1)
+    PR_TITLE=$(echo "$PR" | cut -f2)
+    echo "Applying patch from PR #$PR_NUMBER: $PR_TITLE"
+    curl -L https://github.com/home-assistant/core/pull/$PR_NUMBER.patch -o $PR_NUMBER.patch
+    git apply -3 $PR_NUMBER.patch
+    git mergetool
+    rm *.patch
+    git commit -am "#$PR_NUMBER: $PR_TITLE"
+done
+
+yq -i -o json '.version="$VERSION"' "homeassistant/components/teslemetry/manifest.json"
+git commit -am "v$VERSION"
+
+git tag -a v$VERSION -m "Release $VERSION"
+git push origin v$VERSION
+git checkout main
