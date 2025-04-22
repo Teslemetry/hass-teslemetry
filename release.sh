@@ -22,7 +22,7 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
     git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify
 done
 
-yq -i -o json '.version="$VERSION"' "homeassistant/components/teslemetry/manifest.json"
+yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
 git commit -am "v$VERSION" --no-verify
 
 pytest tests/components/teslemetry
