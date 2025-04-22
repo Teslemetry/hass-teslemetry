@@ -12,7 +12,7 @@ from tesla_fleet_api.exceptions import (
 
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import STATE_OFF, STATE_ON, Platform
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
@@ -130,7 +130,7 @@ async def test_vehicle_stream(
     mock_add_listener.assert_called()
 
     state = hass.states.get("binary_sensor.test_status")
-    assert state.state == STATE_ON
+    assert state.state == STATE_UNKNOWN
 
     state = hass.states.get("binary_sensor.test_user_present")
     assert state.state == STATE_OFF
@@ -139,10 +139,14 @@ async def test_vehicle_stream(
         {
             "vin": VEHICLE_DATA_ALT["response"]["vin"],
             "vehicle_data": VEHICLE_DATA_ALT["response"],
+            "state": "online",
             "createdAt": "2024-10-04T10:45:17.537Z",
         }
     )
     await hass.async_block_till_done()
+
+    state = hass.states.get("binary_sensor.test_status")
+    assert state.state == STATE_ON
 
     state = hass.states.get("binary_sensor.test_user_present")
     assert state.state == STATE_ON
