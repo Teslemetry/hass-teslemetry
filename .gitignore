@@ -10,6 +10,7 @@ data/
 
 # Translations
 homeassistant/components/*/translations
+!homeassistant/components/teslemetry/translations
 
 # Hide sublime text stuff
 *.sublime-project
