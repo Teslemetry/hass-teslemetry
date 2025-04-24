@@ -148,6 +148,8 @@ pytest_buckets.txt
 .claude/worktrees/
 .serena/
 
+release_notes.txt
+
 # Playwright e2e tests
 tests/e2e/node_modules/
 tests/e2e/playwright-report/
