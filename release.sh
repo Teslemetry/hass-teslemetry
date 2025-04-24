@@ -27,7 +27,7 @@ git commit -am "v$VERSION" --no-verify
 
 pytest tests/components/teslemetry
 
-read -p "Press Enter to continue..."
+read -p "Press Enter to release..."
 
 git tag -a v$VERSION -m "Release $VERSION"
 git push origin v$VERSION
