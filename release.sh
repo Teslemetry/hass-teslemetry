@@ -24,8 +24,8 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
 done
 
 yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
-echo "" > release_notes.txt
-echo "**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/v$VERSION" > release_notes.txt
+echo "" >> release_notes.txt
+echo "**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/v$VERSION" >> release_notes.txt
 
 git commit -am "v$VERSION" --no-verify
 
