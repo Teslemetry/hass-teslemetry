@@ -655,21 +655,21 @@
             "di_state_rel": {
                 "name": "Rear left drive inverter",
                 "state": {
-                    "abort": "Abort",
+                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
                     "enabled": "Enabled",
-                    "fault": "Fault",
+                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
                     "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
                 }
             },
             "di_state_rer": {
                 "name": "Rear right drive inverter",
                 "state": {
-                    "abort": "Abort",
+                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
                     "enabled": "Enabled",
-                    "fault": "Fault",
+                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
                     "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
                 }
             },
             "di_stator_temp_f": {
