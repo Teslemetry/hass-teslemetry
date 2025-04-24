@@ -20,7 +20,7 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
     git mergetool
     rm *.patch
     git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify
-    echo "#$PR_NUMBER: $PR_TITLE" >> release_notes.txt
+    echo "[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE" >> release_notes.txt
 done
 
 yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
@@ -37,6 +37,6 @@ read -p "Press Enter to release..."
 
 git tag -a v$VERSION -m "Release $VERSION"
 git push origin v$VERSION
-gh release create v$VERSION -p -F release_notes.txt
+gh release create v$VERSION -p -F release_notes.txt --repo Teslemetry/hass-teslemetry
 git push
 git checkout main
