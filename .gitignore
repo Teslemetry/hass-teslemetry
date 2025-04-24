@@ -145,3 +145,4 @@ pytest_buckets.txt
 .claude/worktrees/
 .serena/
 
+release_notes.txt
