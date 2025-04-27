@@ -1,4 +1,5 @@
 # Get everything up to date
+git checkout main
 git fetch upstream dev
 git rebase upstream/dev
 git push --force-with-lease
@@ -37,7 +38,7 @@ read -p "Press Enter to release..."
 
 git tag -a v$VERSION -m "Release $VERSION"
 git push origin v$VERSION
-zip homeassistant/components/teslemetry teslemetry.zip
+zip teslemetry.zip homeassistant/components/teslemetry
 gh release create v$VERSION -p -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
 gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
