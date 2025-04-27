@@ -14,25 +14,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: "Checkout the repository"
-        uses: "actions/checkout@v4.2.2"
-
-      - name: "Adjust version number"
-        shell: "bash"
-        run: |
-          yq -i -o json '.version="${{ github.event.release.tag_name }}"' \
-            "${{ github.workspace }}/homeassistant/components/teslemetry/manifest.json"
-
-      - name: "ZIP the integration directory"
-        shell: "bash"
-        run: |
-          cd "${{ github.workspace }}/homeassistant/components/teslemetry"
-          zip teslemetry.zip -r ./
-
-      - name: "Upload the ZIP file to the release"
-        uses: softprops/action-gh-release@v2.2.1
-        with:
-          files: ${{ github.workspace }}/homeassistant/components/teslemetry/teslemetry.zip
       - name: "Github Releases To Discord"
         uses: SethCohen/github-releases-to-discord@v1.16.2
         with:
