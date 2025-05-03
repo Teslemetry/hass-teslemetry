@@ -46,3 +46,4 @@ gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push
 git checkout main
+git restore .
