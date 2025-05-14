@@ -38,6 +38,8 @@ read -p "Press Enter to release..."
 git tag -a v$VERSION -m "Release $VERSION"
 git push origin v$VERSION
 cd homeassistant/components/teslemetry
+rm -r __pycache__
+rm *.orig
 zip -r ../../../teslemetry.zip *
 cd ../../..
 gh release create v$VERSION -p -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
