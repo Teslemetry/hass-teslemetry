@@ -16,8 +16,7 @@ rm release_notes.txt
 for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number | jq -r '.[].number'); do
     PR_TITLE=$(gh pr view $PR_NUMBER --repo home-assistant/core --json title | jq -r '.title')
     echo "Applying patch from PR #$PR_NUMBER: $PR_TITLE"
-    curl -L https://github.com/home-assistant/core/pull/$PR_NUMBER.patch -o $PR_NUMBER.patch
-    git apply -3 $PR_NUMBER.patch
+    gh pr diff $PR_NUMBER --patch --repo home-assistant/core | git apply -3
     git mergetool
     rm *.patch
     git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify
