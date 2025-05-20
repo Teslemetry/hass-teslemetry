@@ -6,7 +6,7 @@ git push --force-with-lease
 
 # Ask for version
 echo "Last version:"
-git tag | tail -n 1
+gh release ls --repo teslemetry/hass-teslemetry --limit 1
 echo "New version:"
 read VERSION
 
