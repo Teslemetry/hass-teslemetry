@@ -5,7 +5,9 @@ git rebase upstream/dev
 git push --force-with-lease
 
 # Ask for version
-echo "Enter the target version:"
+echo "Last version:"
+git tag | tail -n 1
+echo "New version:"
 read VERSION
 
 git branch -D release-$VERSION
