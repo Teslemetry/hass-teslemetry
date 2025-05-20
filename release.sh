@@ -18,7 +18,6 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
     echo "Applying patch from PR #$PR_NUMBER: $PR_TITLE"
     gh pr diff $PR_NUMBER --patch --repo home-assistant/core | git apply -3
     git mergetool
-    rm *.patch
     git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify
     echo "[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE" >> release_notes.txt
 done
@@ -42,7 +41,7 @@ rm -r __pycache__
 rm *.orig
 zip -r ../../../teslemetry.zip *
 cd ../../..
-gh release create v$VERSION -p -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
+gh release create v$VERSION -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
 gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push
