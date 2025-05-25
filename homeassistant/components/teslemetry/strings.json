@@ -467,7 +467,7 @@
           "disconnected": "[%key:common::state::disconnected%]",
           "stopped": "[%key:common::state::stopped%]",
           "complete": "Complete",
-          "no_power": "No power"
+          "nopower": "No power"
         }
       },
       "charge_state_minutes_to_full_charge": {

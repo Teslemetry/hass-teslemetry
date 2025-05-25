@@ -264,7 +264,7 @@
         "default": "mdi:ev-station",
         "state": {
           "disconnected": "mdi:connection",
-          "no_power": "mdi:power-plug-off-outline",
+          "nopower": "mdi:power-plug-off-outline",
           "starting": "mdi:play-circle",
           "stopped": "mdi:stop-circle"
         }

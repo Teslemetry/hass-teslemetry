@@ -497,7 +497,7 @@
                     "charging": "Charging",
                     "complete": "Complete",
                     "disconnected": "Disconnected",
-                    "no_power": "No power",
+                    "nopower": "No power",
                     "starting": "Starting",
                     "stopped": "Stopped"
                 }
