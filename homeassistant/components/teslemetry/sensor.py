@@ -68,7 +68,7 @@ CHARGE_STATES = {
     "Stopped": "stopped",
     "Complete": "complete",
     "Disconnected": "disconnected",
-    "NoPower": "no_power",
+    "NoPower": "nopower",
 }
 
 DRIVE_INVERTER_STATES = {
