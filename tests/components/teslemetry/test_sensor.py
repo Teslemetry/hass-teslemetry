@@ -108,7 +108,6 @@ async def test_sensors_streaming(
         assert state.state == snapshot(name=f"{entity_id}-state")
 
 
-<<<<<<< ours
 async def test_energy_history_no_time_series(
     hass: HomeAssistant,
     freezer: FrozenDateTimeFactory,
@@ -132,7 +131,8 @@ async def test_energy_history_no_time_series(
 
     state = hass.states.get(entity_id)
     assert state.state == STATE_UNAVAILABLE
-=======
+
+
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
 async def test_tariff_sensors(
     hass: HomeAssistant,
