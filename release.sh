@@ -30,9 +30,11 @@ echo "**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/
 
 git commit -am "v$VERSION" --no-verify
 
+source .venv/bin/activate
 script/setup
 uv pip install -r requirements_test_all.txt
 pytest tests/components/teslemetry
+deactivate
 
 read -p "Press Enter to release..."
 

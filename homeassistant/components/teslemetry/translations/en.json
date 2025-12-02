@@ -1,4 +1,30 @@
 {
+    "common": {
+        "abort": "Abort",
+        "days_of_week": "Days of week",
+        "days_of_week_description": "Select which days this schedule should be enabled on. You can select multiple days.",
+        "descr_pin": "4-digit code to enable or disable the setting",
+        "end_time": "End time",
+        "end_time_description": "The time this schedule ends, e.g. 01:05 for 1:05 AM.",
+        "location_description": "The approximate location the vehicle must be at to use this schedule. Defaults to Home Assistant's configured location.",
+        "one_time": "One-time",
+        "one_time_description": "If this is a one-time schedule.",
+        "precondition_time": "Precondition time",
+        "precondition_time_description": "The time the vehicle should complete preconditioning, e.g. 01:05 for 1:05 AM.",
+        "schedule_enable_description": "If this schedule should be considered for execution.",
+        "schedule_id": "Schedule ID",
+        "schedule_id_description": "The ID of the schedule, use an existing ID to modify.",
+        "schedule_id_remove_description": "The ID of the schedule to remove.",
+        "schedule_name_description": "The name of the schedule.",
+        "start_time": "Start time",
+        "start_time_description": "The time this schedule begins, e.g. 01:05 for 1:05 AM.",
+        "unavailable": "Unavailable",
+        "vehicle": "Vehicle",
+        "vehicle_to_remove_schedule": "Vehicle to remove schedule from.",
+        "vehicle_to_schedule": "Vehicle to schedule.",
+        "wake_up_failed": "Failed to wake up vehicle: {message}",
+        "wake_up_timeout": "Timed out trying to wake up vehicle"
+    },
     "config": {
         "abort": {
             "already_configured": "Account is already configured",
@@ -113,6 +139,9 @@
             "grid_services_active": {
                 "name": "Grid services active"
             },
+            "grid_status": {
+                "name": "Grid status"
+            },
             "guest_mode_enabled": {
                 "name": "Guest mode enabled"
             },
@@ -124,6 +153,9 @@
             },
             "hvil": {
                 "name": "High voltage interlock loop fault"
+            },
+            "lights_hazards_active": {
+                "name": "Hazard lights"
             },
             "lights_high_beams": {
                 "name": "High beams"
@@ -153,7 +185,7 @@
                 "name": "Remote start"
             },
             "right_hand_drive": {
-                "name": "Right hand drive"
+                "name": "Right-hand drive"
             },
             "seat_vent_enabled": {
                 "name": "Seat vent enabled"
@@ -240,20 +272,6 @@
             },
             "wake": {
                 "name": "Wake"
-            }
-        },
-        "calendar": {
-            "charge_schedule_data_charge_schedules": {
-                "name": "Charging schedule"
-            },
-            "preconditioning_schedule_data_precondition_schedules": {
-                "name": "Precondition schedule"
-            },
-            "tariff_content_v2": {
-                "name": "Buy tariff"
-            },
-            "tariff_content_v2_sell_tariff": {
-                "name": "Sell tariff"
             }
         },
         "climate": {
@@ -423,7 +441,7 @@
                 "state": {
                     "autonomous": "Autonomous",
                     "backup": "Backup",
-                    "self_consumption": "Self consumption"
+                    "self_consumption": "Self-consumption"
                 }
             }
         },
@@ -544,6 +562,10 @@
             "consumer_energy_imported_from_solar": {
                 "name": "Consumer imported from solar"
             },
+            "credit_balance": {
+                "name": "Teslemetry credits",
+                "unit_of_measurement": "credits"
+            },
             "cruise_follow_distance": {
                 "name": "Cruise follow distance"
             },
@@ -623,31 +645,31 @@
             "di_state_r": {
                 "name": "Rear drive inverter",
                 "state": {
-                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
+                    "abort": "Abort",
                     "enabled": "Enabled",
-                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
+                    "fault": "Fault",
                     "standby": "Standby",
-                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
+                    "unavailable": "Unavailable"
                 }
             },
             "di_state_rel": {
                 "name": "Rear left drive inverter",
                 "state": {
-                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
+                    "abort": "Abort",
                     "enabled": "Enabled",
-                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
+                    "fault": "Fault",
                     "standby": "Standby",
-                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
+                    "unavailable": "Unavailable"
                 }
             },
             "di_state_rer": {
                 "name": "Rear right drive inverter",
                 "state": {
-                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
+                    "abort": "Abort",
                     "enabled": "Enabled",
-                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
+                    "fault": "Fault",
                     "standby": "Standby",
-                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
+                    "unavailable": "Unavailable"
                 }
             },
             "di_stator_temp_f": {
@@ -794,13 +816,17 @@
                 }
             },
             "homelink_device_count": {
-                "name": "Homelink devices"
+                "name": "Homelink devices",
+                "unit_of_measurement": "devices"
             },
             "hvac_fan_speed": {
-                "name": "HVAC fan speed"
+                "name": "HVAC fan speed setting"
             },
             "hvac_fan_status": {
-                "name": "HVAC fan status"
+                "name": "HVAC fan speed"
+            },
+            "hvac_left_temperature_request": {
+                "name": "Left temperature request"
             },
             "hvac_power_state": {
                 "name": "HVAC power state",
@@ -810,6 +836,9 @@
                     "overheat_protection": "Overheat protection",
                     "precondition": "Precondition"
                 }
+            },
+            "hvac_right_temperature_request": {
+                "name": "Right temperature request"
             },
             "island_status": {
                 "name": "Island status",
@@ -899,7 +928,6 @@
                 "state": {
                     "authentication": "Authentication",
                     "fault": "Fault",
-                    "none": "None",
                     "reconnecting": "Reconnecting",
                     "retry": "Retry",
                     "soc_too_low": "SOC too low",
@@ -926,6 +954,17 @@
                     "departure": "Departure",
                     "off": "Off",
                     "start_at": "Start at"
+                }
+            },
+            "sentry_mode": {
+                "name": "Sentry mode",
+                "state": {
+                    "armed": "Armed",
+                    "aware": "Aware",
+                    "idle": "Idle",
+                    "off": "Off",
+                    "panic": "Panic",
+                    "quiet": "Quiet"
                 }
             },
             "software_update_expected_duration_minutes": {
@@ -973,10 +1012,12 @@
                 "name": "Solar generated"
             },
             "tpms_hard_warnings": {
-                "name": "Tire pressure hard warnings"
+                "name": "Tire pressure hard warnings",
+                "unit_of_measurement": "warnings"
             },
             "tpms_soft_warnings": {
-                "name": "Tire pressure soft warnings"
+                "name": "Tire pressure soft warnings",
+                "unit_of_measurement": "warnings"
             },
             "vehicle_state_odometer": {
                 "name": "Odometer"
@@ -994,7 +1035,7 @@
                 "name": "Tire pressure rear right"
             },
             "version": {
-                "name": "version"
+                "name": "Version"
             },
             "vin": {
                 "name": "Vehicle",
@@ -1033,6 +1074,9 @@
             },
             "components_disallow_charge_from_grid_with_solar_installed": {
                 "name": "Allow charging from grid"
+            },
+            "guest_mode_enabled": {
+                "name": "Guest mode"
             },
             "user_settings_storm_mode_enabled": {
                 "name": "Storm watch"
@@ -1084,15 +1128,6 @@
         "no_vehicle_data_for_device": {
             "message": "No vehicle data for device ID: {device_id}"
         },
-        "set_scheduled_charging_time": {
-            "message": "Time required to complete the operation"
-        },
-        "set_scheduled_departure_off_peak": {
-            "message": "To enable scheduled departure, 'End off-peak time' is required."
-        },
-        "set_scheduled_departure_preconditioning": {
-            "message": "Departure time required to enable preconditioning"
-        },
         "wake_up_failed": {
             "message": "Failed to wake up vehicle: {message}"
         },
@@ -1100,7 +1135,100 @@
             "message": "Timed out trying to wake up vehicle"
         }
     },
+    "selector": {
+        "days_of_week": {
+            "options": {
+                "friday": "Friday",
+                "monday": "Monday",
+                "saturday": "Saturday",
+                "sunday": "Sunday",
+                "thursday": "Thursday",
+                "tuesday": "Tuesday",
+                "wednesday": "Wednesday"
+            }
+        }
+    },
     "services": {
+        "add_charge_schedule": {
+            "description": "Adds or modifies a charging schedule for a vehicle.",
+            "fields": {
+                "days_of_week": {
+                    "description": "Select which days this schedule should be enabled on. You can select multiple days.",
+                    "name": "Days of week"
+                },
+                "device_id": {
+                    "description": "Vehicle to schedule.",
+                    "name": "Vehicle"
+                },
+                "enable": {
+                    "description": "If this schedule should be considered for execution.",
+                    "name": "Enable"
+                },
+                "end_time": {
+                    "description": "The time this schedule ends, e.g. 01:05 for 1:05 AM.",
+                    "name": "End time"
+                },
+                "id": {
+                    "description": "The ID of the schedule, use an existing ID to modify.",
+                    "name": "Schedule ID"
+                },
+                "location": {
+                    "description": "The approximate location the vehicle must be at to use this schedule. Defaults to Home Assistant's configured location.",
+                    "name": "Location"
+                },
+                "name": {
+                    "description": "The name of the schedule.",
+                    "name": "Name"
+                },
+                "one_time": {
+                    "description": "If this is a one-time schedule.",
+                    "name": "One-time"
+                },
+                "start_time": {
+                    "description": "The time this schedule begins, e.g. 01:05 for 1:05 AM.",
+                    "name": "Start time"
+                }
+            },
+            "name": "Add charge schedule"
+        },
+        "add_precondition_schedule": {
+            "description": "Adds or modifies a preconditioning schedule for a vehicle.",
+            "fields": {
+                "days_of_week": {
+                    "description": "Select which days this schedule should be enabled on. You can select multiple days.",
+                    "name": "Days of week"
+                },
+                "device_id": {
+                    "description": "Vehicle to schedule.",
+                    "name": "Vehicle"
+                },
+                "enable": {
+                    "description": "If this schedule should be considered for execution.",
+                    "name": "Enable"
+                },
+                "id": {
+                    "description": "The ID of the schedule, use an existing ID to modify.",
+                    "name": "Schedule ID"
+                },
+                "location": {
+                    "description": "The approximate location the vehicle must be at to use this schedule. Defaults to Home Assistant's configured location.",
+                    "name": "Location"
+                },
+                "name": {
+                    "description": "The name of the schedule.",
+                    "name": "Name"
+                },
+                "one_time": {
+                    "description": "If this is a one-time schedule.",
+                    "name": "One-time"
+                },
+                "precondition_time": {
+                    "description": "The time the vehicle should complete preconditioning, e.g. 01:05 for 1:05 AM.",
+                    "name": "Precondition time"
+                }
+            },
+            "name": "Add precondition schedule"
+        },
         "navigation_gps_request": {
             "description": "Sets vehicle navigation to the provided latitude/longitude coordinates.",
             "fields": {
@@ -1118,6 +1246,34 @@
                 }
             },
             "name": "Navigate to coordinates"
+        },
+        "remove_charge_schedule": {
+            "description": "Removes a charging schedule for a vehicle.",
+            "fields": {
+                "device_id": {
+                    "description": "Vehicle to remove schedule from.",
+                    "name": "Vehicle"
+                },
+                "id": {
+                    "description": "The ID of the schedule to remove.",
+                    "name": "Schedule ID"
+                }
+            },
+            "name": "Remove charge schedule"
+        },
+        "remove_precondition_schedule": {
+            "description": "Removes a preconditioning schedule for a vehicle.",
+            "fields": {
+                "device_id": {
+                    "description": "Vehicle to remove schedule from.",
+                    "name": "Vehicle"
+                },
+                "id": {
+                    "description": "The ID of the schedule to remove.",
+                    "name": "Schedule ID"
+                }
+            },
+            "name": "Remove precondition schedule"
         },
         "set_scheduled_charging": {
             "description": "Sets a time at which charging should be started.",
@@ -1187,8 +1343,8 @@
                     "name": "Enable"
                 },
                 "pin": {
-                    "description": "4 digit PIN.",
-                    "name": "PIN"
+                    "description": "4-digit code to enable or disable the setting",
+                    "name": "PIN code"
                 }
             },
             "name": "Set speed limit"
@@ -1219,8 +1375,8 @@
                     "name": "Enable"
                 },
                 "pin": {
-                    "description": "4 digit PIN.",
-                    "name": "PIN"
+                    "description": "4-digit code to enable or disable the setting",
+                    "name": "PIN code"
                 }
             },
             "name": "Set valet mode"
