@@ -48,6 +48,6 @@ cd ../../..
 gh release create v$VERSION -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
 gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
-git push
+git push --set-upstream origin release-$VERSION
 git checkout main
 git restore .
