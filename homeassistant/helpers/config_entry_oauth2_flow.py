@@ -231,6 +231,7 @@ class LocalOAuth2Implementation(AbstractOAuth2Implementation):
             data["client_secret"] = self.client_secret
 
         _LOGGER.debug("Sending token request to %s", self.token_url)
+        print(data)
         resp = await session.post(self.token_url, data=data)
         if resp.status >= 400:
             try:
