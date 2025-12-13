@@ -14,6 +14,7 @@ git branch -D release-$VERSION
 git checkout -b release-$VERSION
 
 rm release_notes.txt
+rm -r custom_components
 
 for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number | jq -r '.[].number'); do
     PR_TITLE=$(gh pr view $PR_NUMBER --repo home-assistant/core --json title | jq -r '.title')
@@ -49,5 +50,7 @@ gh release create v$VERSION -F release_notes.txt --repo Teslemetry/hass-teslemet
 gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push --set-upstream origin release-$VERSION
+
+script/server
 git checkout main
 git restore .
