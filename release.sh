@@ -14,7 +14,6 @@ git branch -D release-$VERSION
 git checkout -b release-$VERSION
 
 rm release_notes.txt
-rm -r custom_components
 
 for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state open --json number | jq -r '.[].number'); do
     PR_TITLE=$(gh pr view $PR_NUMBER --repo home-assistant/core --json title | jq -r '.title')
@@ -26,6 +25,7 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
 done
 
 yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
+cp "homeassistant/components/teslemetry/manifest.json" "custom_components/teslemetry/manifest.json"
 echo "" >> release_notes.txt
 echo "**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/v$VERSION" >> release_notes.txt
 
@@ -51,6 +51,7 @@ gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push --set-upstream origin release-$VERSION
 
+rm -r custom_components
 script/server
 deactivate
 
