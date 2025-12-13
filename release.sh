@@ -35,7 +35,7 @@ source .venv/bin/activate
 script/setup
 uv pip install -r requirements_test_all.txt
 pytest tests/components/teslemetry
-deactivate
+
 
 read -p "Press Enter to release..."
 
@@ -52,5 +52,7 @@ rm teslemetry.zip
 git push --set-upstream origin release-$VERSION
 
 script/server
+deactivate
+
 git checkout main
 git restore .
