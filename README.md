@@ -8,7 +8,7 @@
 
 [![Discord][discord-shield]][discord]
 
-**This integration requires a subscription and access token from Teslemetry.com**
+**This integration requires an account and subscription from Teslemetry.com**
 
 ## HACS
 
