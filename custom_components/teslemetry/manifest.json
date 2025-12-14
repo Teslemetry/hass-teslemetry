@@ -3,10 +3,12 @@
   "name": "Teslemetry",
   "codeowners": ["@Bre77"],
   "config_flow": true,
+  "dependencies": ["application_credentials"],
   "documentation": "https://www.home-assistant.io/integrations/teslemetry",
-  "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues",
-  "iot_class": "cloud_polling",
-  "loggers": ["tesla-fleet-api"],
   "integration_type": "hub",
-  "requirements": ["tesla-fleet-api==1.2.5", "teslemetry-stream==0.7.10"]
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues",
+  "loggers": ["tesla-fleet-api"],
+  "requirements": ["tesla-fleet-api==1.2.7", "teslemetry-stream==0.7.10"],
+  "version": "5.0.4"
 }
