@@ -24,8 +24,9 @@ for PR_NUMBER in $(gh pr list --repo home-assistant/core --author Bre77 --state 
     echo "[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE" >> release_notes.txt
 done
 
-yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
 cp "homeassistant/components/teslemetry/manifest.json" "custom_components/teslemetry/manifest.json"
+yq -i -o json ".version=\"$VERSION\"" "custom_components/teslemetry/manifest.json"
+yq -i -o json ".issue_tracker=\"https://github.com/Teslemetry/hass-teslemetry/issues\"" "custom_components/teslemetry/manifest.json"
 echo "" >> release_notes.txt
 echo "**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/v$VERSION" >> release_notes.txt
 
@@ -35,7 +36,7 @@ source .venv/bin/activate
 script/setup
 uv pip install -r requirements_test_all.txt
 pytest tests/components/teslemetry
-
+deactivate
 
 read -p "Press Enter to release..."
 
@@ -51,9 +52,6 @@ gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push --set-upstream origin release-$VERSION
 
-rm -r custom_components
-script/server
-deactivate
 
 git checkout main
 git restore .
