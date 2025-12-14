@@ -2,8 +2,10 @@
 
 import asyncio
 from collections.abc import Callable
+import time
 from typing import Final
 
+from aiohttp import ClientResponseError
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     Forbidden,
@@ -20,10 +22,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, LOGGER
+from .const import CLIENT_ID, DOMAIN, LOGGER, TOKEN_URL
 from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
@@ -32,6 +35,7 @@ from .coordinator import (
 )
 from .helpers import flatten
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
+from .oauth import TeslemetryImplementation
 from .services import async_setup_services
 
 PLATFORMS: Final = [
@@ -63,13 +67,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
-    access_token = entry.data[CONF_ACCESS_TOKEN]
+    access_token = entry.data["token"]["access_token"]
     session = async_get_clientsession(hass)
+    oauth_session = OAuth2Session(hass, entry, TeslemetryImplementation(hass))
+
+    async def _refresh_hook() -> str:
+        try:
+            await oauth_session.async_ensure_token_valid()
+        except ClientResponseError as e:
+            if e.status == 401:
+                raise ConfigEntryAuthFailed from e
+            raise ConfigEntryNotReady from e
+        token: str = oauth_session.token[CONF_ACCESS_TOKEN]
+        return token
 
     # Create API connection
     teslemetry = Teslemetry(
         session=session,
         access_token=access_token,
+        refresh_hook=_refresh_hook,
     )
     try:
         calls = await asyncio.gather(
@@ -276,25 +292,48 @@ async def async_migrate_entry(
     hass: HomeAssistant, config_entry: TeslemetryConfigEntry
 ) -> bool:
     """Migrate config entry."""
-    if config_entry.version > 1:
+    if config_entry.version > 2:
+        # This means the user has downgraded from a future version
         return False
 
-    if config_entry.version == 1 and config_entry.minor_version < 2:
-        # Add unique_id to existing entry
-        teslemetry = Teslemetry(
-            session=async_get_clientsession(hass),
-            access_token=config_entry.data[CONF_ACCESS_TOKEN],
-        )
-        try:
-            metadata = await teslemetry.metadata()
-        except TeslaFleetError as e:
-            LOGGER.error(e.message)
-            return False
+    if config_entry.version == 1:
+        access_token = config_entry.data[CONF_ACCESS_TOKEN]
 
-        hass.config_entries.async_update_entry(
-            config_entry, unique_id=metadata["uid"], version=1, minor_version=2
+        # Convert legacy access token to OAuth tokens using migrate endpoint
+        try:
+            data = await _migrate_token_to_oauth(hass, access_token)
+        except ClientResponseError as e:
+            raise ConfigEntryAuthFailed from e
+
+        return hass.config_entries.async_update_entry(
+            config_entry,
+            data=data,
+            version=2,
         )
     return True
+
+
+async def _migrate_token_to_oauth(
+    hass: HomeAssistant, access_token: str
+) -> dict[str, str]:
+    """Migrate legacy access token to OAuth format using Teslemetry migrate endpoint."""
+    session = async_get_clientsession(hass)
+
+    migrate_data = {
+        "grant_type": "migrate",
+        "client_id": CLIENT_ID,
+        "access_token": access_token.strip(),
+        "name": hass.config.location_name,
+    }
+
+    async with session.post(TOKEN_URL, data=migrate_data) as response:
+        response.raise_for_status()
+
+        new_token = await response.json()
+        new_token["expires_in"] = int(new_token["expires_in"])
+        new_token["expires_at"] = time.time() + new_token["expires_in"]
+
+        return {"token": new_token}
 
 
 def create_handle_vehicle_stream(vin: str, coordinator) -> Callable[[dict], None]:
