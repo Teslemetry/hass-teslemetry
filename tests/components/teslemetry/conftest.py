@@ -1,4 +1,4 @@
-"""Fixtures for Teslemetry."""
+"""Test fixtures for Teslemetry component."""
 
 from __future__ import annotations
 
