@@ -28,6 +28,10 @@
     "config": {
         "abort": {
             "already_configured": "Account is already configured",
+            "oauth_error": "Received invalid token data.",
+            "oauth_failed": "Error while obtaining access token.",
+            "oauth_timeout": "Timeout resolving OAuth token.",
+            "oauth_unauthorized": "OAuth authorization error while obtaining access token.",
             "reauth_account_mismatch": "The reauthentication account does not match the original account",
             "reauth_successful": "Re-authentication was successful"
         },
@@ -42,12 +46,18 @@
                 "data": {
                     "access_token": "Access token"
                 },
+                "data_description": {
+                    "access_token": "Your Teslemetry access token."
+                },
                 "description": "The {name} integration needs to re-authenticate your account, please enter an access token from {url}",
                 "title": "Authentication expired for {name}"
             },
             "user": {
                 "data": {
                     "access_token": "Access token"
+                },
+                "data_description": {
+                    "access_token": "Your Teslemetry access token."
                 },
                 "description": "Enter an access token from {url}."
             }
@@ -272,6 +282,14 @@
             },
             "wake": {
                 "name": "Wake"
+            }
+        },
+        "calendar": {
+            "tariff_content_v2": {
+                "name": "Buy tariff"
+            },
+            "tariff_content_v2_sell_tariff": {
+                "name": "Sell tariff"
             }
         },
         "climate": {
@@ -655,21 +673,21 @@
             "di_state_rel": {
                 "name": "Rear left drive inverter",
                 "state": {
-                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
+                    "abort": "Abort",
                     "enabled": "Enabled",
-                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
+                    "fault": "Fault",
                     "standby": "Standby",
-                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
+                    "unavailable": "Unavailable"
                 }
             },
             "di_state_rer": {
                 "name": "Rear right drive inverter",
                 "state": {
-                    "abort": "[%key:component::teslemetry:sensor:di_state_f:abort]",
+                    "abort": "Abort",
                     "enabled": "Enabled",
-                    "fault": "[%key:component::teslemetry:sensor:di_state_f:fault]",
+                    "fault": "Fault",
                     "standby": "Standby",
-                    "unavailable": "[%key:component::teslemetry:sensor:di_state_f:unavailable]"
+                    "unavailable": "Unavailable"
                 }
             },
             "di_stator_temp_f": {
@@ -1128,6 +1146,18 @@
         "no_vehicle_data_for_device": {
             "message": "No vehicle data for device ID: {device_id}"
         },
+        "set_scheduled_charging_time": {
+            "message": "Scheduled charging time is required when enabling"
+        },
+        "set_scheduled_departure_off_peak": {
+            "message": "Off-peak charging end time is required when enabling"
+        },
+        "set_scheduled_departure_preconditioning": {
+            "message": "Preconditioning departure time is required when enabling"
+        },
+        "unknown_response": {
+            "message": "Unknown response: {response}"
+        },
         "wake_up_failed": {
             "message": "Failed to wake up vehicle: {message}"
         },
@@ -1357,7 +1387,7 @@
                     "name": "Energy Site"
                 },
                 "tou_settings": {
-                    "description": "See https://developer.tesla.com/docs/fleet-api#time_of_use_settings for details.",
+                    "description": "See {time_of_use_url} for details.",
                     "name": "Settings"
                 }
             },
