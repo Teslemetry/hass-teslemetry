@@ -80,6 +80,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 
     session = async_get_clientsession(hass)
 
+    # This is needed to migrate beta users to the new OAuth credential system.
+    if "auth_implementation" not in entry.data:
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "auth_implementation": DOMAIN},
+        )
+
     implementation = await async_get_config_entry_implementation(hass, entry)
     oauth_session = OAuth2Session(hass, entry, implementation)
 
