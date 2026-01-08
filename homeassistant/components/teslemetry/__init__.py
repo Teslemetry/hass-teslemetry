@@ -581,6 +581,16 @@ async def _async_rediscover_gateway(
     return stale_client
 
 
+def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+    """Fix beta migration issues."""
+    # This is needed to migrate beta users to the new OAuth credential system.
+    if "auth_implementation" not in entry.data:
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "auth_implementation": DOMAIN},
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -590,6 +600,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             translation_key="token_data_malformed",
         )
 
+    beta_migration_fix(hass, entry)
     implementation = await async_get_config_entry_implementation(hass, entry)
     oauth_session = OAuth2Session(hass, entry, implementation)
 
