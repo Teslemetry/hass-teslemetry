@@ -24,7 +24,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.config_entry_oauth2_flow import (
     ImplementationUnavailableError,
@@ -165,6 +166,16 @@ def _setup_dynamic_discovery(
     )
 
 
+def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry):
+    """Fix beta migration issues."""
+    # This is needed to migrate beta users to the new OAuth credential system.
+    if "auth_implementation" not in entry.data:
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "auth_implementation": DOMAIN},
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -175,12 +186,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         )
 
     try:
+        beta_migration_fix(hass, entry)
         implementation = await async_get_config_entry_implementation(hass, entry)
     except ImplementationUnavailableError as err:
         raise ConfigEntryAuthFailed(
             translation_domain=DOMAIN,
             translation_key="oauth_implementation_not_available",
         ) from err
+
     oauth_session = OAuth2Session(hass, entry, implementation)
 
     session = async_get_clientsession(hass)
