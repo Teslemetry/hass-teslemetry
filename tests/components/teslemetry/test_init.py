@@ -24,6 +24,7 @@ from homeassistant.components.teslemetry.coordinator import (
     ENERGY_HISTORY_INTERVAL,
     ENERGY_INFO_INTERVAL,
     ENERGY_LIVE_INTERVAL,
+    PRODUCTS_INTERVAL,
     VEHICLE_INTERVAL,
 )
 from homeassistant.components.teslemetry.models import TeslemetryData
@@ -43,6 +44,7 @@ from .const import (
     CONFIG_V1,
     ENERGY_HISTORY,
     LIVE_STATUS,
+    METADATA,
     PRODUCTS_MODERN,
     SITE_INFO,
     UNIQUE_ID,
@@ -864,3 +866,74 @@ async def test_energy_history_coordinator_refresh_errors(
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_dynamic_device_discovery_new_vehicle(
+    hass: HomeAssistant,
+    mock_metadata: AsyncMock,
+) -> None:
+    """Test that metadata coordinator detects new vehicles with subscriptions."""
+    entry = await setup_platform(hass)
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Verify metadata coordinator is set up
+    metadata_coordinator = entry.runtime_data.metadata_coordinator
+    assert metadata_coordinator is not None
+
+    # Update metadata to include a new vehicle with access
+    new_metadata = deepcopy(METADATA)
+    new_metadata["vehicles"]["5YJ3E1EA1NF000001"] = {
+        "proxy": True,
+        "access": True,
+        "polling": False,
+        "firmware": "2026.0.0",
+    }
+
+    # Update mock for the next coordinator refresh
+    mock_metadata.return_value = new_metadata
+
+    # Manually refresh the coordinator
+    await metadata_coordinator.async_refresh()
+
+    # Verify the coordinator received the new data with proper subscription
+    assert metadata_coordinator.data is not None
+    vehicles_with_access = {
+        vin
+        for vin, info in metadata_coordinator.data.get("vehicles", {}).items()
+        if info.get("access")
+    }
+    assert "5YJ3E1EA1NF000001" in vehicles_with_access
+
+
+async def test_dynamic_device_discovery_no_reload_without_changes(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test that metadata coordinator refresh without changes does not reload."""
+    entry = await setup_platform(hass)
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Track if reload was called
+    reload_called = False
+
+    async def mock_reload(entry_id):
+        nonlocal reload_called
+        reload_called = True
+        # Don't actually reload to avoid test complications
+        return True
+
+    # Patch to use the same metadata (no changes)
+    with (
+        patch(
+            "tesla_fleet_api.teslemetry.Teslemetry.metadata",
+            return_value=deepcopy(METADATA),
+        ),
+        patch.object(hass.config_entries, "async_reload", side_effect=mock_reload),
+    ):
+        # Advance time to trigger metadata coordinator refresh
+        freezer.tick(PRODUCTS_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    # Verify reload was NOT triggered since no subscription changes
+    assert not reload_called
