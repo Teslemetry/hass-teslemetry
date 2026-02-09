@@ -111,7 +111,6 @@ async def _get_access_token(oauth_session: OAuth2Session) -> str:
     return oauth_session.token[CONF_ACCESS_TOKEN]
 
 
-<<<<<<< ours
 def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry):
     """Fix beta migration issues."""
     # This is needed to migrate beta users to the new OAuth credential system.
@@ -120,7 +119,8 @@ def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry):
             entry,
             data={**entry.data, "auth_implementation": DOMAIN},
         )
-=======
+
+
 def _setup_dynamic_discovery(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
@@ -165,14 +165,9 @@ def _setup_dynamic_discovery(
             )
             hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
 
-<<<<<<< ours
-    metadata_coordinator.async_add_listener(_handle_metadata_update)
->>>>>>> theirs
-=======
     entry.async_on_unload(
         metadata_coordinator.async_add_listener(_handle_metadata_update)
     )
->>>>>>> theirs
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -287,18 +282,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             firmware = vehicle_metadata[vin].get("firmware", "Unknown")
             poll = vehicle_metadata[vin].get("polling", False)
 
-<<<<<<< ours
-            entry.async_on_unload(
-                stream.async_add_listener(
-                    create_handle_vehicle_stream(vin, coordinator),
-                    {"vin": vin},
-                )
-=======
             # Set up stream for this vehicle
             remove_listener = stream.async_add_listener(
                 create_handle_vehicle_stream(vin, coordinator),
                 {"vin": vin},
->>>>>>> theirs
             )
             stream_vehicle = stream.get_vehicle(vin)
 
@@ -313,6 +300,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     vin=vin,
                     firmware=firmware,
                     device=device,
+                    remove_listener=remove_listener,
                 )
             )
 
