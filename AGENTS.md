@@ -1,59 +1,109 @@
 # Claude Code instructions
 
-This repository is the **HACS beta release** of the Teslemetry integration for Home Assistant.
+This repository is the **HACS beta release** of the Teslemetry integration for Home Assistant. The only code that matters is in `homeassistant/components/teslemetry/`. Everything else is upstream HA core scaffolding for testing.
 
-## Scope
+## Task: build a release
 
-The only code that matters is in `homeassistant/components/teslemetry/`. Everything else is upstream Home Assistant core scaffolding used for testing.
+The user will say **major**, **minor**, or **patch**. Follow these steps:
 
-## Release workflow
+### 1. Determine version
 
-New versions are built by `release.sh`, which:
-1. Rebases `main` onto `upstream/dev` (home-assistant/core)
-2. Applies patches from open PRs on `home-assistant/core` authored by `@Bre77` with the `integration: teslemetry` label
-3. Each PR patch is applied with `git apply -3`, which may produce merge conflicts
-4. Updates the version in `manifest.json`, runs tests, tags, and publishes a GitHub release
+```bash
+gh release ls --repo teslemetry/hass-teslemetry --limit 1
+```
 
-## Conflict resolution
+Parse the current version (e.g. `v0.5.2`) and bump the appropriate segment. Strip the `v` prefix for the version string used in manifest/commits (e.g. `0.6.0`).
 
-When applying PR patches fails, conflicts typically arise because:
-- Upstream `dev` has refactored shared code (entity base classes, coordinator patterns, config entry APIs)
-- Multiple PRs touch the same files (commonly `sensor.py`, `binary_sensor.py`, `const.py`, `coordinator.py`, `__init__.py`)
-- New entities or keys were added in nearby lines
+### 2. Rebase onto upstream
 
-When resolving conflicts:
-- Preserve the intent of both the upstream change and the PR change
-- Follow Home Assistant coding conventions (see below)
-- Keep try blocks minimal; process data after the try/catch
-- Use f-strings, type hints, and Python 3.13+ features
-- Use American English, sentence case
-- Lazy logging: `_LOGGER.debug("Message with %s", variable)`
-- No periods at end of log messages, no integration name in log messages
-- Entity names should use `_attr_translation_key`, not hardcoded strings
+```bash
+git checkout main
+git fetch upstream dev
+git rebase upstream/dev
+git push --force-with-lease
+```
 
-## Development commands
+### 3. Create release branch
+
+```bash
+git checkout -b release-$VERSION
+```
+
+### 4. Apply PR patches
+
+Get the list of open PRs:
+
+```bash
+gh pr list --repo home-assistant/core --author Bre77 --state open --label "integration: teslemetry" --json number,title
+```
+
+For each PR, apply its patch:
+
+```bash
+gh pr diff $PR_NUMBER --patch --repo home-assistant/core | git apply -3
+```
+
+- **If it applies cleanly**: stage and commit with `git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify`
+- **If it conflicts**: resolve by editing files directly (no `git mergetool`):
+  1. Run `git status` to find unmerged files
+  2. Read each conflicted file and the original PR (`gh pr diff $PR_NUMBER --repo home-assistant/core`) to understand intent
+  3. Edit to resolve conflicts, preserving both upstream and PR changes
+  4. `git add` resolved files, then `git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify`
+
+Write each applied PR to `release_notes.txt` as: `[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE`
+
+### 5. Update version and build
+
+```bash
+yq -i -o json ".version=\"$VERSION\"" "homeassistant/components/teslemetry/manifest.json"
+cp "homeassistant/components/teslemetry/manifest.json" "custom_components/teslemetry/manifest.json"
+```
+
+Append to `release_notes.txt`:
+```
+**Full Changelog**: https://github.com/Teslemetry/hass-teslemetry/commits/v$VERSION
+```
+
+Commit: `git commit -am "v$VERSION" --no-verify`
+
+### 6. Run tests
 
 ```bash
 source .venv/bin/activate
 script/setup
 uv pip install -r requirements_test_all.txt
 pytest tests/components/teslemetry
+deactivate
 ```
 
-## HA coding patterns (quick reference)
+### 7. Pause for approval
 
-- **Async**: All external I/O must be async; never block the event loop
-- **Error handling**: Use specific exceptions (`ConfigEntryNotReady`, `ConfigEntryAuthFailed`, `UpdateFailed`); bare `except Exception` only in config flows and background tasks
-- **Type hints**: Required on all functions and methods
-- **Docstrings**: Required on all functions and methods
-- **Formatting**: Ruff handles formatting; don't comment on formatting issues
+Show the user:
+- List of applied PRs and any conflicts that were resolved
+- Test results
+- Ask for confirmation before publishing
 
-## Good practices
+### 8. Publish release
 
-- Integrations with Platinum or Gold level in the Integration Quality Scale reflect a high standard of code quality and maintainability. When looking for examples of something, these are good places to start. The level is indicated in the manifest.json of the integration.
-- When reviewing entity actions, do not suggest extra defensive checks for input fields that are already validated by Home Assistant's service/action schemas and entity selection filters. Suggest additional guards only when data bypasses those validators or is transformed into a less-safe form.
-- When validation guarantees a dict key exists, prefer direct key access (`data["key"]`) instead of `.get("key")` so contract violations are surfaced instead of silently masked.
-- Keep comments concise. Prefer one short line stating the non-obvious constraint, or no comment at all.
-- Do not add comments that just restate the code on the following line(s) (e.g. `# Check if initialized` above `if self.initialized:`). Comments should only explain why (non-obvious constraints, surprising behavior, or workarounds), never what. Never add comments that justify a change by referencing what the code looked like before.
-- Do not add section or divider comments (e.g. `# --- XYZ Triggers ---`) inside or outside of functions, since those can easily become stale and be misleading.
-- When catching exceptions, try-clauses should be as small as possible, i.e. avoid wrapping large blocks of code in a try-clause, and avoid catching exceptions from functions that are not expected to raise them.
+```bash
+git tag -a v$VERSION -m "Release $VERSION"
+git push origin v$VERSION
+cd homeassistant/components/teslemetry && rm -rf __pycache__ && rm -f *.orig && zip -r ../../../teslemetry.zip * && cd ../../..
+gh release create v$VERSION -F release_notes.txt --repo Teslemetry/hass-teslemetry -t "Beta v$VERSION"
+gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
+rm teslemetry.zip
+git push --set-upstream origin release-$VERSION
+git checkout main
+git restore .
+```
+
+## Conflict resolution guidelines
+
+When resolving merge conflicts:
+- Preserve the intent of both the upstream change and the PR change
+- Read the full PR diff to understand what the PR is trying to do
+- Follow HA coding conventions: f-strings, type hints, Python 3.13+, American English, sentence case
+- Keep try blocks minimal; process data after the try/catch
+- Lazy logging: `_LOGGER.debug("Message with %s", variable)` — no periods, no integration name
+- Entity names use `_attr_translation_key`, not hardcoded strings
+- Formatting is handled by Ruff
