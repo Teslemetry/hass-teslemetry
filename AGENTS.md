@@ -37,6 +37,10 @@ Get the list of open PRs:
 gh pr list --repo home-assistant/core --author Bre77 --state open --label "integration: teslemetry" --json number,title
 ```
 
+**Ordering**: Apply PRs from oldest to newest. If multiple PRs touch the same files (check with `gh pr diff --name-only`), apply them adjacently to minimize conflicts.
+
+**TEMPORARY**: While quality scale work is in progress, exclude `quality_scale.yaml` from each patch to avoid repeated conflicts. Apply it once at the end of step 4 by reading the final state of all PRs and writing the correct combined result. Remove this workaround once quality scale PRs are all merged.
+
 For each PR, apply its patch:
 
 ```bash
@@ -49,6 +53,14 @@ gh pr diff $PR_NUMBER --patch --repo home-assistant/core | git apply -3
   2. Read each conflicted file and the original PR (`gh pr diff $PR_NUMBER --repo home-assistant/core`) to understand intent
   3. Edit to resolve conflicts, preserving both upstream and PR changes
   4. `git add` resolved files, then `git commit -am "#$PR_NUMBER: $PR_TITLE" --no-verify`
+
+**After every commit**, verify no conflict markers leaked through:
+
+```bash
+grep -r "<<<<<<" homeassistant/components/teslemetry/ tests/components/teslemetry/ && echo "CONFLICT MARKERS FOUND - fix before continuing" || echo "Clean"
+```
+
+If markers are found, fix them immediately and amend the commit before proceeding to the next PR.
 
 Write each applied PR to `release_notes.txt` as: `[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE`
 
@@ -107,3 +119,8 @@ When resolving merge conflicts:
 - Lazy logging: `_LOGGER.debug("Message with %s", variable)` — no periods, no integration name
 - Entity names use `_attr_translation_key`, not hardcoded strings
 - Formatting is handled by Ruff
+
+**Common conflict patterns**: PRs are based on different upstream commits, so a later PR may revert changes from an earlier one. Watch for:
+- A PR re-introducing old code that a previously-applied PR already changed (e.g. reverting translated exceptions back to plain strings)
+- Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
+- Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
