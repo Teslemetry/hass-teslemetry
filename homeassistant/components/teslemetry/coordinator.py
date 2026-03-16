@@ -24,13 +24,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 if TYPE_CHECKING:
     from . import TeslemetryConfigEntry
 
-<<<<<<< ours
-from .const import DOMAIN, ENERGY_HISTORY_FIELDS, LOGGER
-=======
 from homeassistant.util import dt as dt_util
 
-from .const import ENERGY_HISTORY_FIELDS, LOGGER
->>>>>>> theirs
+from .const import DOMAIN, ENERGY_HISTORY_FIELDS, LOGGER
 from .helpers import flatten
 
 RETRY_EXCEPTIONS = (
