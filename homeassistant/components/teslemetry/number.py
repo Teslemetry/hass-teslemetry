@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from tesla_fleet_api.const import Scope
-from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStreamVehicle
 
 from homeassistant.components.number import (
@@ -34,6 +33,7 @@ from .entity import (
 )
 from .helpers import handle_command, handle_vehicle_command
 from .models import TeslemetryEnergyData, TeslemetryVehicleData
+from .source import EnergySource, VehicleSource
 
 PARALLEL_UPDATES = 0
 
@@ -42,7 +42,7 @@ PARALLEL_UPDATES = 0
 class TeslemetryNumberVehicleEntityDescription(NumberEntityDescription):
     """Describes Teslemetry Number entity."""
 
-    func: Callable[[Vehicle, int], Awaitable[Any]]
+    func: Callable[[VehicleSource, int], Awaitable[Any]]
     min_key: str | None = None
     max_key: str
     native_min_value: float
@@ -95,7 +95,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryNumberVehicleEntityDescription, ...] = (
 class TeslemetryNumberBatteryEntityDescription(NumberEntityDescription):
     """Describes Teslemetry Number entity."""
 
-    func: Callable[[EnergySite, float], Awaitable[Any]]
+    func: Callable[[EnergySource, float], Awaitable[Any]]
     requires: str | None = None
     scopes: list[Scope]
 
@@ -171,7 +171,7 @@ async def async_setup_entry(
 class TeslemetryVehicleNumberEntity(TeslemetryRootEntity, NumberEntity):
     """Vehicle number entity base class."""
 
-    api: Vehicle
+    api: VehicleSource
     entity_description: TeslemetryNumberVehicleEntityDescription
 
     async def async_set_native_value(self, value: float) -> None:

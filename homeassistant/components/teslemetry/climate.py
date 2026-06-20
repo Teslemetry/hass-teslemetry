@@ -3,7 +3,6 @@
 from typing import Any, cast
 
 from tesla_fleet_api.const import CabinOverheatProtectionTemp, Scope
-from tesla_fleet_api.teslemetry import Vehicle
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
@@ -32,6 +31,7 @@ from .entity import (
 )
 from .helpers import handle_vehicle_command
 from .models import TeslemetryVehicleData
+from .source import VehicleSource
 
 DEFAULT_MIN_TEMP = 15
 DEFAULT_MAX_TEMP = 28
@@ -83,7 +83,7 @@ async def async_setup_entry(
 class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
     """Vehicle Climate Control."""
 
-    api: Vehicle
+    api: VehicleSource
     _attr_precision = PRECISION_HALVES
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
@@ -364,7 +364,7 @@ COP_LEVELS = {
 class TeslemetryCabinOverheatProtectionEntity(TeslemetryRootEntity, ClimateEntity):
     """Vehicle Cabin Overheat Protection."""
 
-    api: Vehicle
+    api: VehicleSource
     _attr_precision = PRECISION_WHOLE
     _attr_target_temperature_step = 5
     _attr_min_temp = 30
