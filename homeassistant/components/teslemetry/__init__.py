@@ -301,10 +301,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         session=session,
         access_token=access_token,
     )
+    # Fetch metadata through the coordinator so it owns the data the platforms
+    # read at setup (e.g. per-vehicle config for seat heaters).
+    metadata_coordinator = TeslemetryMetadataCoordinator(hass, entry, teslemetry)
     try:
-        calls = await asyncio.gather(
-            teslemetry.metadata(),
+        products_call, _ = await asyncio.gather(
             teslemetry.products(),
+            metadata_coordinator.async_config_entry_first_refresh(),
         )
     except InvalidToken as e:
         raise ConfigEntryAuthFailed(
@@ -322,11 +325,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             translation_key="not_ready_api_error",
         ) from e
 
-    scopes = calls[0]["scopes"]
-    region = calls[0]["region"]
-    vehicle_metadata = calls[0]["vehicles"]
-    energy_site_metadata = calls[0]["energy_sites"]
-    products = calls[1]["response"]
+    metadata = metadata_coordinator.data
+    scopes = metadata["scopes"]
+    region = metadata["region"]
+    vehicle_metadata = metadata["vehicles"]
+    energy_site_metadata = metadata["energy_sites"]
+    products = products_call["response"]
 
     device_registry = dr.async_get(hass)
 
@@ -341,7 +345,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     current_devices: set[tuple[str, str]] = set()
 
     # Track known devices for dynamic discovery (based on metadata access state)
-    known_vins, known_site_ids = _get_subscribed_ids_from_metadata(calls[0])
+    known_vins, known_site_ids = _get_subscribed_ids_from_metadata(metadata)
 
     for product in products:
         if (
@@ -556,8 +560,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         if subentry.subentry_id not in current_subentry_ids:
             LOGGER.debug("Removing stale subentry %s", subentry.subentry_id)
             hass.config_entries.async_remove_subentry(entry, subentry.subentry_id)
-
-    metadata_coordinator = TeslemetryMetadataCoordinator(hass, entry, teslemetry)
 
     entry.runtime_data = TeslemetryData(
         vehicles=vehicles,
