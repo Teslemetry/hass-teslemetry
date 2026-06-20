@@ -188,7 +188,7 @@ async def test_account_entity_not_in_subentry(
     """Test the account-level credit balance sensor stays on the main entry."""
     await setup_platform(hass, [Platform.SENSOR])
 
-    credit_balance = entity_registry.async_get("sensor.teslemetry_credits")
+    credit_balance = entity_registry.async_get("sensor.teslemetry_command_credits")
     assert credit_balance is not None
     assert credit_balance.device_id is None
     assert credit_balance.config_subentry_id is None
