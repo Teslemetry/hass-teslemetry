@@ -71,7 +71,9 @@ class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
         """Set volume level, range 0..1."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await handle_vehicle_command(self.api.adjust_volume(volume * VOLUME_FACTOR))
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.adjust_volume(volume * VOLUME_FACTOR)
+        )
         self._attr_volume_level = volume
         self.async_write_ha_state()
 
@@ -80,7 +82,9 @@ class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
         if self.state != MediaPlayerState.PLAYING:
             self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-            await handle_vehicle_command(self.api.media_toggle_playback())
+            await handle_vehicle_command(
+                self.hass, self.config_entry, self.api.media_toggle_playback()
+            )
             self._attr_state = MediaPlayerState.PLAYING
             self.async_write_ha_state()
 
@@ -90,7 +94,9 @@ class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
         if self.state == MediaPlayerState.PLAYING:
             self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-            await handle_vehicle_command(self.api.media_toggle_playback())
+            await handle_vehicle_command(
+                self.hass, self.config_entry, self.api.media_toggle_playback()
+            )
             self._attr_state = MediaPlayerState.PAUSED
             self.async_write_ha_state()
 
@@ -98,13 +104,17 @@ class TeslemetryMediaEntity(TeslemetryRootEntity, MediaPlayerEntity):
         """Send next track command."""
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await handle_vehicle_command(self.api.media_next_track())
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.media_next_track()
+        )
 
     async def async_media_previous_track(self) -> None:
         """Send previous track command."""
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
-        await handle_vehicle_command(self.api.media_prev_track())
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.media_prev_track()
+        )
 
 
 class TeslemetryVehiclePollingMediaEntity(

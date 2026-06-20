@@ -16,6 +16,9 @@ CLIENT_ID = "homeassistant"
 SUBENTRY_TYPE_VEHICLE = "vehicle"
 SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 
+# Where users can purchase more command credits
+CREDITS_URL = "https://teslemetry.com/console/credits"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",
