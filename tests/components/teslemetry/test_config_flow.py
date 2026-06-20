@@ -9,6 +9,7 @@ from aiohttp import ClientConnectionError
 import pytest
 from tesla_fleet_api.exceptions import (
     InvalidToken,
+    LoginRequired,
     SubscriptionRequired,
     TeslaFleetError,
 )
@@ -396,6 +397,7 @@ async def test_reconfigure_account_mismatch(
     "exception",
     [
         InvalidToken,
+        LoginRequired,
         SubscriptionRequired,
         ClientConnectionError,
         TeslaFleetError("API error"),
