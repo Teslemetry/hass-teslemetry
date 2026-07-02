@@ -16,15 +16,24 @@ CLIENT_ID = "homeassistant"
 SUBENTRY_TYPE_VEHICLE = "vehicle"
 SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 
-# Subentry data keys. An energy site subentry also stores CONF_HOST and
-# CONF_PASSWORD (from homeassistant.const) once paired for local TEDAPI v1r
-# access; their presence enables Powerwall-first command routing.
+# Subentry data keys. A vehicle subentry also stores CONF_ADDRESS (from
+# homeassistant.const) once paired; its presence enables Bluetooth-first routing.
+# An energy site subentry also stores CONF_HOST and CONF_PASSWORD once paired
+# for local TEDAPI v1r access; their presence enables Powerwall-first routing.
+CONF_VIN = "vin"
 CONF_SITE_ID = "site_id"
+
+# File holding the integration's EC private key used to sign BLE commands. The
+# matching public/virtual key is what the user adds to the vehicle when pairing.
+PRIVATE_KEY_FILE = "teslemetry.key"
 
 # File holding the integration's RSA private key used to sign TEDAPI v1r
 # requests. The matching public key is what gets registered as an authorized
 # client on the energy gateway when pairing.
 RSA_KEY_FILE = "teslemetry_rsa.key"
+
+# hass.data key for the shared TeslaBluetooth parent (holds the private key).
+BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
 
 # hass.data key for the shared Teslemetry instance holding the RSA key.
 RSA_PARENT_KEY = f"{DOMAIN}_rsa_parent"
