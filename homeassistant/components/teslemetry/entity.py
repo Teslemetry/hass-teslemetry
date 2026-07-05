@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import Any, override
 
 from tesla_fleet_api.const import Scope
+from tesla_fleet_api.tesla import EnergySiteRouter, VehicleRouter
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 
 from homeassistant.exceptions import ServiceValidationError
@@ -104,7 +105,7 @@ class TeslemetryVehiclePollingEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Vehicle entities."""
 
     _last_update: int = 0
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     vehicle: TeslemetryVehicleData
 
     def __init__(
@@ -136,7 +137,7 @@ class TeslemetryVehiclePollingEntity(TeslemetryPollingEntity):
 class TeslemetryEnergyLiveEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Energy Site Live entities."""
 
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
@@ -157,7 +158,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryPollingEntity):
 class TeslemetryEnergyInfoEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
@@ -196,7 +197,7 @@ class TeslemetryWallConnectorEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Wall Connector Entities."""
 
     _attr_has_entity_name = True
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
@@ -253,7 +254,7 @@ class TeslemetryWallConnectorEntity(TeslemetryPollingEntity):
 class TeslemetryVehicleStreamEntity(TeslemetryRootEntity):
     """Parent class for Teslemetry Vehicle Stream entities."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
 
     def __init__(self, data: TeslemetryVehicleData, key: str) -> None:
         """Initialize common aspects of a Teslemetry entity."""
