@@ -16,6 +16,24 @@ CLIENT_ID = "homeassistant"
 SUBENTRY_TYPE_VEHICLE = "vehicle"
 SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 
+# Subentry data keys. An energy site subentry also stores CONF_HOST and
+# CONF_PASSWORD (from homeassistant.const) once paired for local TEDAPI v1r
+# access; their presence enables Powerwall-first command routing.
+CONF_SITE_ID = "site_id"
+
+# File holding the integration's RSA private key used to sign TEDAPI v1r
+# requests. The matching public key is what gets registered as an authorized
+# client on the energy gateway when pairing.
+RSA_KEY_FILE = "teslemetry_rsa.key"
+
+# hass.data key for the shared Teslemetry instance holding the RSA key.
+RSA_PARENT_KEY = f"{DOMAIN}_rsa_parent"
+
+# Number of list_authorized_clients() polls, and the delay between them, while
+# waiting for the user to approve the pending key in the Tesla app.
+KEY_PAIRING_POLL_ATTEMPTS = 10
+KEY_PAIRING_POLL_INTERVAL = 2
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",

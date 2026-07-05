@@ -3,10 +3,12 @@
 import asyncio
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final, cast
 
 from aiohttp import ClientError
+from aiopowerwall import PowerwallClient, PowerwallEnergySite
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     Forbidden,
@@ -15,6 +17,7 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
+from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry
 from teslemetry_stream import TeslemetryStream
 
@@ -23,7 +26,7 @@ from homeassistant.components.application_credentials import (
     async_import_client_credential,
 )
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState, ConfigSubentry
-from homeassistant.const import CONF_ACCESS_TOKEN, Platform
+from homeassistant.const import CONF_ACCESS_TOKEN, CONF_HOST, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -48,8 +51,11 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CLIENT_ID,
+    CONF_SITE_ID,
     DOMAIN,
     LOGGER,
+    RSA_KEY_FILE,
+    RSA_PARENT_KEY,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
     VEHICLE_ISSUE_LEARN_MORE,
@@ -277,9 +283,12 @@ def _ensure_subentry(
     """Return the subentry id for unique_id, creating or updating it as needed."""
     for subentry in entry.subentries.values():
         if subentry.subentry_type == subentry_type and subentry.unique_id == unique_id:
-            if subentry.title != title or dict(subentry.data) != data:
+            # Merge over the existing data so keys added by a subentry flow (e.g.
+            # a paired energy gateway's host/password) are preserved across reloads.
+            merged = {**subentry.data, **data}
+            if subentry.title != title or dict(subentry.data) != merged:
                 hass.config_entries.async_update_subentry(
-                    entry, subentry, title=title, data=data
+                    entry, subentry, title=title, data=merged
                 )
             return subentry.subentry_id
 
@@ -322,6 +331,53 @@ async def _async_get_energy_site_live_status(energy_site: EnergySite) -> Any:
             translation_domain=DOMAIN,
             translation_key="not_ready_api_error",
         ) from e
+
+
+async def _async_get_rsa_key_pem(hass: HomeAssistant) -> bytes:
+    """Return the integration's RSA private key PEM, generating it if needed.
+
+    Cached on ``hass.data`` so the key file is only touched once even when
+    several energy sites are paired for local TEDAPI v1r access.
+    """
+    pem: bytes | None = hass.data.get(RSA_PARENT_KEY)
+    if pem is None:
+        path = hass.config.path(RSA_KEY_FILE)
+        await Teslemetry(
+            session=async_get_clientsession(hass), access_token=""
+        ).get_rsa_private_key(path)
+        pem = await hass.async_add_executor_job(Path(path).read_bytes)
+        hass.data[RSA_PARENT_KEY] = pem
+    return pem
+
+
+async def _async_resolve_energy_site_api(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
+    subentry_id: str,
+    cloud_energy_site: EnergySite,
+) -> EnergySite | EnergySiteRouter:
+    """Return the API an energy site's platforms should call.
+
+    When the subentry has been paired (its data carries a local gateway
+    ``host``/``password``), wrap the cloud EnergySite in an EnergySiteRouter that
+    tries the local Powerwall (via aiopowerwall) first and fails over to cloud
+    per command. Otherwise returns the plain cloud EnergySite unchanged.
+    """
+    data = entry.subentries[subentry_id].data
+    host = data.get(CONF_HOST)
+    password = data.get(CONF_PASSWORD)
+    if not host or not password:
+        return cloud_energy_site
+
+    key_pem = await _async_get_rsa_key_pem(hass)
+    powerwall_client = PowerwallClient(
+        host=host,
+        gateway_password=password,
+        rsa_private_key_pem=key_pem,
+        session=async_get_clientsession(hass),
+    )
+    local_energy_site = PowerwallEnergySite(powerwall_client)
+    return EnergySiteRouter(local_energy_site, cloud_energy_site)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -524,12 +580,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 SUBENTRY_TYPE_ENERGY_SITE,
                 str(site_id),
                 product.get("site_name", "Energy Site"),
-                {"site_id": site_id},
+                {CONF_SITE_ID: site_id},
+            )
+
+            # Route commands through a local Powerwall first when the subentry
+            # has been paired; otherwise this returns the plain cloud EnergySite.
+            api = await _async_resolve_energy_site_api(
+                hass, entry, subentry_id, energy_site
             )
 
             energysites.append(
                 TeslemetryEnergyData(
-                    api=energy_site,
+                    api=api,
                     live_coordinator=(
                         TeslemetryEnergySiteLiveCoordinator(
                             hass, entry, energy_site, live_status
@@ -699,7 +761,7 @@ def _migrate_devices_to_subentries(
                 SUBENTRY_TYPE_ENERGY_SITE,
                 identifier,
                 device.name or "Energy Site",
-                {"site_id": int(identifier)},
+                {CONF_SITE_ID: int(identifier)},
             )
             site_subentry_by_device_id[device.id] = subentry_id
         else:
