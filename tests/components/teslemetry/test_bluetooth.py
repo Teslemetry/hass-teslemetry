@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak.exc import BleakError
 from tesla_fleet_api.exceptions import NotOnWhitelistFault
 from tesla_fleet_api.tesla import VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
@@ -204,6 +205,73 @@ async def test_subentry_pairing_requires_key_approval(hass: HomeAssistant) -> No
     assert result["reason"] == "reconfigure_successful"
     assert entry.subentries[subentry_id].data[CONF_ADDRESS] == ADDRESS
     vehicle.pair.assert_awaited_once()
+
+
+async def test_subentry_scan_connect_fails(hass: HomeAssistant) -> None:
+    """The scan step re-shows the form with an error when BLE connect fails."""
+    entry = await _setup_vehicle_subentry(hass)
+    subentry_id = entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)[0].subentry_id
+    vehicle = _mock_vehicle()
+    vehicle.connect = AsyncMock(side_effect=BleakError("nope"))
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.TeslaBluetooth"
+        ) as mock_parent,
+    ):
+        mock_parent.return_value.get_name.return_value = TeslaBluetooth().get_name(VIN)
+        mock_parent.return_value.get_private_key = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = vehicle
+
+        result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "scan"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert CONF_ADDRESS not in entry.subentries[subentry_id].data
+
+
+async def test_subentry_authorize_timeout(hass: HomeAssistant) -> None:
+    """The instructions step re-shows with a timeout error if pairing never succeeds."""
+    entry = await _setup_vehicle_subentry(hass)
+    subentry_id = entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)[0].subentry_id
+    vehicle = _mock_vehicle(on_whitelist=False)
+    vehicle.pair = AsyncMock(side_effect=BleakError("still not approved"))
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.TeslaBluetooth"
+        ) as mock_parent,
+    ):
+        mock_parent.return_value.get_name.return_value = TeslaBluetooth().get_name(VIN)
+        mock_parent.return_value.get_private_key = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = vehicle
+
+        result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["step_id"] == "instructions"
+
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "instructions"
+    assert result["errors"] == {"base": "timeout"}
+    assert CONF_ADDRESS not in entry.subentries[subentry_id].data
 
 
 async def test_subentry_scan_device_not_found(hass: HomeAssistant) -> None:
