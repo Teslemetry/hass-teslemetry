@@ -22,7 +22,7 @@ from .entity import (
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
 )
-from .helpers import handle_vehicle_command
+from .helpers import firmware_at_least, handle_vehicle_command
 from .models import TeslemetryVehicleData
 
 OPEN = 1
@@ -41,20 +41,20 @@ async def async_setup_entry(
     for vehicle in entry.runtime_data.vehicles:
         entities: list[CoverEntity] = [
             TeslemetryVehiclePollingWindowEntity(vehicle, entry.runtime_data.scopes)
-            if vehicle.poll or vehicle.firmware < "2024.26"
+            if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.26")
             else TeslemetryStreamingWindowEntity(vehicle, entry.runtime_data.scopes),
             TeslemetryVehiclePollingChargePortEntity(vehicle, entry.runtime_data.scopes)
-            if vehicle.poll or vehicle.firmware < "2024.44.25"
+            if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.44.25")
             else TeslemetryStreamingChargePortEntity(
                 vehicle, entry.runtime_data.scopes
             ),
             TeslemetryVehiclePollingFrontTrunkEntity(vehicle, entry.runtime_data.scopes)
-            if vehicle.poll or vehicle.firmware < "2024.26"
+            if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.26")
             else TeslemetryStreamingFrontTrunkEntity(
                 vehicle, entry.runtime_data.scopes
             ),
             TeslemetryVehiclePollingRearTrunkEntity(vehicle, entry.runtime_data.scopes)
-            if vehicle.poll or vehicle.firmware < "2024.26"
+            if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.26")
             else TeslemetryStreamingRearTrunkEntity(vehicle, entry.runtime_data.scopes),
         ]
         if vehicle.poll and vehicle.coordinator.data.get(

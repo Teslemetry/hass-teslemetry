@@ -3,6 +3,7 @@
 from collections.abc import Awaitable
 from typing import TYPE_CHECKING, Any
 
+from awesomeversion import AwesomeVersion, AwesomeVersionException
 from tesla_fleet_api.exceptions import InsufficientCredits, TeslaFleetError
 
 from homeassistant.core import HomeAssistant, callback
@@ -29,6 +30,19 @@ def insufficient_credits_issue_id(entry: TeslemetryConfigEntry) -> str:
     credits does not clear (or get cleared by) another account's repair.
     """
     return f"{INSUFFICIENT_CREDITS_ISSUE}_{entry.entry_id}"
+
+
+def firmware_at_least(firmware: str, minimum: str) -> bool:
+    """Return True if the vehicle firmware is at least the given version.
+
+    Tesla firmware versions are week-based (e.g. 2025.14.3), so a plain
+    string comparison misorders them; an unresolved "Unknown" firmware is
+    treated as not meeting the minimum.
+    """
+    try:
+        return AwesomeVersion(firmware) >= AwesomeVersion(minimum)
+    except AwesomeVersionException:
+        return False
 
 
 def flatten(
