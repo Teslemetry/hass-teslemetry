@@ -80,10 +80,11 @@ Commit: `git commit -am "v$VERSION" --no-verify`
 
 ### 6. Run tests
 
+`script/setup` already installs `requirements_all.txt` and `requirements_test.txt` (via `script/bootstrap`), which cover every integration's runtime and test dependencies. `requirements_test_all.txt` no longer exists upstream - do not try to install it.
+
 ```bash
-source .venv/bin/activate
 script/setup
-uv pip install -r requirements_test_all.txt
+source .venv/bin/activate
 pytest tests/components/teslemetry
 deactivate
 ```
