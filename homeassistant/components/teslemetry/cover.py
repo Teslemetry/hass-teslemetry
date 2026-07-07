@@ -267,7 +267,8 @@ class TeslemetryVehiclePollingChargePortEntity(
     @override
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        self._attr_is_closed = not self._value
+        value = self._value
+        self._attr_is_closed = None if value is None else not value
 
 
 class TeslemetryStreamingChargePortEntity(
@@ -342,7 +343,8 @@ class TeslemetryVehiclePollingFrontTrunkEntity(
     @override
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        self._attr_is_closed = self._value == CLOSED
+        value = self._value
+        self._attr_is_closed = None if value is None else value == CLOSED
 
 
 class TeslemetryStreamingFrontTrunkEntity(
@@ -420,7 +422,8 @@ class TeslemetryVehiclePollingRearTrunkEntity(
     @override
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
-        self._attr_is_closed = self._value == CLOSED
+        value = self._value
+        self._attr_is_closed = None if value is None else value == CLOSED
 
 
 class TeslemetryStreamingRearTrunkEntity(
