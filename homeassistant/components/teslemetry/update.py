@@ -141,6 +141,7 @@ class TeslemetryStreamingUpdateEntity(
 
     _download_percentage: int = 0
     _install_percentage: int = 0
+    _scheduled: bool = False
 
     def __init__(
         self,
@@ -160,7 +161,7 @@ class TeslemetryStreamingUpdateEntity(
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
             self._attr_in_progress = state.attributes.get("in_progress", False)
-            self._install_percentage = state.attributes.get("install_percentage", False)
+            self._attr_update_percentage = state.attributes.get("update_percentage")
             self._attr_installed_version = state.attributes.get("installed_version")
             self._attr_latest_version = state.attributes.get("latest_version")
             self._attr_supported_features = UpdateEntityFeature(
@@ -168,6 +169,7 @@ class TeslemetryStreamingUpdateEntity(
                     "supported_features", self._attr_supported_features
                 )
             )
+            self._scheduled = self._attr_in_progress
             self.async_write_ha_state()
 
         self.async_on_remove(
@@ -223,7 +225,8 @@ class TeslemetryStreamingUpdateEntity(
     ) -> None:
         """Handle software update scheduled start time."""
 
-        self._attr_in_progress = value is not None
+        self._scheduled = value is not None
+        self._async_update_progress()
         self.async_write_ha_state()
 
     def _async_handle_software_update_version(self, value: str | None) -> None:
@@ -244,12 +247,12 @@ class TeslemetryStreamingUpdateEntity(
     def _async_update_progress(self) -> None:
         """Update the progress of the update."""
 
-        if 1 < self._download_percentage < 100:
+        if 0 < self._download_percentage < 100:
             self._attr_in_progress = True
             self._attr_update_percentage = self._download_percentage
-        elif self._install_percentage > 10:
+        elif 10 < self._install_percentage < 100:
             self._attr_in_progress = True
             self._attr_update_percentage = self._install_percentage
         else:
-            self._attr_in_progress = False
+            self._attr_in_progress = self._scheduled
             self._attr_update_percentage = None
