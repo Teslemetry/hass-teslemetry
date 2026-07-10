@@ -432,7 +432,9 @@ async def _async_resolve_vehicle_api(
         return cloud_vehicle
 
     parent = await _async_get_ble_parent(hass)
-    bluetooth_vehicle = parent.vehicles.createBluetooth(vin, device=ble_device)
+    bluetooth_vehicle = parent.vehicles.createBluetooth(
+        vin, device=ble_device, verify_commands=True
+    )
     return VehicleRouter(bluetooth_vehicle, cloud_vehicle)
 
 

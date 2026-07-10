@@ -1,6 +1,6 @@
 """Test the Teslemetry Bluetooth routing and subentry pairing flow."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from bleak.exc import BleakError
 from tesla_fleet_api.exceptions import NotOnWhitelistFault
@@ -62,6 +62,11 @@ async def test_vehicle_router_with_bluetooth(hass: HomeAssistant) -> None:
 
     vehicle = entry.runtime_data.vehicles[0]
     assert isinstance(vehicle.api, VehicleRouter)
+    # Mutating BLE commands must be verified by state so the router's
+    # BLE->cloud failover cannot double-execute a non-idempotent command.
+    mock_parent.return_value.vehicles.createBluetooth.assert_called_once_with(
+        VIN, device=ANY, verify_commands=True
+    )
 
 
 async def test_vehicle_cloud_without_bluetooth(hass: HomeAssistant) -> None:
