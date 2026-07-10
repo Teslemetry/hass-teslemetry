@@ -279,7 +279,7 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         if energy_data is None:
             return self.async_abort(reason="cannot_connect")
         self._energy_site = (
-            energy_data.api.fallback
+            energy_data.api.secondary
             if isinstance(energy_data.api, EnergySiteRouter)
             else energy_data.api
         )
