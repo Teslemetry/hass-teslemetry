@@ -65,7 +65,7 @@ async def test_vehicle_router_with_bluetooth(hass: HomeAssistant) -> None:
     # Mutating BLE commands must be verified by state so the router's
     # BLE->cloud failover cannot double-execute a non-idempotent command.
     mock_parent.return_value.vehicles.createBluetooth.assert_called_once_with(
-        VIN, device=ANY, verify_commands=True
+        VIN, device=ANY, verify_commands=True, keepalive_interval=20
     )
 
 

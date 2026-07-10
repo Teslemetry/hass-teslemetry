@@ -432,8 +432,9 @@ async def _async_resolve_vehicle_api(
         return cloud_vehicle
 
     parent = await _async_get_ble_parent(hass)
+    # keepalive_interval keeps the idle BLE link under Tesla's link-supervision timeout
     bluetooth_vehicle = parent.vehicles.createBluetooth(
-        vin, device=ble_device, verify_commands=True
+        vin, device=ble_device, verify_commands=True, keepalive_interval=20
     )
     return VehicleRouter(bluetooth_vehicle, cloud_vehicle)
 
