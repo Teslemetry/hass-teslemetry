@@ -138,3 +138,11 @@ When resolving merge conflicts:
 - Both features gained their own `TeslemetryVehicleData.api` / `TeslemetryEnergyData.api` union types (`Vehicle | VehicleRouter`, `EnergySite | EnergySiteRouter`). Every shared entity mixin in `entity.py` (and any platform file — climate/cover/lock/media_player/number/select/switch/update — that redeclares its own `api:` type or a `Callable[[Vehicle, ...], ...]`/`Callable[[EnergySite, ...], ...]` field for a description) must use the widened union too, or mypy's LSP check on multiply-inherited mixins fails. Coordinators keep the narrow `Vehicle`/`EnergySite` type since they always poll the plain cloud client, never the router.
 - Both `OAuth2FlowHandler.async_get_supported_subentry_types` implementations return a dict; combine them (don't let one shadow the other) — one entry per subentry type (`vehicle` → `VehicleSubentryFlowHandler`, `energy_site` → `EnergySiteSubentryFlowHandler`).
 - `translations/en.json` is gitignored and generated from `strings.json`; a stale copy on disk can make platform tests fail with "entity not found" even though the code and `strings.json` are correct, because `supported_fn` gating passes but the friendly name (hence entity_id) differs. Regenerate it (`script.translations develop --integration teslemetry`) whenever a test fails with a missing entity and `strings.json` changed recently.
+- The `createBluetooth(..., verify_commands=True)` call in `_async_resolve_vehicle_api` also passes `keepalive_interval=20`: an idle GATT link hits Tesla's link-supervision timeout, so a passive read every 20s keeps it alive. Keep both kwargs together at that call site.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.
