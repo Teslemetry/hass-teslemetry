@@ -43,6 +43,9 @@ RSA_PARENT_KEY = f"{DOMAIN}_rsa_parent"
 KEY_PAIRING_POLL_ATTEMPTS = 10
 KEY_PAIRING_POLL_INTERVAL = 2
 
+# Where users can purchase more command credits
+CREDITS_URL = "https://teslemetry.com/console/credits"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",
