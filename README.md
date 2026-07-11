@@ -21,6 +21,19 @@
 
 **Checkout the full documentation at https://teslemetry.com/docs/home-assistant/features**
 
+## Diagnostic log shipping (opt-in)
+
+This HACS build can ship this integration's debug logs to Teslemetry's ClickStack so
+command/connection issues can be diagnosed without you pasting log files.
+
+- **Off by default.** It only ships while debug logging is enabled for the `teslemetry`
+  integration (Settings -> Devices & services -> Teslemetry -> ... -> Enable debug logging).
+  Turning debug logging off stops shipping immediately.
+- **Only three loggers are shipped**: `homeassistant.components.teslemetry`,
+  `tesla_fleet_api`, and `teslemetry_stream`. No other integration or HA system log is
+  ever read.
+- Shipping runs in the background, is capped in memory, and never blocks or breaks the
+  integration if the network is unavailable.
 
 <!---->
 
