@@ -52,10 +52,10 @@ from .const import (
     KEY_PAIRING_POLL_ATTEMPTS,
     KEY_PAIRING_POLL_INTERVAL,
     LOGGER,
-    PRIVATE_KEY_FILE,
-    RSA_KEY_FILE,
+    POWERWALL_KEY_FILE,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
+    VEHICLE_KEY_FILE,
 )
 from .oauth import async_ensure_client_credential
 
@@ -279,7 +279,7 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
             else energy_data.api
         )
 
-        path = self.hass.config.path(RSA_KEY_FILE)
+        path = self.hass.config.path(POWERWALL_KEY_FILE)
         keyholder = Teslemetry(
             session=async_get_clientsession(self.hass), access_token=""
         )
@@ -423,7 +423,7 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             if device is None:
                 errors["base"] = "device_not_found"
             else:
-                await parent.get_private_key(self.hass.config.path(PRIVATE_KEY_FILE))
+                await parent.get_private_key(self.hass.config.path(VEHICLE_KEY_FILE))
                 self._vehicle = parent.vehicles.createBluetooth(
                     self._vin, device=device
                 )

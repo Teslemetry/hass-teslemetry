@@ -27,12 +27,12 @@ CONF_SITE_ID = "site_id"
 
 # File holding the integration's EC private key used to sign BLE commands. The
 # matching public/virtual key is what the user adds to the vehicle when pairing.
-PRIVATE_KEY_FILE = "teslemetry.key"
+VEHICLE_KEY_FILE = "tesla_vehicle.key"
 
 # File holding the integration's RSA private key used to sign TEDAPI v1r
 # requests. The matching public key is what gets registered as an authorized
 # client on the energy gateway when pairing.
-RSA_KEY_FILE = "teslemetry_rsa.key"
+POWERWALL_KEY_FILE = "tesla_powerwall.key"
 
 # hass.data key for the shared TeslaBluetooth parent (holds the private key).
 BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"

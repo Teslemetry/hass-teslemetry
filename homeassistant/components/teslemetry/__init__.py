@@ -64,12 +64,12 @@ from .const import (
     CONF_VIN,
     DOMAIN,
     LOGGER,
-    PRIVATE_KEY_FILE,
-    RSA_KEY_FILE,
+    POWERWALL_KEY_FILE,
     RSA_PARENT_KEY,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
     VEHICLE_ISSUE_LEARN_MORE,
+    VEHICLE_KEY_FILE,
 )
 from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
@@ -104,9 +104,27 @@ type TeslemetryConfigEntry = ConfigEntry[TeslemetryData]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+# Legacy key filenames renamed to VEHICLE_KEY_FILE / POWERWALL_KEY_FILE; renamed
+# on startup so existing paired installs keep their keys instead of re-pairing.
+_LEGACY_KEY_FILES: Final = {
+    "teslemetry.key": VEHICLE_KEY_FILE,
+    "teslemetry_rsa.key": POWERWALL_KEY_FILE,
+}
+
+
+def _migrate_key_files(config_path: Callable[[str], str]) -> None:
+    """Rename legacy key files to their current names if present."""
+    for old_name, new_name in _LEGACY_KEY_FILES.items():
+        old_path = Path(config_path(old_name))
+        new_path = Path(config_path(new_name))
+        if old_path.is_file() and not new_path.exists():
+            old_path.rename(new_path)
+            LOGGER.debug("Migrated key file %s to %s", old_name, new_name)
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
+    await hass.async_add_executor_job(_migrate_key_files, hass.config.path)
     # A v1 entry migrates using the legacy static client_id (async_migrate_entry);
     # registering a DCR client first would leave auth_implementation pointing at
     # a client_id that never minted that entry's refresh token.
@@ -361,7 +379,7 @@ async def _async_get_rsa_key_pem(hass: HomeAssistant) -> bytes:
     """
     pem: bytes | None = hass.data.get(RSA_PARENT_KEY)
     if pem is None:
-        path = hass.config.path(RSA_KEY_FILE)
+        path = hass.config.path(POWERWALL_KEY_FILE)
         await Teslemetry(
             session=async_get_clientsession(hass), access_token=""
         ).get_rsa_private_key(path)
@@ -408,7 +426,7 @@ async def _async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
     """
     if (parent := hass.data.get(BLE_PARENT_KEY)) is None:
         parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
-        await parent.get_private_key(hass.config.path(PRIVATE_KEY_FILE))
+        await parent.get_private_key(hass.config.path(VEHICLE_KEY_FILE))
         hass.data[BLE_PARENT_KEY] = parent
     return parent
 
