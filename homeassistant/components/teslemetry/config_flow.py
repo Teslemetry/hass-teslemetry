@@ -31,10 +31,6 @@ from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry
 import voluptuous as vol
 
-from homeassistant.components.application_credentials import (
-    ClientCredential,
-    async_import_client_credential,
-)
 from homeassistant.components.bluetooth import async_discovered_service_info
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
@@ -51,7 +47,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import TeslemetryConfigEntry
 from .const import (
-    CLIENT_ID,
     CONF_VIN,
     DOMAIN,
     KEY_PAIRING_POLL_ATTEMPTS,
