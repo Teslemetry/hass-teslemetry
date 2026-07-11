@@ -136,3 +136,10 @@ When resolving merge conflicts:
 - A PR re-introducing old code that a previously-applied PR already changed (e.g. reverting translated exceptions back to plain strings)
 - Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
 - Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.
