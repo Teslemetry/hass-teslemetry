@@ -91,6 +91,7 @@ from .helpers import (
     create_powerwall_client,
     flatten,
 )
+from .logship import async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_setup_services
 
@@ -599,6 +600,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             translation_domain=DOMAIN,
             translation_key="token_data_malformed",
         )
+
+    # Opt-in ClickStack log shipping (HACS-only). The uid is already known
+    # from config flow (entry.unique_id); shipping itself stays gated on the
+    # user enabling debug logging, checked per-record in logship.py.
+    logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
+    await logship.async_acquire()
+    entry.async_on_unload(logship.async_release)
 
     beta_migration_fix(hass, entry)
     implementation = await async_get_config_entry_implementation(hass, entry)
