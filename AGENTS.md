@@ -14,20 +14,34 @@ gh release ls --repo teslemetry/hass-teslemetry --limit 1
 
 Parse the current version (e.g. `v0.5.2`) and bump the appropriate segment. Strip the `v` prefix for the version string used in manifest/commits (e.g. `0.6.0`).
 
-### 2. Rebase onto upstream
+### Working model: isolated worktree, never check out main
+
+This process runs in an isolated worktree, not the primary checkout. **Never run `git checkout main` anywhere in this process** - `main` is typically checked out in a shared primary clone, and checking it out here dirties that shared clone. Every step that touches `main` goes through a temporary branch, delivered with a plain non-force `git push origin <temp-branch>:main`. Nothing in this process rebases `main` or force-pushes.
+
+### 2. Sync main with upstream dev
+
+`main` tracks home-assistant/core `dev`. This sync is automatic as part of every release build - there is no separate approval PR for it.
 
 ```bash
-git checkout main
+git fetch origin main
 git fetch upstream dev
-git rebase upstream/dev
-git push --force-with-lease
+git checkout -b sync-dev origin/main
+git merge upstream/dev   # append-only; resolve conflicts by editing files directly, same as step 4
+git push origin sync-dev:main
 ```
+
+- Resolve any merge conflicts the same way as PR conflicts in step 4: read the conflicting files and edit directly, no `git mergetool`.
+- The push is a plain non-force push (no `--force` / `--force-with-lease`). If it's rejected as non-fast-forward, someone else pushed to `main` in the meantime - re-fetch `origin/main`, re-merge `upstream/dev` into `sync-dev`, and push again. Never force the push.
+
+You stay on `sync-dev` (now holding the synced state of `main`) for the next step.
 
 ### 3. Create release branch
 
 ```bash
 git checkout -b release-$VERSION
 ```
+
+Branches off the `sync-dev` state from step 2, so no further checkout is needed. If starting fresh instead (e.g. resuming in a new worktree), use `git fetch origin main && git checkout -b release-$VERSION origin/main` - never `git checkout main` first.
 
 ### 4. Apply PR patches
 
@@ -105,8 +119,6 @@ gh release create v$VERSION -F release_notes.txt --repo Teslemetry/hass-teslemet
 gh release upload v$VERSION teslemetry.zip --repo Teslemetry/hass-teslemetry
 rm teslemetry.zip
 git push --set-upstream origin release-$VERSION
-git checkout main
-git restore .
 ```
 
 ## Conflict resolution guidelines
@@ -124,3 +136,10 @@ When resolving merge conflicts:
 - A PR re-introducing old code that a previously-applied PR already changed (e.g. reverting translated exceptions back to plain strings)
 - Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
 - Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.
