@@ -53,6 +53,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .helpers import async_update_device_sw_version, flatten
+from .logship import async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_setup_services
 
@@ -246,7 +247,7 @@ def _setup_vehicle_repairs(
     )
 
 
-def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry):
+def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Fix beta migration issues."""
     # This is needed to migrate beta users to the new OAuth credential system.
     if "auth_implementation" not in entry.data:
@@ -264,6 +265,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             translation_domain=DOMAIN,
             translation_key="token_data_malformed",
         )
+
+    # Opt-in ClickStack log shipping (HACS-only). The uid is already known
+    # from config flow (entry.unique_id); shipping itself stays gated on the
+    # user enabling debug logging, checked per-record in logship.py.
+    logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
+    await logship.async_acquire()
+    entry.async_on_unload(logship.async_release)
 
     try:
         beta_migration_fix(hass, entry)
