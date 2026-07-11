@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any, cast, override
 
-from aiohttp import ClientConnectionError
+from aiohttp import ClientConnectionError, ClientError
 from aiopowerwall import (
     DEFAULT_GATEWAY_HOST,
     PowerwallAuthenticationError,
@@ -62,6 +62,7 @@ from .const import (
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
 )
+from .oauth import async_ensure_client_credential
 
 # Number of pair() attempts before giving up and re-showing instructions.
 BLE_PAIR_ATTEMPTS = 10
@@ -151,11 +152,10 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle a flow start."""
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
+        try:
+            await async_ensure_client_credential(self.hass)
+        except ClientError:
+            return self.async_abort(reason="oauth_error")
         return await super().async_step_user()
 
     @override
