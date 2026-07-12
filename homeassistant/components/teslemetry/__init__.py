@@ -48,6 +48,7 @@ from homeassistant.exceptions import (
 from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
+    entity_registry as er,
     issue_registry as ir,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -283,6 +284,59 @@ def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> Non
         )
 
 
+def hacs_migrate_subentry_entities(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry
+) -> None:
+    """Back-migrate v6.0.0/6.0.1 subentry entities onto the main entry.
+
+    HACS-only transitional migration (see AGENTS.md for its retirement). The
+    v6.0.0/6.0.1 betas parented every vehicle and energy-site entity under a
+    config subentry; v6.0.2 keeps entities on the main entry - a vehicle
+    subentry survives only as a lightweight pairing holder, and the energy-site
+    subentry is gone along with local Powerwall control. Move any entity and
+    device still bound to a Teslemetry subentry back onto the main entry so the
+    later stale-subentry cleanup cannot cascade-delete cloud entities. Cloud
+    energy is preserved; only the local pairing config is dropped. Idempotent:
+    a no-op once nothing references a subentry.
+    """
+    subentry_ids = set(entry.subentries)
+    if not subentry_ids:
+        return
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    # Clear each entity's subentry before touching its device: reparenting the
+    # device while an entity still points at the removed subentry would make the
+    # registry cascade-delete that entity.
+    for reg_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if reg_entry.config_subentry_id in subentry_ids:
+            entity_registry.async_update_entity(
+                reg_entry.entity_id, config_subentry_id=None
+            )
+
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        stale = (
+            device.config_entries_subentries.get(entry.entry_id, set()) & subentry_ids
+        )
+        if not stale:
+            continue
+        # Add the main entry (None subentry) before dropping the old ones: a
+        # single add+remove call clears the whole set first and would delete the
+        # device, and a bare remove of a device's only subentry deletes it too.
+        device_registry.async_update_device(
+            device.id,
+            add_config_entry_id=entry.entry_id,
+            add_config_subentry_id=None,
+        )
+        for subentry_id in stale:
+            device_registry.async_update_device(
+                device.id,
+                remove_config_entry_id=entry.entry_id,
+                remove_config_subentry_id=subentry_id,
+            )
+
+
 def _setup_subentry_removal_reload(
     hass: HomeAssistant, entry: TeslemetryConfigEntry
 ) -> None:
@@ -479,6 +533,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
     await logship.async_acquire()
     entry.async_on_unload(logship.async_release)
+
+    # HACS-only transitional migration off the v6.0.0/6.0.1 subentry layout.
+    hacs_migrate_subentry_entities(hass, entry)
 
     try:
         beta_migration_fix(hass, entry)
