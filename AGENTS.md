@@ -136,6 +136,7 @@ When resolving merge conflicts:
 - A PR re-introducing old code that a previously-applied PR already changed (e.g. reverting translated exceptions back to plain strings)
 - Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
 - Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
+- Shared helpers that gain a parameter in a later PR: `_remove_stale_subentries` is typed (`subentry_type, current_subentry_ids`); every call site must pass its own type (`SUBENTRY_TYPE_VEHICLE` for the vehicle prune, `SUBENTRY_TYPE_ENERGY_SITE` for the energy prune). A type-blind prune deletes the other feature's subentries each setup. Guarded by `test_stale_cleanup_preserves_foreign_subentry`.
 
 ## HACS-only patches that ride `main`
 

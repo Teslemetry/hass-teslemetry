@@ -147,3 +147,5 @@ pytest_buckets.txt
 .serena/
 
 release_notes.txt
+tests/testing_config/tesla_vehicle.key
+tests/testing_config/tesla_powerwall.key
