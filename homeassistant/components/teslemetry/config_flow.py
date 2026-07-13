@@ -226,8 +226,11 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
                 )
                 try:
                     await self._vehicle.connect()
-                except (BleakError, TeslaFleetError, TimeoutError) as err:
-                    LOGGER.error("Failed to connect over Bluetooth: %s", err)
+                except BleakError, TeslaFleetError, TimeoutError:
+                    # Log the full traceback: without it an unexpected failure here
+                    # only surfaces to the user as a generic "cannot connect", making
+                    # the real cause invisible in the logs.
+                    LOGGER.exception("Failed to connect over Bluetooth")
                     await self._async_disconnect()
                     errors["base"] = "cannot_connect"
                 else:
@@ -248,8 +251,10 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             await self._vehicle.handshakeVehicleSecurity()
         except NotOnWhitelistFault:
             return await self.async_step_instructions()
-        except TeslaFleetError as err:
-            LOGGER.error("Bluetooth security handshake failed: %s", err)
+        except TeslaFleetError:
+            # Log the full traceback before the generic abort so a masked handshake
+            # fault is diagnosable rather than a bare "cannot connect".
+            LOGGER.exception("Bluetooth security handshake failed")
             return await self._async_abort("cannot_connect")
         return await self._async_finish()
 
