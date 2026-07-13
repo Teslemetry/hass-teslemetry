@@ -137,6 +137,21 @@ When resolving merge conflicts:
 - Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
 - Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
 
+## HACS-only patches that ride `main`
+
+These live only in this HACS tree, never upstream. They are re-applied on top of core `dev` every release and must survive PR application and conflict resolution. All live in `homeassistant/components/teslemetry/__init__.py` unless noted:
+
+- **`beta_migration_fix`** - backfills `auth_implementation` for early beta installs.
+- **Opt-in ClickStack log shipping** - the `logship` acquire/release block in `async_setup_entry` plus `logship.py`.
+- **`hacs_migrate_subentry_entities`** - transitional back-migration off the v6.0.0/6.0.1 config-subentry layout (entities/devices move from per-subentry back onto the main entry; cloud energy preserved, local Powerwall control gone). Standing until a captain retires it, expected once no installs remain on v6.0.0/6.0.1. Idempotent, so it is safe to keep replaying. Tests in `tests/components/teslemetry/test_migration.py`. Retire the function, its call, its test, and this bullet together.
+
+### Stable-core compatibility patches
+
+The upstream PRs target core `dev`; HACS users run older stable cores. These patches rewrite dev-only-API references to the form the advertised support floor (currently core 2026.7.0) understands. Method: audit every `homeassistant.*` reference against the floor in a scratch venv (`pip install homeassistant==<floor>`); patch each ref that is absent. Retire each one once the advertised floor (`hacs.json` `homeassistant`) includes the relevant dev API.
+
+- **`device_tracker.py` state-attribute keys** - `EntityStateAttribute.LATITUDE`/`.LONGITUDE` (upstream form, added by home-assistant/core PR #175970) are dev-only enum members absent on stable cores, so restoring a tracker state crashes on the floor. Patched to `ATTR_LATITUDE`/`ATTR_LONGITUDE` from `homeassistant.const` (same string values). Retire once the floor's `EntityStateAttribute` carries `LATITUDE`/`LONGITUDE`.
+- **BLE pairing exception logging** - in `config_flow.py`'s `VehicleSubentryFlowHandler` (from #176296), the connect and handshake failure handlers now `LOGGER.exception(...)` instead of logging only `str(err)`, so a masked pairing fault leaves a full traceback rather than a bare "cannot connect". Diagnosability only, not an API-compat change; kept HACS-only so as not to touch the in-review PR. Fold into the upstream PR (and drop this bullet) if/when it is accepted there.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
