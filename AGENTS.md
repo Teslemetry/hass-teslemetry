@@ -137,6 +137,15 @@ When resolving merge conflicts:
 - Two PRs both creating the same new file (e.g. calendar.py) — combine both into one file with a shared `async_setup_entry`
 - Nested conflict markers (`<<<<<<< ours` inside another `<<<<<<< ours`) from three-way merge fallback — always grep after committing
 
+## HACS-only patches that ride `main`
+
+These live only in this HACS tree, never upstream. They are re-applied on top of core `dev` every release and must survive PR application and conflict resolution. All live in `homeassistant/components/teslemetry/__init__.py` unless noted:
+
+- **`beta_migration_fix`** - backfills `auth_implementation` for early beta installs.
+- **Opt-in ClickStack log shipping** - the `logship` acquire/release block in `async_setup_entry` plus `logship.py`.
+- **`hacs_migrate_subentry_entities`** - transitional back-migration off the v6.0.0/6.0.1 config-subentry layout (entities/devices move from per-subentry back onto the main entry; cloud energy preserved, local Powerwall control gone). Standing until a captain retires it, expected once no installs remain on v6.0.0/6.0.1. Idempotent, so it is safe to keep replaying. Tests in `tests/components/teslemetry/test_migration.py`. Retire the function, its call, its test, and this bullet together.
+- **Stable-core `*EntityStateAttribute` compat** (`device_tracker.py`) - core `dev` PR #175970 refactors the component to the typed `*EntityStateAttribute` StrEnums. When that PR is applied during a build, revert only `device_tracker.py`'s `EntityStateAttribute.LATITUDE`/`.LONGITUDE` back to the plain `"latitude"`/`"longitude"` attribute keys (identical enum values): those two members are 2026.8-dev-only and raise `AttributeError` on every restart on stable cores (crash reproduced on 2026.7.2, below the `hacs.json` 2025.6.0 floor's stable line), so the location/route device_trackers never register. Leave `media_player.py` (`MediaPlayerEntityStateAttribute.*`) and `update.py` (`UpdateEntityStateAttribute.*`) unchanged - those members already exist on stable. Retire once the stable support floor includes the 2026.8 enums.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
