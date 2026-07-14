@@ -34,6 +34,7 @@ from .const import METADATA, PRODUCTS
 from tests.common import MockConfigEntry
 
 SITE_ID = 123456
+VIN = "LRW3F7EK4NC700000"
 WALL_CONNECTOR_SITE_ID = 555555
 HOST = "192.168.91.1"
 PASSWORD = "abcde"
@@ -689,23 +690,35 @@ async def test_energy_site_router_command_routing(
 
 
 async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> None:
-    """Energy stale-subentry cleanup does not remove other subentry types."""
+    """A vehicle subentry and an energy config-holder both survive a reload.
+
+    Guards the type-blind-prune landmine: the vehicle pass and the energy pass
+    each prune only their own subentry_type. A type-blind prune would let the
+    vehicle pass delete the energy config-holder (and vice versa), so both
+    subentries must remain after setup runs both passes. The vehicle uses the
+    present account VIN so the vehicle pass keeps it on its own merit.
+    """
     entry = mock_config_entry()
     entry.add_to_hass(hass)
-    foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+    vehicle = ConfigSubentry(
+        data=MappingProxyType({"vin": VIN}),
         subentry_type="vehicle",
         title="A Vehicle",
-        unique_id="VIN123",
+        unique_id=VIN,
     )
-    hass.config_entries.async_add_subentry(entry, foreign)
+    hass.config_entries.async_add_subentry(entry, vehicle)
 
     with patch("homeassistant.components.teslemetry.PLATFORMS", []):
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    assert foreign.subentry_id in entry.subentries
-    assert entry.subentries[foreign.subentry_id].subentry_type == "vehicle"
+    # The vehicle subentry survives the energy pass...
+    assert vehicle.subentry_id in entry.subentries
+    assert entry.subentries[vehicle.subentry_id].subentry_type == "vehicle"
+    # ...and the energy config-holder survives the vehicle pass.
+    energy_subentries = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)
+    assert len(energy_subentries) == 1
+    assert energy_subentries[0].unique_id == str(SITE_ID)
 
 
 async def test_subentry_reconfigure_entry_not_loaded(hass: HomeAssistant) -> None:
