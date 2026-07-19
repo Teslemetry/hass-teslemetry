@@ -861,9 +861,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         if subentry.subentry_type == SUBENTRY_TYPE_VEHICLE
         and subentry.unique_id in present_vins
     }
-    _remove_stale_subentries(
-        hass, entry, SUBENTRY_TYPE_VEHICLE, present_subentry_ids
-    )
+    _remove_stale_subentries(hass, entry, SUBENTRY_TYPE_VEHICLE, present_subentry_ids)
 
     _prune_energy_subentries(hass, entry, scopes, energysites)
 

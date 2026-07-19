@@ -13,6 +13,7 @@ from homeassistant.components.device_tracker import (
     TrackerEntity,
     TrackerEntityDescription,
 )
+
 # stable-core compat: EntityStateAttribute.LATITUDE/.LONGITUDE are 2026.8-dev-only
 # enum members absent on stable cores (floor 2026.7.0); use the plain const keys.
 # See AGENTS.md "HACS-only patches that ride main".
