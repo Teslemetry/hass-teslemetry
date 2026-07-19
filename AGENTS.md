@@ -76,7 +76,15 @@ grep -r "<<<<<<" homeassistant/components/teslemetry/ tests/components/teslemetr
 
 If markers are found, fix them immediately and amend the commit before proceeding to the next PR.
 
-Write each applied PR to `release_notes.txt` as: `[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE`
+Start `release_notes.txt` with the standing compatibility note below, verbatim, before any per-PR lines:
+
+```
+> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**
+>
+> This beta pins a newer `tesla-fleet-api` than the latest released Home Assistant Core version ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so this beta is incompatible with them whenever its pinned `tesla-fleet-api` is ahead of the version in the latest core release — which is almost always. Do not run this beta alongside the built-in Tessie or Tesla Fleet integrations.
+```
+
+Then write each applied PR to `release_notes.txt` as: `[#$PR_NUMBER](https://github.com/home-assistant/core/pull/$PR_NUMBER): $PR_TITLE`
 
 ### 5. Update version and build
 
