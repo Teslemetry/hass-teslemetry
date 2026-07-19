@@ -13,7 +13,11 @@ from homeassistant.components.device_tracker import (
     TrackerEntity,
     TrackerEntityDescription,
 )
-from homeassistant.const import EntityStateAttribute
+
+# stable-core compat: EntityStateAttribute.LATITUDE/.LONGITUDE are 2026.8-dev-only
+# enum members absent on stable cores (floor 2026.7.0); use the plain const keys.
+# See AGENTS.md "HACS-only patches that ride main".
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -148,8 +152,8 @@ class TeslemetryStreamingDeviceTrackerEntity(
         """Handle entity which will be added."""
         await super().async_added_to_hass()
         if (state := await self.async_get_last_state()) is not None:
-            self._attr_latitude = state.attributes.get(EntityStateAttribute.LATITUDE)
-            self._attr_longitude = state.attributes.get(EntityStateAttribute.LONGITUDE)
+            self._attr_latitude = state.attributes.get(ATTR_LATITUDE)
+            self._attr_longitude = state.attributes.get(ATTR_LONGITUDE)
         self.async_on_remove(
             self.entity_description.value_listener(
                 self.vehicle.stream_vehicle, self._location_callback

@@ -260,7 +260,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
 
                 if season_start <= local_date < season_end:
                     return season_name
-            except KeyError, ValueError:
+            except (KeyError, ValueError):  # fmt: skip
                 continue
 
         return None
@@ -272,7 +272,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
             rates = season_charges.get("rates", {})
             price = rates.get(period_name, rates.get("ALL"))
             return float(price) if price is not None else None
-        except KeyError, ValueError, TypeError:
+        except (KeyError, ValueError, TypeError):  # fmt: skip
             return None
 
     @override
