@@ -771,10 +771,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             # Only a battery/Powerwall gateway can pair for local (TEDAPI)
             # command control; solar-only and wall-connector-only sites get no
             # local-control subentry or routing.
-            subentry_id: str | None = None
+            energy_subentry_id: str | None = None
             energy_site_api: EnergySite | EnergySiteRouter = energy_site
             if battery:
-                subentry_id = _ensure_subentry(
+                energy_subentry_id = _ensure_subentry(
                     hass,
                     entry,
                     SUBENTRY_TYPE_ENERGY_SITE,
@@ -783,7 +783,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     {CONF_SITE_ID: site_id},
                 )
                 energy_site_api = await _async_resolve_energy_site_api(
-                    hass, entry, subentry_id, energy_site
+                    hass, entry, energy_subentry_id, energy_site
                 )
 
             energysites.append(
@@ -806,7 +806,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     ),
                     id=site_id,
                     device=device,
-                    subentry_id=subentry_id,
+                    subentry_id=energy_subentry_id,
                     gateway_id=product.get("gateway_id"),
                 )
             )
