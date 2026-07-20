@@ -40,6 +40,10 @@ SHIPPED_LOGGERS = (
 _GATE_LOGGER_NAME = "homeassistant.components.teslemetry"
 _INTERNAL_LOGGER_NAME = __name__
 
+# This module's own diagnostics logger. _OTLPLogHandler.emit excludes it by
+# name, so its warnings never get shipped or feed back into the buffer.
+_LOGGER = logging.getLogger(_INTERNAL_LOGGER_NAME)
+
 MAX_BUFFER_SIZE = 1000
 BATCH_SIZE = 200
 FLUSH_INTERVAL = 5.0
@@ -142,22 +146,34 @@ class TeslemetryLogShipper:
         self.hass = hass
         self.uid = uid
         self._refcount = 0
+        self._attached = False
         self._buffer: deque[logging.LogRecord] = deque(maxlen=MAX_BUFFER_SIZE)
         self._handler = _OTLPLogHandler(self._buffer)
         self._resource_attrs: dict[str, Any] = {}
         self._task: asyncio.Task | None = None
 
     async def async_acquire(self) -> None:
-        """Attach handlers and start the export loop on first use."""
+        """Attach handlers and start the export loop on first use.
+
+        Refcount only increments once attach succeeds, so a failed attach
+        stays retryable on the next acquire instead of poisoning the singleton.
+        """
+        if not self._attached:
+            try:
+                self._resource_attrs = await self._async_build_resource_attrs()
+            except Exception:
+                _LOGGER.warning(
+                    "ClickStack log shipping failed to start, will retry on next setup"
+                )
+                raise
+            for name in SHIPPED_LOGGERS:
+                logging.getLogger(name).addHandler(self._handler)
+            self._task = self.hass.async_create_background_task(
+                self._async_export_loop(), "teslemetry_logship"
+            )
+            self._task.add_done_callback(self._on_export_task_done)
+            self._attached = True
         self._refcount += 1
-        if self._refcount > 1:
-            return
-        self._resource_attrs = await self._async_build_resource_attrs()
-        for name in SHIPPED_LOGGERS:
-            logging.getLogger(name).addHandler(self._handler)
-        self._task = self.hass.async_create_background_task(
-            self._async_export_loop(), "teslemetry_logship"
-        )
 
     def async_release(self) -> None:
         """Detach handlers and stop the export loop once unused."""
@@ -169,7 +185,14 @@ class TeslemetryLogShipper:
         if self._task is not None:
             self._task.cancel()
             self._task = None
+        self._attached = False
         _shippers.pop(self.hass, None)
+
+    def _on_export_task_done(self, task: asyncio.Task) -> None:
+        """Warn if the export loop stopped without being released."""
+        if task.cancelled() or (exc := task.exception()) is None:
+            return
+        _LOGGER.warning("ClickStack log shipping stopped unexpectedly: %s", exc)
 
     async def _async_build_resource_attrs(self) -> dict[str, Any]:
         """Collect resource attributes shipped with every batch."""
