@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator
 import logging
+from unittest.mock import patch
 
 from aiohttp import ClientConnectionError
 import pytest
@@ -18,7 +19,7 @@ from homeassistant.components.teslemetry.logship import (
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from . import mock_config_entry
+from . import mock_config_entry, reload_platform, setup_platform
 from .const import UNIQUE_ID
 
 from tests.common import MockConfigEntry
@@ -242,6 +243,116 @@ async def test_attach_detach_refcounting(hass: HomeAssistant) -> None:
     log_shipper.async_release()
     assert log_shipper._handler not in logging.getLogger(LIBRARY_LOGGER).handlers
     assert log_shipper._task is None
+
+
+async def test_reload_reattaches_handler_and_export_task(
+    hass: HomeAssistant,
+) -> None:
+    """A config-entry reload must re-attach the handler and restart export."""
+    entry = await setup_platform(hass)
+
+    first_shipper = get_logship(hass)
+    assert first_shipper is not None
+    assert first_shipper._handler in logging.getLogger(LIBRARY_LOGGER).handlers
+    assert first_shipper._task is not None
+    assert not first_shipper._task.done()
+
+    await reload_platform(hass, entry)
+
+    second_shipper = get_logship(hass)
+    assert second_shipper is not None
+    assert second_shipper._handler in logging.getLogger(LIBRARY_LOGGER).handlers
+    assert second_shipper._task is not None
+    assert not second_shipper._task.done()
+
+
+async def test_acquire_failure_warns_and_does_not_poison_refcount(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A failed attach warns visibly and leaves the shipper retryable."""
+    log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+    caplog.set_level(logging.WARNING, logger=f"{COMPONENT_LOGGER}.logship")
+
+    with (
+        patch.object(
+            log_shipper,
+            "_async_build_resource_attrs",
+            side_effect=RuntimeError("transient failure"),
+        ),
+        pytest.raises(RuntimeError),
+    ):
+        await log_shipper.async_acquire()
+
+    assert "ClickStack log shipping failed to start" in caplog.text
+    assert log_shipper._refcount == 0
+    assert not log_shipper._attached
+    assert log_shipper._handler not in logging.getLogger(LIBRARY_LOGGER).handlers
+
+    await log_shipper.async_acquire()
+    try:
+        assert log_shipper._handler in logging.getLogger(LIBRARY_LOGGER).handlers
+        assert log_shipper._task is not None
+    finally:
+        log_shipper.async_release()
+
+
+async def test_export_task_death_warns(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An export loop that dies unexpectedly warns instead of going silent."""
+    log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+    caplog.set_level(logging.WARNING, logger=f"{COMPONENT_LOGGER}.logship")
+
+    with (
+        pytest.MonkeyPatch.context() as monkeypatch,
+        patch.object(log_shipper, "_async_flush", side_effect=RuntimeError("loop bug")),
+    ):
+        monkeypatch.setattr(
+            "homeassistant.components.teslemetry.logship.FLUSH_INTERVAL", 0
+        )
+        await log_shipper.async_acquire()
+        try:
+            with pytest.raises(RuntimeError):
+                await log_shipper._task
+        finally:
+            log_shipper._task = None
+            log_shipper.async_release()
+
+    assert "ClickStack log shipping stopped unexpectedly" in caplog.text
+
+
+async def test_transient_acquire_failure_then_reload_reattaches(
+    hass: HomeAssistant,
+) -> None:
+    """A one-time acquire failure must not permanently poison the shipper."""
+    original = TeslemetryLogShipper._async_build_resource_attrs
+    call_count = 0
+
+    async def flaky(self):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("transient failure")
+        return await original(self)
+
+    with patch.object(TeslemetryLogShipper, "_async_build_resource_attrs", flaky):
+        entry = mock_config_entry()
+        entry.add_to_hass(hass)
+        first_result = await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        reload_result = await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert first_result is False
+    assert reload_result is True
+    shipper = get_logship(hass)
+    assert shipper is not None
+    assert shipper._handler in logging.getLogger(LIBRARY_LOGGER).handlers
+    assert shipper._task is not None
+    assert not shipper._task.done()
 
 
 async def test_setup_entry_shares_singleton_across_entries(
