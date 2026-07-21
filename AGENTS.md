@@ -105,7 +105,7 @@ Commit: `git commit -am "v$VERSION" --no-verify`
 ```bash
 source .venv/bin/activate
 script/setup
-uv pip install -r requirements_test_all.txt
+uv pip install -r requirements_all.txt -r requirements_test.txt
 pytest tests/components/teslemetry
 deactivate
 ```
@@ -161,7 +161,7 @@ These live only in this HACS tree, never upstream. They are re-applied on top of
 `.github/workflows/teslemetry-test.yml` is the real signal: a fork-owned file (never synced/overwritten by the upstream merge) that runs `pytest tests/components/teslemetry`, ruff, and hassfest scoped to just the integration, on every PR/push to `main` and push to `release-*`. Treat this job, not the upstream-noise checks, as the pass/fail gate for whether the integration itself is healthy.
 
 - `manifest.json`'s `issue_tracker` key (pointing at this fork's own issue tracker) is deliberate, but hassfest's `manifest` plugin only permits that key on integrations it treats as "custom" - and it classifies anything under `homeassistant/components/` as core regardless of `--integration-path` scoping, so real hassfest always rejects it here. This is structural, not a bug: the workflow runs hassfest with `--skip-plugins manifest` to avoid a permanent false-positive; everything else hassfest checks still runs.
-- Test dependencies: install `requirements_all.txt` + `requirements_test.txt` (+ `requirements_test_pre_commit.txt` for ruff), same as `script/bootstrap`/`ci.yaml`. `requirements_test_all.txt`, named in the build steps above, does not exist in this checkout - don't chase it.
+- Test dependencies: install `requirements_all.txt` + `requirements_test.txt` (+ `requirements_test_pre_commit.txt` for ruff), same as `script/bootstrap`/`ci.yaml` and step 6 above. There is no `requirements_test_all.txt` in this checkout - don't chase it if you see it referenced.
 - Before `pytest`, translations must be compiled for **all** integrations (`python3 -m script.translations develop --all`, <1s, no network) or `check_translations` (`tests/components/conftest.py`) fails any test touching a platform teslemetry's entities inherit services from (e.g. `media_player`, `button`) - not just teslemetry itself. `homeassistant/components/*/translations` is gitignored except teslemetry's own, so this is never pre-populated on a fresh checkout; a local worktree with stale generated files from an earlier `--all` run will falsely pass with only `--integration teslemetry` compiled - verify translation-dependent changes against a clean checkout, not a dev worktree.
 - Publish gating: this workflow is necessary but not sufficient - the actual `gh release create` (step 8) is a manual command outside any workflow, so nothing here can block it directly. Making this job a **required status check on `main`** (branch protection, a repo setting only a captain can enable) is the intended way to guarantee `release-*` branches are cut from a green `main`.
 
