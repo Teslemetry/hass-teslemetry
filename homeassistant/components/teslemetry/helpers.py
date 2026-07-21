@@ -1,15 +1,24 @@
 """Teslemetry helper functions."""
 
+import asyncio
 from collections.abc import Awaitable
 from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api.exceptions import InsufficientCredits, TeslaFleetError
+from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 
-from .const import CREDITS_URL, DOMAIN, LOGGER
+from .const import (
+    BLE_PARENT_KEY,
+    BLE_PARENT_LOCK_KEY,
+    CREDITS_URL,
+    DOMAIN,
+    LOGGER,
+    VEHICLE_KEY_FILE,
+)
 
 if TYPE_CHECKING:
     from . import TeslemetryConfigEntry
@@ -29,6 +38,27 @@ def insufficient_credits_issue_id(entry: TeslemetryConfigEntry) -> str:
     credits does not clear (or get cleared by) another account's repair.
     """
     return f"{INSUFFICIENT_CREDITS_ISSUE}_{entry.entry_id}"
+
+
+async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
+    """Return a shared TeslaBluetooth parent with the private key loaded.
+
+    Cached on ``hass.data`` and guarded by a lock so the key file is created
+    and read exactly once even when vehicle setup and a pairing flow (or
+    several) race to first-time init - two independent parents could otherwise
+    both generate and overwrite the key.
+    """
+    parent: TeslaBluetooth | None = hass.data.get(BLE_PARENT_KEY)
+    if parent is not None:
+        return parent
+    lock: asyncio.Lock = hass.data.setdefault(BLE_PARENT_LOCK_KEY, asyncio.Lock())
+    async with lock:
+        parent = hass.data.get(BLE_PARENT_KEY)
+        if parent is None:
+            parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
+            await parent.get_private_key(hass.config.path(VEHICLE_KEY_FILE))
+            hass.data[BLE_PARENT_KEY] = parent
+    return parent
 
 
 def flatten(

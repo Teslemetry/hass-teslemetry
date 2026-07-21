@@ -17,6 +17,23 @@ SOFTWARE_ID = "home-assistant"
 # Where users can purchase more command credits
 CREDITS_URL = "https://teslemetry.com/console/credits"
 
+# Config subentry type holding a vehicle's pairing config
+SUBENTRY_TYPE_VEHICLE = "vehicle"
+
+# Vehicle subentry data key. A vehicle subentry also stores CONF_ADDRESS (from
+# homeassistant.const) once paired; its presence enables Bluetooth-first routing.
+CONF_VIN = "vin"
+
+# File holding the integration's EC private key used to sign BLE commands. The
+# matching public/virtual key is what the user adds to the vehicle when pairing.
+VEHICLE_KEY_FILE = "tesla_vehicle.key"
+
+# hass.data key for the shared TeslaBluetooth parent (holds the private key).
+BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
+
+# hass.data key for the lock serializing first-time BLE parent/key-file init.
+BLE_PARENT_LOCK_KEY = f"{DOMAIN}_ble_parent_lock"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",
