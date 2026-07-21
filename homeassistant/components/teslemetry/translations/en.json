@@ -1130,6 +1130,18 @@
             "message": "Timed out trying to wake up vehicle"
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "ship_logs_to_clickstack": "Ship logs to ClickStack"
+                },
+                "data_description": {
+                    "ship_logs_to_clickstack": "Continuously ship this integration's debug logs to Teslemetry's ClickStack for diagnostics. Unlike enabling debug logging, this stays on across a Home Assistant restart."
+                }
+            }
+        }
+    },
     "selector": {
         "days_of_week": {
             "options": {

@@ -59,12 +59,14 @@ from homeassistant.config_entries import (
     ConfigEntryState,
     ConfigFlowResult,
     ConfigSubentryFlow,
+    OptionsFlow,
     SubentryFlowResult,
 )
 from homeassistant.const import CONF_ADDRESS, CONF_HOST, CONF_PASSWORD
 from homeassistant.core import callback
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import BooleanSelector
 
 from . import _BLE_KEY_ERRORS, TeslemetryConfigEntry
 from .const import (
@@ -85,6 +87,7 @@ from .helpers import (
     async_verify_local_gateway,
     cloud_energy_site,
 )
+from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK
 from .models import TeslemetryEnergyData
 
 
@@ -109,6 +112,13 @@ class OAuth2FlowHandler(
         super().__init__()
         self.data: dict[str, Any] = {}
         self.uid: str | None = None
+
+    @staticmethod
+    @callback
+    @override
+    def async_get_options_flow(config_entry: TeslemetryConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return TeslemetryOptionsFlowHandler()
 
     @property
     @override
@@ -226,6 +236,31 @@ class OAuth2FlowHandler(
     ) -> ConfigFlowResult:
         """Handle reconfiguration."""
         return await self.async_step_user()
+
+
+class TeslemetryOptionsFlowHandler(OptionsFlow):
+    """Options flow for the Teslemetry integration (HACS-only)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the durable ClickStack log shipping opt-in."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Optional(
+                        CONF_SHIP_LOGS_TO_CLICKSTACK,
+                        default=self.config_entry.options.get(
+                            CONF_SHIP_LOGS_TO_CLICKSTACK, False
+                        ),
+                    ): BooleanSelector(),
+                }
+            ),
+        )
 
 
 class VehicleSubentryFlowHandler(ConfigSubentryFlow):
