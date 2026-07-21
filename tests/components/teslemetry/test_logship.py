@@ -266,6 +266,55 @@ async def test_reload_reattaches_handler_and_export_task(
     assert not second_shipper._task.done()
 
 
+async def test_opt_in_ships_without_debug(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The durable opt-in authorizes shipping even with DEBUG logging off."""
+    caplog.set_level(logging.INFO, logger=COMPONENT_LOGGER)
+    log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+    await log_shipper.async_acquire(force=True)
+    try:
+        logging.getLogger(COMPONENT_LOGGER).info("should ship via opt-in")
+        assert len(log_shipper._buffer) == 1
+    finally:
+        log_shipper.async_release(force=True)
+
+
+async def test_no_opt_in_no_debug_nothing_ships(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """With the opt-in off and DEBUG off, nothing is authorized to ship."""
+    caplog.set_level(logging.INFO, logger=COMPONENT_LOGGER)
+    log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+    await log_shipper.async_acquire(force=False)
+    try:
+        logging.getLogger(COMPONENT_LOGGER).info("should not ship")
+        assert len(log_shipper._buffer) == 0
+    finally:
+        log_shipper.async_release(force=False)
+
+
+async def test_opt_in_survives_reload(hass: HomeAssistant) -> None:
+    """The durable opt-in stays authorized across a config-entry reload.
+
+    A real HA restart just re-runs setup with the persisted option, so a
+    reload is the closest faithful proxy available in a test.
+    """
+    entry = await setup_platform(hass, [], options={"ship_logs_to_clickstack": True})
+
+    shipper = get_logship(hass)
+    assert shipper is not None
+    assert shipper.is_shipping_authorized()
+
+    await reload_platform(hass, entry, [])
+
+    shipper = get_logship(hass)
+    assert shipper is not None
+    assert shipper.is_shipping_authorized()
+
+
 async def test_acquire_failure_warns_and_does_not_poison_refcount(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
