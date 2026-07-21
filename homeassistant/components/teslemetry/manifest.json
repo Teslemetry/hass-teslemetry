@@ -11,8 +11,8 @@
   "loggers": ["aiopowerwall", "tesla_fleet_api", "teslemetry_stream"],
   "quality_scale": "platinum",
   "requirements": [
-    "aiopowerwall==0.2.0",
-    "tesla-fleet-api==1.7.5",
+    "aiopowerwall==0.3.0",
+    "tesla-fleet-api==1.7.6",
     "teslemetry-stream==0.9.1"
   ]
 }
