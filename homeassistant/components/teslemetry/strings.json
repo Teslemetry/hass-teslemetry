@@ -1243,6 +1243,18 @@
       "title": "Enable data streaming for {vehicle}"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "ship_logs_to_clickstack": "Share logs with Teslemetry"
+        },
+        "data_description": {
+          "ship_logs_to_clickstack": "Continuously send this integration's logs to Teslemetry so support can help diagnose issues without you needing to paste log files. Stays on across a Home Assistant restart."
+        }
+      }
+    }
+  },
   "selector": {
     "days_of_week": {
       "options": {

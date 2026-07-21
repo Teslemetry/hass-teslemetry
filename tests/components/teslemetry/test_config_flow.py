@@ -500,6 +500,25 @@ async def test_reconfigure_oauth_error_recovery(
     assert mock_entry.data["token"]["access_token"] == "new_access_token"
 
 
+async def test_options_flow_ship_logs_opt_in(
+    hass: HomeAssistant,
+) -> None:
+    """Test enabling the durable ClickStack log-shipping opt-in via options."""
+    mock_entry = await setup_platform(hass, [])
+
+    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"ship_logs_to_clickstack": True}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert mock_entry.options["ship_logs_to_clickstack"] is True
+
+
 async def test_migrate_error_from_future(
     hass: HomeAssistant, mock_metadata: AsyncMock
 ) -> None:

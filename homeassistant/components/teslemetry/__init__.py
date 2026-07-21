@@ -53,7 +53,7 @@ from .coordinator import (
     TeslemetryVehicleDataCoordinator,
 )
 from .helpers import async_update_device_sw_version, flatten
-from .logship import async_get_or_create_logship
+from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_setup_services
 
@@ -257,6 +257,13 @@ def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> Non
         )
 
 
+async def _async_update_listener(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry
+) -> None:
+    """Reload the entry so an options-flow change re-derives shipping state."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -267,11 +274,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         )
 
     # Opt-in ClickStack log shipping (HACS-only). The uid is already known
-    # from config flow (entry.unique_id); shipping itself stays gated on the
-    # user enabling debug logging, checked per-record in logship.py.
+    # from config flow (entry.unique_id). Shipping is authorized solely by
+    # the durable per-entry option, which survives restarts, checked
+    # per-record in logship.py.
+    ship_logs = entry.options.get(CONF_SHIP_LOGS_TO_CLICKSTACK, False)
     logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
-    await logship.async_acquire()
-    entry.async_on_unload(logship.async_release)
+    await logship.async_acquire(force=ship_logs)
+    entry.async_on_unload(partial(logship.async_release, force=ship_logs))
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     try:
         beta_migration_fix(hass, entry)

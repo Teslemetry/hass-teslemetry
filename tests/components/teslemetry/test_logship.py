@@ -31,47 +31,30 @@ LIBRARY_LOGGER = "tesla_fleet_api"
 
 @pytest.fixture
 async def shipper(hass: HomeAssistant) -> AsyncGenerator[TeslemetryLogShipper]:
-    """Create and fully tear down a standalone log shipper."""
+    """Create and fully tear down a standalone, opted-in log shipper."""
     log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
-    await log_shipper.async_acquire()
+    await log_shipper.async_acquire(force=True)
     try:
         yield log_shipper
     finally:
-        log_shipper.async_release()
+        log_shipper.async_release(force=True)
 
 
-async def test_gate_off_no_shipping(
+async def test_no_opt_in_nothing_ships(
     hass: HomeAssistant,
-    shipper: TeslemetryLogShipper,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Debug logging disabled means nothing gets buffered."""
-    caplog.set_level(logging.INFO, logger=COMPONENT_LOGGER)
-    logging.getLogger(COMPONENT_LOGGER).debug("should not ship")
-    assert len(shipper._buffer) == 0
-
-
-async def test_gate_on_ships(
-    hass: HomeAssistant,
-    shipper: TeslemetryLogShipper,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Enabling debug logging for the integration authorizes shipping."""
+    """Without the opt-in, nothing ships no matter the log level or logger."""
     caplog.set_level(logging.DEBUG, logger=COMPONENT_LOGGER)
-    logging.getLogger(COMPONENT_LOGGER).debug("should ship")
-    assert len(shipper._buffer) == 1
-
-
-async def test_gate_scoped_to_component_logger(
-    hass: HomeAssistant,
-    shipper: TeslemetryLogShipper,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """A library logger set to DEBUG alone must not authorize shipping."""
-    caplog.set_level(logging.WARNING, logger=COMPONENT_LOGGER)
     caplog.set_level(logging.DEBUG, logger=LIBRARY_LOGGER)
-    logging.getLogger(LIBRARY_LOGGER).debug("library debug without opt-in")
-    assert len(shipper._buffer) == 0
+    log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+    await log_shipper.async_acquire()
+    try:
+        logging.getLogger(COMPONENT_LOGGER).debug("should not ship")
+        logging.getLogger(LIBRARY_LOGGER).debug("should not ship either")
+        assert len(log_shipper._buffer) == 0
+    finally:
+        log_shipper.async_release()
 
 
 async def test_self_skip_avoids_feedback_loop(
@@ -100,7 +83,7 @@ async def test_bounded_buffer_drops_oldest(
             "homeassistant.components.teslemetry.logship.MAX_BUFFER_SIZE", 5
         )
         log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
-        await log_shipper.async_acquire()
+        await log_shipper.async_acquire(force=True)
         try:
             component_logger = logging.getLogger(COMPONENT_LOGGER)
             for i in range(8):
@@ -110,7 +93,7 @@ async def test_bounded_buffer_drops_oldest(
             messages = [record.getMessage() for record in log_shipper._buffer]
             assert messages == [f"message {i}" for i in range(3, 8)]
         finally:
-            log_shipper.async_release()
+            log_shipper.async_release(force=True)
 
 
 async def test_exception_folding(
@@ -264,6 +247,36 @@ async def test_reload_reattaches_handler_and_export_task(
     assert second_shipper._handler in logging.getLogger(LIBRARY_LOGGER).handlers
     assert second_shipper._task is not None
     assert not second_shipper._task.done()
+
+
+async def test_opt_in_ships(
+    hass: HomeAssistant,
+    shipper: TeslemetryLogShipper,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The durable opt-in is the sole trigger authorizing shipping."""
+    caplog.set_level(logging.INFO, logger=COMPONENT_LOGGER)
+    logging.getLogger(COMPONENT_LOGGER).info("should ship via opt-in")
+    assert len(shipper._buffer) == 1
+
+
+async def test_opt_in_survives_reload(hass: HomeAssistant) -> None:
+    """The durable opt-in stays authorized across a config-entry reload.
+
+    A real HA restart just re-runs setup with the persisted option, so a
+    reload is the closest faithful proxy available in a test.
+    """
+    entry = await setup_platform(hass, [], options={"ship_logs_to_clickstack": True})
+
+    shipper = get_logship(hass)
+    assert shipper is not None
+    assert shipper.is_shipping_authorized()
+
+    await reload_platform(hass, entry, [])
+
+    shipper = get_logship(hass)
+    assert shipper is not None
+    assert shipper.is_shipping_authorized()
 
 
 async def test_acquire_failure_warns_and_does_not_poison_refcount(
