@@ -56,10 +56,16 @@ jobs:
             -e . \
             --config-settings editable_mode=compat
 
-      - name: "Compile teslemetry translations"
+      - name: "Compile translations"
+        # Must be --all, not --integration teslemetry: teslemetry's entities
+        # inherit services (e.g. media_player, button) from other platforms,
+        # and check_translations (tests/components/conftest.py) fails any
+        # test touching an uncompiled platform's strings, even though
+        # translations/ for every integration but teslemetry is gitignored
+        # and so never exists on a fresh checkout.
         run: |
           . venv/bin/activate
-          python3 -m script.translations develop --integration teslemetry
+          python3 -m script.translations develop --all
 
       - name: "Run hassfest for teslemetry"
         # The 'manifest' plugin is skipped: it forces the core (non-custom)
