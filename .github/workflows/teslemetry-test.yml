@@ -1,0 +1,89 @@
+name: "Teslemetry integration test"
+
+# HACS-only, fork-owned gate: unlike ci.yaml/validate.yml (synced from
+# upstream core and full of fork-irrelevant noise), this checks only the
+# teslemetry integration itself. See AGENTS.md for details.
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - "main"
+      - "release-*"
+  pull_request:
+    branches:
+      - "main"
+
+concurrency:
+  group: "teslemetry-test-${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: "Test teslemetry"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: "Read pinned Python and uv versions"
+        id: "versions"
+        run: |
+          echo "python=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+          echo "uv=$(grep '^uv==' requirements.txt | cut -d= -f3)" >> "$GITHUB_OUTPUT"
+
+      - name: "Set up uv and Python"
+        uses: "astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39" # v8.2.0
+        with:
+          version: "${{ steps.versions.outputs.uv }}"
+          python-version: "${{ steps.versions.outputs.python }}"
+          enable-cache: false
+
+      - name: "Install dependencies"
+        env:
+          PYTHON_VERSION: "${{ steps.versions.outputs.python }}"
+        run: |
+          uv venv venv --python "$PYTHON_VERSION"
+          . venv/bin/activate
+          uv pip install \
+            -r requirements_all.txt \
+            -r requirements_test.txt \
+            -r requirements_test_pre_commit.txt \
+            -e . \
+            --config-settings editable_mode=compat
+
+      - name: "Compile teslemetry translations"
+        run: |
+          . venv/bin/activate
+          python3 -m script.translations develop --integration teslemetry
+
+      - name: "Run hassfest for teslemetry"
+        # The 'manifest' plugin is skipped: it forces the core (non-custom)
+        # manifest schema on every integration under homeassistant/components,
+        # which rejects manifest.json's HACS-only issue_tracker key. That key
+        # is deliberate (see AGENTS.md) so this is a permanent, structural
+        # false positive here, not a real error.
+        run: |
+          . venv/bin/activate
+          python3 -m script.hassfest \
+            --integration-path homeassistant/components/teslemetry \
+            --skip-plugins manifest
+
+      - name: "Run ruff check"
+        run: |
+          . venv/bin/activate
+          ruff check homeassistant/components/teslemetry tests/components/teslemetry
+
+      - name: "Run ruff format check"
+        run: |
+          . venv/bin/activate
+          ruff format --check homeassistant/components/teslemetry tests/components/teslemetry
+
+      - name: "Run pytest"
+        run: |
+          . venv/bin/activate
+          python -m pytest tests/components/teslemetry
