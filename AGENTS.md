@@ -27,11 +27,35 @@ git fetch origin main
 git fetch upstream dev
 git checkout -b sync-dev origin/main
 git merge upstream/dev   # append-only; resolve conflicts by editing files directly, same as step 4
-git push origin sync-dev:main
 ```
 
 - Resolve any merge conflicts the same way as PR conflicts in step 4: read the conflicting files and edit directly, no `git mergetool`.
-- The push is a plain non-force push (no `--force` / `--force-with-lease`). If it's rejected as non-fast-forward, someone else pushed to `main` in the meantime - re-fetch `origin/main`, re-merge `upstream/dev` into `sync-dev`, and push again. Never force the push.
+- **Strip core CI/CD workflow noise (every cut, durable).** Core `dev` carries its own `.github/workflows/`, and this merge is exactly what would otherwise resurrect the files this fork deliberately excludes (see "CI: the clean per-integration gate" below). Run this unconditionally right after the merge, whether it landed clean or a conflict hit one of these exact paths (upstream modifying a file this fork deleted shows as a `deleted by us` conflict - `git rm` also resolves that):
+
+  ```bash
+  git rm -rf --ignore-unmatch \
+    .github/workflows/ci.yaml \
+    .github/workflows/validate.yml \
+    .github/workflows/check-requirements-deterministic.yml \
+    .github/workflows/check-requirements.lock.yml \
+    .github/workflows/check-requirements.md \
+    .github/workflows/codeql.yml \
+    .github/workflows/translations.yml \
+    .github/workflows/builder.yml \
+    .github/workflows/wheels.yml \
+    .github/workflows/e2e-tests.yml \
+    .github/workflows/matchers
+  git diff --cached --quiet || git commit -m "Strip core CI/CD workflow noise" --no-verify
+  ```
+
+  `--ignore-unmatch` makes it safe even when upstream didn't touch any of these paths this cycle (nothing staged, nothing committed). If the merge stopped on conflicts in unrelated files too, resolve those first, then run the strip, then commit once. Keep this path list in sync with the "CI: the clean per-integration gate" list below - it's the same set.
+- Then push:
+
+  ```bash
+  git push origin sync-dev:main
+  ```
+
+  The push is a plain non-force push (no `--force` / `--force-with-lease`). If it's rejected as non-fast-forward, someone else pushed to `main` in the meantime - re-fetch `origin/main`, re-merge `upstream/dev` into `sync-dev`, redo the strip, and push again. Never force the push.
 
 You stay on `sync-dev` (now holding the synced state of `main`) for the next step.
 
@@ -156,9 +180,11 @@ These live only in this HACS tree, never upstream. They are re-applied on top of
 
 ## CI: the clean per-integration gate
 
-`ci.yaml`/`validate.yml`/`builder.yml`/`wheels.yml` etc. are synced whole-repo from upstream core `dev` (see step 2) and mostly fail here as fork-irrelevant noise (whole-repo hassfest, prek, workflow/copilot-instructions checks) - a red check from one of those is not a signal about the teslemetry integration.
+`.github/workflows/teslemetry-test.yml` is the only PR/push CI gate this repo keeps: a fork-owned file that runs `pytest tests/components/teslemetry`, ruff, and hassfest scoped to just the integration, on every PR/push to `main` and push to `release-*`. Treat this job as the pass/fail gate for whether the integration itself is healthy.
 
-`.github/workflows/teslemetry-test.yml` is the real signal: a fork-owned file (never synced/overwritten by the upstream merge) that runs `pytest tests/components/teslemetry`, ruff, and hassfest scoped to just the integration, on every PR/push to `main` and push to `release-*`. Treat this job, not the upstream-noise checks, as the pass/fail gate for whether the integration itself is healthy.
+Core `dev` carries a much larger `.github/workflows/` set that would otherwise run whole-repo and fail here as fork-irrelevant noise (whole-repo hassfest, prek, workflow/copilot-instructions checks, requirements-lock bots, CodeQL, the HAOS/supervisor `builder`/`wheels` pipelines, translation sync, manual e2e-tests). These are deleted, and step 2's sync-dev strip (see above) re-deletes them every release so the merge from core `dev` can't bring them back: `ci.yaml`, `validate.yml`, `check-requirements-deterministic.yml`, `check-requirements.lock.yml`, `check-requirements.md`, `codeql.yml`, `translations.yml`, `builder.yml`, `wheels.yml`, `e2e-tests.yml`, `matchers/`. A red check from any of these reappearing means the step 2 strip didn't run or missed a path - not a signal about the integration.
+
+Kept alongside `teslemetry-test.yml` because they aren't PR/push CI noise: `release.yml` (HACS-specific - posts the GitHub release to Discord) and the issue-automation bots `detect-duplicate-issues.yml`, `detect-non-english-issues.yml`, `stale.yml`, `lock.yml`, `restrict-task-creation.yml` (manage this fork's own Issues, unrelated to the PR/push gate).
 
 - `manifest.json`'s `issue_tracker` key (pointing at this fork's own issue tracker) is deliberate, but hassfest's `manifest` plugin only permits that key on integrations it treats as "custom" - and it classifies anything under `homeassistant/components/` as core regardless of `--integration-path` scoping, so real hassfest always rejects it here. This is structural, not a bug: the workflow runs hassfest with `--skip-plugins manifest` to avoid a permanent false-positive; everything else hassfest checks still runs.
 - Test dependencies: install `requirements_all.txt` + `requirements_test.txt` (+ `requirements_test_pre_commit.txt` for ruff), same as `script/bootstrap`/`ci.yaml` and step 6 above. There is no `requirements_test_all.txt` in this checkout - don't chase it if you see it referenced.
