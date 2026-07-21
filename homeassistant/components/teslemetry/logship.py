@@ -38,11 +38,6 @@ SHIPPED_LOGGERS = (
     "teslemetry_stream",
 )
 
-# Debug-log gate: one of two ways shipping gets authorized (the other is the
-# durable per-entry option tracked by TeslemetryLogShipper._force_count).
-# Scoped to the integration's own logger, even for records coming from the
-# two library loggers.
-_GATE_LOGGER_NAME = "homeassistant.components.teslemetry"
 _INTERNAL_LOGGER_NAME = __name__
 
 # This module's own diagnostics logger. _OTLPLogHandler.emit excludes it by
@@ -155,9 +150,9 @@ class TeslemetryLogShipper:
         self.uid = uid
         self._refcount = 0
         # Count of currently-acquired entries with the durable opt-in on.
-        # >0 authorizes shipping independent of the live DEBUG level, so
-        # toggling the option (which reloads the entry) or a full HA restart
-        # never silently closes the gate for an opted-in user.
+        # The sole shipping authorization: >0 ships, 0 does not. Toggling the
+        # option (which reloads the entry) or a full HA restart never
+        # silently closes the gate for an opted-in user.
         self._force_count = 0
         self._attached = False
         self._buffer: deque[logging.LogRecord] = deque(maxlen=MAX_BUFFER_SIZE)
@@ -166,10 +161,8 @@ class TeslemetryLogShipper:
         self._task: asyncio.Task | None = None
 
     def is_shipping_authorized(self) -> bool:
-        """Return whether any authorization source currently permits shipping."""
-        return self._force_count > 0 or logging.getLogger(
-            _GATE_LOGGER_NAME
-        ).isEnabledFor(logging.DEBUG)
+        """Return whether the durable opt-in currently permits shipping."""
+        return self._force_count > 0
 
     async def async_acquire(self, *, force: bool = False) -> None:
         """Attach handlers and start the export loop on first use.
