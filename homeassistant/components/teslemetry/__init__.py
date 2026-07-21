@@ -274,9 +274,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         )
 
     # Opt-in ClickStack log shipping (HACS-only). The uid is already known
-    # from config flow (entry.unique_id). Shipping is authorized by either
-    # the durable per-entry option (survives restarts) or live DEBUG logging
-    # for this integration, checked per-record in logship.py.
+    # from config flow (entry.unique_id). Shipping is authorized solely by
+    # the durable per-entry option, which survives restarts, checked
+    # per-record in logship.py.
     ship_logs = entry.options.get(CONF_SHIP_LOGS_TO_CLICKSTACK, False)
     logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
     await logship.async_acquire(force=ship_logs)
