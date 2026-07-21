@@ -22,6 +22,9 @@ from .const import DOMAIN
 
 OTLP_ENDPOINT = "https://clickstack.teslemetry.com/v1/logs"
 
+# Config-entry option key for the durable, DEBUG-independent shipping opt-in.
+CONF_SHIP_LOGS_TO_CLICKSTACK = "ship_logs_to_clickstack"
+
 # Shared public ingestion key, already shipped in the Teslemetry web app's
 # browser bundle. Not a per-user secret: ClickStack ingest checks it by
 # string equality only, so reusing it needs no server-side change.
@@ -35,8 +38,10 @@ SHIPPED_LOGGERS = (
     "teslemetry_stream",
 )
 
-# Opt-in gate: shipping is authorized only by the integration's own debug
-# flag, even for records coming from the two library loggers.
+# Debug-log gate: one of two ways shipping gets authorized (the other is the
+# durable per-entry option tracked by TeslemetryLogShipper._force_count).
+# Scoped to the integration's own logger, even for records coming from the
+# two library loggers.
 _GATE_LOGGER_NAME = "homeassistant.components.teslemetry"
 _INTERNAL_LOGGER_NAME = __name__
 
@@ -122,10 +127,13 @@ def build_payload(
 class _OTLPLogHandler(logging.Handler):
     """Buffer records from the watched loggers, bounded and gated."""
 
-    def __init__(self, buffer: deque[logging.LogRecord]) -> None:
+    def __init__(
+        self, buffer: deque[logging.LogRecord], shipper: TeslemetryLogShipper
+    ) -> None:
         """Initialize the handler around a shared bounded buffer."""
         super().__init__(level=logging.DEBUG)
         self._buffer = buffer
+        self._shipper = shipper
 
     @override
     def emit(self, record: logging.LogRecord) -> None:
@@ -133,7 +141,7 @@ class _OTLPLogHandler(logging.Handler):
         # Feedback-loop guard: never ship the shipper's own log records.
         if record.name == _INTERNAL_LOGGER_NAME:
             return
-        if not logging.getLogger(_GATE_LOGGER_NAME).isEnabledFor(logging.DEBUG):
+        if not self._shipper.is_shipping_authorized():
             return
         self._buffer.append(record)  # bounded deque drops the oldest when full
 
@@ -146,17 +154,30 @@ class TeslemetryLogShipper:
         self.hass = hass
         self.uid = uid
         self._refcount = 0
+        # Count of currently-acquired entries with the durable opt-in on.
+        # >0 authorizes shipping independent of the live DEBUG level, so
+        # toggling the option (which reloads the entry) or a full HA restart
+        # never silently closes the gate for an opted-in user.
+        self._force_count = 0
         self._attached = False
         self._buffer: deque[logging.LogRecord] = deque(maxlen=MAX_BUFFER_SIZE)
-        self._handler = _OTLPLogHandler(self._buffer)
+        self._handler = _OTLPLogHandler(self._buffer, self)
         self._resource_attrs: dict[str, Any] = {}
         self._task: asyncio.Task | None = None
 
-    async def async_acquire(self) -> None:
+    def is_shipping_authorized(self) -> bool:
+        """Return whether any authorization source currently permits shipping."""
+        return self._force_count > 0 or logging.getLogger(
+            _GATE_LOGGER_NAME
+        ).isEnabledFor(logging.DEBUG)
+
+    async def async_acquire(self, *, force: bool = False) -> None:
         """Attach handlers and start the export loop on first use.
 
         Refcount only increments once attach succeeds, so a failed attach
         stays retryable on the next acquire instead of poisoning the singleton.
+        `force` tracks the durable per-entry opt-in separately from refcount,
+        so it must never be applied unless the attach (if needed) succeeded.
         """
         if not self._attached:
             try:
@@ -174,10 +195,14 @@ class TeslemetryLogShipper:
             self._task.add_done_callback(self._on_export_task_done)
             self._attached = True
         self._refcount += 1
+        if force:
+            self._force_count += 1
 
-    def async_release(self) -> None:
+    def async_release(self, *, force: bool = False) -> None:
         """Detach handlers and stop the export loop once unused."""
         self._refcount -= 1
+        if force:
+            self._force_count -= 1
         if self._refcount > 0:
             return
         for name in SHIPPED_LOGGERS:
@@ -186,6 +211,7 @@ class TeslemetryLogShipper:
             self._task.cancel()
             self._task = None
         self._attached = False
+        self._force_count = 0
         _shippers.pop(self.hass, None)
 
     def _on_export_task_done(self, task: asyncio.Task) -> None:
