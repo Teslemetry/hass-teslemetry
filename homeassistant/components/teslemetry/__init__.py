@@ -294,11 +294,24 @@ def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> Non
         )
 
 
-async def _async_update_listener(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry
+def _setup_options_reload_on_change(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry, ship_logs: bool
 ) -> None:
-    """Reload the entry so an options-flow change re-derives shipping state."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Reload the entry when the ClickStack log-shipping option changes.
+
+    Scoped to that one option rather than any entry update: subentry
+    mutations (vehicle BLE pairing, energy site pairing) also fire update
+    listeners, and reloading on those would fight the dedicated listeners
+    that already handle them.
+    """
+
+    async def _handle_update(
+        hass: HomeAssistant, updated_entry: TeslemetryConfigEntry
+    ) -> None:
+        if updated_entry.options.get(CONF_SHIP_LOGS_TO_CLICKSTACK, False) != ship_logs:
+            await hass.config_entries.async_reload(updated_entry.entry_id)
+
+    entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
 def _setup_subentry_removal_reload(
@@ -518,7 +531,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
     await logship.async_acquire(force=ship_logs)
     entry.async_on_unload(partial(logship.async_release, force=ship_logs))
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    _setup_options_reload_on_change(hass, entry, ship_logs)
 
     try:
         beta_migration_fix(hass, entry)
@@ -827,9 +840,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         if subentry.subentry_type == SUBENTRY_TYPE_VEHICLE
         and subentry.unique_id in present_vins
     }
-    _remove_stale_subentries(
-        hass, entry, SUBENTRY_TYPE_VEHICLE, present_subentry_ids
-    )
+    _remove_stale_subentries(hass, entry, SUBENTRY_TYPE_VEHICLE, present_subentry_ids)
 
     _prune_energy_subentries(hass, entry, scopes, energysites)
 

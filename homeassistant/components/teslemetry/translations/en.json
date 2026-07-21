@@ -7,6 +7,7 @@
         "end_time": "End time",
         "end_time_description": "The time this schedule ends, e.g. 01:05 for 1:05 AM.",
         "location_description": "The approximate location the vehicle must be at to use this schedule. Defaults to Home Assistant's configured location.",
+        "not_available": "Not available",
         "one_time": "One-time",
         "one_time_description": "If this is a one-time schedule.",
         "precondition_time": "Precondition time",
@@ -18,7 +19,6 @@
         "schedule_name_description": "The name of the schedule.",
         "start_time": "Start time",
         "start_time_description": "The time this schedule begins, e.g. 01:05 for 1:05 AM.",
-        "unavailable": "Unavailable",
         "vehicle": "Vehicle",
         "vehicle_to_remove_schedule": "Vehicle to remove schedule from.",
         "vehicle_to_schedule": "Vehicle to schedule.",
@@ -30,10 +30,13 @@
             "already_configured": "Account is already configured",
             "oauth_error": "Received invalid token data.",
             "oauth_failed": "Error while obtaining access token.",
-            "oauth_timeout": "Timeout resolving OAuth token.",
+            "oauth_implementation_unavailable": "No OAuth2 implementations are currently available.",
+            "oauth_timeout": "Timeout while resolving the OAuth token.",
             "oauth_unauthorized": "OAuth authorization error while obtaining access token.",
             "reauth_account_mismatch": "The reauthentication account does not match the original account",
-            "reauth_successful": "Re-authentication was successful"
+            "reauth_successful": "Re-authentication was successful",
+            "reconfigure_account_mismatch": "The reconfiguration account does not match the original account",
+            "reconfigure_successful": "Reconfiguration was successful"
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -45,6 +48,77 @@
             "reauth_confirm": {
                 "description": "The {name} integration needs to re-authenticate your account",
                 "title": "Authentication expired for {name}"
+            }
+        }
+    },
+    "config_subentries": {
+        "energy_site": {
+            "abort": {
+                "cannot_connect": "Failed to connect",
+                "entry_not_loaded": "The Teslemetry account must be loaded before setting up local control. Try again once it has finished loading.",
+                "gateway_mismatch": "This Powerwall system belongs to a different energy site. Expected gateway {expected} but found {actual}. Check the local network address and try again.",
+                "not_supported": "Energy sites are added automatically from your Teslemetry account and cannot be added manually.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later.",
+                "reconfigure_successful": "Reconfiguration was successful"
+            },
+            "entry_type": "Energy site",
+            "error": {
+                "cannot_connect": "Failed to connect",
+                "invalid_password": "Invalid authentication",
+                "key_not_approved": "Your Powerwall system rejected Home Assistant's key because it has not been approved. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
+                "key_not_registered": "Home Assistant's key is no longer registered on your Powerwall system. Restart setup to register it again.",
+                "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
+                "key_pending_verification": "Your approval is still being verified by your Powerwall system. Wait a moment, then submit again.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later."
+            },
+            "initiate_flow": {
+                "reconfigure": "Reconfigure energy site",
+                "user": "Add energy site"
+            },
+            "step": {
+                "credentials": {
+                    "data": {
+                        "host": "Host",
+                        "password": "Password"
+                    },
+                    "description": "Enter your Powerwall system's local network address and its Wi-Fi password. Only the last 5 characters of the password are needed - find them on the QR label behind the front cover of your Powerwall 3, or behind the Backup Gateway door on Powerwall 2.",
+                    "title": "Connect to your Powerwall system"
+                },
+                "pair": {
+                    "description": "Flick the On/Off switch on your primary Powerwall off and back on to approve Home Assistant's access, then continue. This only needs to be done once. Removing this integration later does not revoke this access on your Powerwall or Backup Gateway.",
+                    "title": "Approve the local access key"
+                }
+            }
+        },
+        "vehicle": {
+            "abort": {
+                "cannot_connect": "Failed to connect",
+                "not_supported": "Vehicles are added automatically from your Teslemetry account and cannot be added manually.",
+                "reconfigure_successful": "Reconfiguration was successful"
+            },
+            "entry_type": "Vehicle",
+            "error": {
+                "cannot_connect": "Failed to connect",
+                "device_not_found": "No matching Tesla vehicle was found nearby over Bluetooth. Make sure the vehicle is awake and within range, then try again.",
+                "pair_failed": "The vehicle rejected the key. Make sure it is not in valet mode and does not already have the maximum number of keys, then try again.",
+                "timeout": "Timed out waiting for the vehicle to accept the key. Try again after approving the key on the vehicle's touchscreen."
+            },
+            "initiate_flow": {
+                "reconfigure": "Reconfigure vehicle",
+                "user": "Add product"
+            },
+            "progress": {
+                "pair": "Approve Home Assistant's virtual key on the vehicle's touchscreen. Waiting for the vehicle to accept the key."
+            },
+            "step": {
+                "instructions": {
+                    "description": "Tap Continue, then place your key card against the center console card reader of vehicle {vin} to approve Home Assistant's virtual key. This only needs to be done once.",
+                    "title": "Approve the virtual key"
+                },
+                "scan": {
+                    "description": "Home Assistant will look for vehicle {vin} over Bluetooth to enable local command control. Make sure the vehicle is awake and within Bluetooth range of a Home Assistant Bluetooth adapter, then continue.",
+                    "title": "Set up Bluetooth control"
+                }
             }
         }
     },
@@ -269,6 +343,14 @@
                 "name": "Wake"
             }
         },
+        "calendar": {
+            "tariff_content_v2": {
+                "name": "Buy tariff"
+            },
+            "tariff_content_v2_sell_tariff": {
+                "name": "Sell tariff"
+            }
+        },
         "climate": {
             "climate_state_cabin_overheat_protection": {
                 "name": "Cabin overheat protection"
@@ -352,6 +434,24 @@
             }
         },
         "select": {
+            "climate_state_seat_fan_front_left": {
+                "name": "Seat cooler front left",
+                "state": {
+                    "high": "High",
+                    "low": "Low",
+                    "medium": "Medium",
+                    "off": "Off"
+                }
+            },
+            "climate_state_seat_fan_front_right": {
+                "name": "Seat cooler front right",
+                "state": {
+                    "high": "High",
+                    "low": "Low",
+                    "medium": "Medium",
+                    "off": "Off"
+                }
+            },
             "climate_state_seat_heater_left": {
                 "name": "Seat heater front left",
                 "state": {
@@ -516,7 +616,13 @@
                 }
             },
             "charge_state_conn_charge_cable": {
-                "name": "Charge cable"
+                "name": "Charge cable",
+                "state": {
+                    "gb_ac": "GB/AC",
+                    "gb_dc": "GB/DC",
+                    "iec": "IEC",
+                    "sae": "SAE"
+                }
             },
             "charge_state_est_battery_range": {
                 "name": "Estimate battery range"
@@ -558,8 +664,11 @@
                 "name": "Consumer imported from solar"
             },
             "credit_balance": {
-                "name": "Teslemetry credits",
+                "name": "Teslemetry command credits",
                 "unit_of_measurement": "credits"
+            },
+            "credit_quota": {
+                "name": "Teslemetry command quota used"
             },
             "cruise_follow_distance": {
                 "name": "Cruise follow distance"
@@ -633,8 +742,8 @@
                     "abort": "Abort",
                     "enabled": "Enabled",
                     "fault": "Fault",
-                    "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "not_available": "Not available",
+                    "standby": "Standby"
                 }
             },
             "di_state_r": {
@@ -643,8 +752,8 @@
                     "abort": "Abort",
                     "enabled": "Enabled",
                     "fault": "Fault",
-                    "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "not_available": "Not available",
+                    "standby": "Standby"
                 }
             },
             "di_state_rel": {
@@ -653,8 +762,8 @@
                     "abort": "Abort",
                     "enabled": "Enabled",
                     "fault": "Fault",
-                    "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "not_available": "Not available",
+                    "standby": "Standby"
                 }
             },
             "di_state_rer": {
@@ -663,8 +772,8 @@
                     "abort": "Abort",
                     "enabled": "Enabled",
                     "fault": "Fault",
-                    "standby": "Standby",
-                    "unavailable": "Unavailable"
+                    "not_available": "Not available",
+                    "standby": "Standby"
                 }
             },
             "di_stator_temp_f": {
@@ -1029,9 +1138,6 @@
             "vehicle_state_tpms_pressure_rr": {
                 "name": "Tire pressure rear right"
             },
-            "version": {
-                "name": "Version"
-            },
             "vin": {
                 "name": "Vehicle",
                 "state": {
@@ -1090,17 +1196,38 @@
         }
     },
     "exceptions": {
+        "auth_failed": {
+            "message": "Authentication failed, please reauthenticate"
+        },
+        "auth_failed_invalid_token": {
+            "message": "Access token is invalid, please reauthenticate"
+        },
+        "auth_failed_login_required": {
+            "message": "Login is no longer valid, please reauthenticate"
+        },
+        "auth_failed_migration": {
+            "message": "Failed to migrate to OAuth, please reauthenticate"
+        },
+        "auth_failed_subscription_required": {
+            "message": "Teslemetry subscription required"
+        },
         "command_error": {
             "message": "Command returned error: {error}"
         },
         "command_exception": {
             "message": "Command returned exception: {message}"
         },
+        "command_no_response": {
+            "message": "Command had no response"
+        },
         "command_no_result": {
             "message": "Command had no result"
         },
         "command_reason": {
             "message": "Command was rejected: {reason}"
+        },
+        "insufficient_credits": {
+            "message": "Your Teslemetry account does not have enough command credits. Purchase more credits to continue controlling your vehicles."
         },
         "invalid_cop_temp": {
             "message": "Cabin overheat protection does not support that temperature"
@@ -1112,7 +1239,7 @@
             "message": "Missing required scope: {scope}"
         },
         "no_cable": {
-            "message": "Charge cable will lock automatically when connected"
+            "message": "Insert cable to lock, charge cable will lock automatically when connected"
         },
         "no_config_entry_for_device": {
             "message": "No config entry for device ID: {device_id}"
@@ -1123,11 +1250,75 @@
         "no_vehicle_data_for_device": {
             "message": "No vehicle data for device ID: {device_id}"
         },
+        "not_ready_api_error": {
+            "message": "Error communicating with Teslemetry API"
+        },
+        "not_ready_connection_error": {
+            "message": "Unable to connect to Teslemetry"
+        },
+        "oauth_implementation_not_available": {
+            "message": "OAuth implementation not available, try reauthenticating"
+        },
+        "set_scheduled_charging_time": {
+            "message": "Scheduled charging time is required when enabling"
+        },
+        "set_scheduled_departure_off_peak": {
+            "message": "Off-peak charging end time is required when enabling"
+        },
+        "set_scheduled_departure_preconditioning": {
+            "message": "Preconditioning departure time is required when enabling"
+        },
+        "token_data_malformed": {
+            "message": "Token data malformed, try reauthenticating"
+        },
+        "update_failed": {
+            "message": "Error fetching data from Teslemetry API: {message}"
+        },
+        "update_failed_insufficient_credits": {
+            "message": "Teslemetry account has insufficient command credits, pausing updates until credits are added"
+        },
+        "update_failed_invalid_data": {
+            "message": "Received invalid data from API"
+        },
         "wake_up_failed": {
             "message": "Failed to wake up vehicle: {message}"
         },
         "wake_up_timeout": {
             "message": "Timed out trying to wake up vehicle"
+        }
+    },
+    "issues": {
+        "insufficient_credits": {
+            "description": "A command could not be sent because your Teslemetry account does not have enough command credits.\n\nSending commands to your Tesla vehicles consumes credits. To continue controlling your vehicles, purchase more credits from the [Teslemetry console]({credits_url}).\n\nThis issue will be removed automatically once your account has enough credits available again.",
+            "title": "Insufficient Teslemetry credits"
+        },
+        "key": {
+            "fix_flow": {
+                "error": {
+                    "not_resolved": "The virtual key still appears to be unpaired. Please complete the pairing at {link}, then try again."
+                },
+                "step": {
+                    "confirm": {
+                        "description": "Home Assistant cannot send commands to {vehicle} because the Teslemetry virtual key is not paired with the vehicle. Until it is paired, commands such as locking, climate control and charging will not work.\n\n1. Open {link}.\n2. Follow the prompts to add the virtual key to {vehicle}.\n3. Select **Submit** below to re-check.",
+                        "title": "Pair the virtual key for {vehicle}"
+                    }
+                }
+            },
+            "title": "Pair the virtual key for {vehicle}"
+        },
+        "streaming_toggle": {
+            "fix_flow": {
+                "error": {
+                    "not_resolved": "Data streaming still appears to be disabled. Please enable \"Allow Third-Party App Data Streaming\" in the vehicle's Safety settings, then try again."
+                },
+                "step": {
+                    "confirm": {
+                        "description": "Home Assistant cannot receive streaming data from {vehicle} because the \"Allow Third-Party App Data Streaming\" toggle is disabled. This option is only available on older Model S and Model X vehicles with Intel-based computers.\n\n1. In {vehicle}, open Controls > Safety.\n2. Enable **Allow Third-Party App Data Streaming**.\n3. Select **Submit** below to re-check.",
+                        "title": "Enable data streaming for {vehicle}"
+                    }
+                }
+            },
+            "title": "Enable data streaming for {vehicle}"
         }
     },
     "options": {

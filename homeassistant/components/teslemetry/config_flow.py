@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any, cast, override
 
-from aiohttp import ClientConnectionError, ClientError
+from aiohttp import ClientError
 from aiopowerwall import (
     DEFAULT_GATEWAY_HOST,
     PowerwallAuthenticationError,
@@ -268,7 +268,6 @@ class OAuth2FlowHandler(
     ) -> ConfigFlowResult:
         """Handle reconfiguration."""
         return await self.async_step_user()
-
 
 
 class TeslemetryOptionsFlowHandler(OptionsFlow):
@@ -554,11 +553,16 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
                 LOGGER.debug("Local Powerwall verify failed: %s", err)
                 errors["base"] = "cannot_connect"
             else:
-                return self.async_update_reload_and_abort(
-                    self._get_entry(),
+                entry = self._get_entry()
+                # async_update_reload_and_abort refuses to reload an entry that
+                # has an update listener (this fork always registers one).
+                result = self.async_update_and_abort(
+                    entry,
                     self._get_reconfigure_subentry(),
                     data_updates={CONF_HOST: host, CONF_PASSWORD: password},
                 )
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return result
 
         return self.async_show_form(
             step_id="credentials",

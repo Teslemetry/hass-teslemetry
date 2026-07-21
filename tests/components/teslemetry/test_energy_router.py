@@ -955,14 +955,19 @@ async def test_energy_site_router_command_routing(
 
 
 async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> None:
-    """Energy stale-subentry cleanup does not remove other subentry types."""
+    """Energy stale-subentry cleanup does not remove other subentry types.
+
+    Uses the same VIN the default product mock reports, so the separate
+    vehicle-subentry cleanup (keyed off present VINs, not subentry type)
+    also leaves it alone - isolating this test to the energy-cleanup pass.
+    """
     entry = mock_config_entry()
     entry.add_to_hass(hass)
     foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+        data=MappingProxyType({"vin": "LRW3F7EK4NC700000"}),
         subentry_type="vehicle",
         title="A Vehicle",
-        unique_id="VIN123",
+        unique_id="LRW3F7EK4NC700000",
     )
     hass.config_entries.async_add_subentry(entry, foreign)
 
