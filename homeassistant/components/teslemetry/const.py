@@ -34,6 +34,22 @@ BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
 # hass.data key for the lock serializing first-time BLE parent/key-file init.
 BLE_PARENT_LOCK_KEY = f"{DOMAIN}_ble_parent_lock"
 
+# Config subentry type holding an energy site's local Powerwall pairing config
+SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
+
+# Energy site subentry data key. An energy site subentry also stores CONF_HOST
+# and CONF_PASSWORD (from homeassistant.const) once paired; their presence
+# enables Powerwall-first command routing over the local network.
+CONF_SITE_ID = "site_id"
+
+# File holding the integration's RSA private key used to sign local TEDAPI v1r
+# requests. The matching public key is what gets registered as an authorized
+# client on the energy gateway when pairing.
+POWERWALL_KEY_FILE = "tesla_powerwall.key"
+
+# hass.data key caching the RSA private key PEM shared across energy sites.
+RSA_PARENT_KEY = f"{DOMAIN}_rsa_parent"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",
