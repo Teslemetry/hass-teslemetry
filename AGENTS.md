@@ -27,11 +27,35 @@ git fetch origin main
 git fetch upstream dev
 git checkout -b sync-dev origin/main
 git merge upstream/dev   # append-only; resolve conflicts by editing files directly, same as step 4
-git push origin sync-dev:main
 ```
 
 - Resolve any merge conflicts the same way as PR conflicts in step 4: read the conflicting files and edit directly, no `git mergetool`.
-- The push is a plain non-force push (no `--force` / `--force-with-lease`). If it's rejected as non-fast-forward, someone else pushed to `main` in the meantime - re-fetch `origin/main`, re-merge `upstream/dev` into `sync-dev`, and push again. Never force the push.
+- **Strip core CI/CD workflow noise (every cut, durable).** Core `dev` carries its own `.github/workflows/`, and this merge is exactly what would otherwise resurrect the files this fork deliberately excludes (see "CI: the clean per-integration gate" below). Run this unconditionally right after the merge, whether it landed clean or a conflict hit one of these exact paths (upstream modifying a file this fork deleted shows as a `deleted by us` conflict - `git rm` also resolves that):
+
+  ```bash
+  git rm -rf --ignore-unmatch \
+    .github/workflows/ci.yaml \
+    .github/workflows/validate.yml \
+    .github/workflows/check-requirements-deterministic.yml \
+    .github/workflows/check-requirements.lock.yml \
+    .github/workflows/check-requirements.md \
+    .github/workflows/codeql.yml \
+    .github/workflows/translations.yml \
+    .github/workflows/builder.yml \
+    .github/workflows/wheels.yml \
+    .github/workflows/e2e-tests.yml \
+    .github/workflows/matchers
+  git diff --cached --quiet || git commit -m "Strip core CI/CD workflow noise" --no-verify
+  ```
+
+  `--ignore-unmatch` makes it safe even when upstream didn't touch any of these paths this cycle (nothing staged, nothing committed). If the merge stopped on conflicts in unrelated files too, resolve those first, then run the strip, then commit once. Keep this path list in sync with the "CI: the clean per-integration gate" list below - it's the same set.
+- Then push:
+
+  ```bash
+  git push origin sync-dev:main
+  ```
+
+  The push is a plain non-force push (no `--force` / `--force-with-lease`). If it's rejected as non-fast-forward, someone else pushed to `main` in the meantime - re-fetch `origin/main`, re-merge `upstream/dev` into `sync-dev`, redo the strip, and push again. Never force the push.
 
 You stay on `sync-dev` (now holding the synced state of `main`) for the next step.
 
@@ -100,21 +124,29 @@ Append to `release_notes.txt`:
 
 Commit: `git commit -am "v$VERSION" --no-verify`
 
-### 6. Run tests
+### 6. Run the release gate - blocking, stop on any failure
+
+This is the actual publish gate for this repo (there is no branch-protection required-check - the captain gates at publish, not via a GitHub repo setting). If any command below fails, STOP: do not proceed to step 7 or step 8, and report the failure to the user instead of publishing.
 
 ```bash
 source .venv/bin/activate
 script/setup
-uv pip install -r requirements_all.txt -r requirements_test.txt
+uv pip install -r requirements_all.txt -r requirements_test.txt -r requirements_test_pre_commit.txt
+python3 -m script.translations develop --all
+python3 -m script.hassfest --integration-path homeassistant/components/teslemetry --skip-plugins manifest
+ruff check homeassistant/components/teslemetry tests/components/teslemetry
+ruff format --check homeassistant/components/teslemetry tests/components/teslemetry
 pytest tests/components/teslemetry
 deactivate
 ```
 
+This mirrors `.github/workflows/teslemetry-test.yml` command-for-command (same `--skip-plugins manifest` reasoning - see "CI: the clean per-integration gate" below), so a release cut here can't diverge from what that workflow already checks on the PR. `teslemetry-test.yml` itself stays PR-visibility only; this step is what actually blocks a bad release from shipping.
+
 ### 7. Pause for approval
 
-Show the user:
+Only reached if step 6 passed in full. Show the user:
 - List of applied PRs and any conflicts that were resolved
-- Test results
+- Step 6's results (pytest/hassfest/ruff all green)
 - Ask for confirmation before publishing
 
 ### 8. Publish release
@@ -156,14 +188,16 @@ These live only in this HACS tree, never upstream. They are re-applied on top of
 
 ## CI: the clean per-integration gate
 
-`ci.yaml`/`validate.yml`/`builder.yml`/`wheels.yml` etc. are synced whole-repo from upstream core `dev` (see step 2) and mostly fail here as fork-irrelevant noise (whole-repo hassfest, prek, workflow/copilot-instructions checks) - a red check from one of those is not a signal about the teslemetry integration.
+`.github/workflows/teslemetry-test.yml` is the only PR/push CI gate this repo keeps: a fork-owned file that runs `pytest tests/components/teslemetry`, ruff, and hassfest scoped to just the integration, on every PR/push to `main` and push to `release-*`. Treat this job as the pass/fail gate for whether the integration itself is healthy.
 
-`.github/workflows/teslemetry-test.yml` is the real signal: a fork-owned file (never synced/overwritten by the upstream merge) that runs `pytest tests/components/teslemetry`, ruff, and hassfest scoped to just the integration, on every PR/push to `main` and push to `release-*`. Treat this job, not the upstream-noise checks, as the pass/fail gate for whether the integration itself is healthy.
+Core `dev` carries a much larger `.github/workflows/` set that would otherwise run whole-repo and fail here as fork-irrelevant noise (whole-repo hassfest, prek, workflow/copilot-instructions checks, requirements-lock bots, CodeQL, the HAOS/supervisor `builder`/`wheels` pipelines, translation sync, manual e2e-tests). These are deleted, and step 2's sync-dev strip (see above) re-deletes them every release so the merge from core `dev` can't bring them back: `ci.yaml`, `validate.yml`, `check-requirements-deterministic.yml`, `check-requirements.lock.yml`, `check-requirements.md`, `codeql.yml`, `translations.yml`, `builder.yml`, `wheels.yml`, `e2e-tests.yml`, `matchers/`. A red check from any of these reappearing means the step 2 strip didn't run or missed a path - not a signal about the integration.
+
+Kept alongside `teslemetry-test.yml` because they aren't PR/push CI noise: `release.yml` (HACS-specific - posts the GitHub release to Discord) and the issue-automation bots `detect-duplicate-issues.yml`, `detect-non-english-issues.yml`, `stale.yml`, `lock.yml`, `restrict-task-creation.yml` (manage this fork's own Issues, unrelated to the PR/push gate).
 
 - `manifest.json`'s `issue_tracker` key (pointing at this fork's own issue tracker) is deliberate, but hassfest's `manifest` plugin only permits that key on integrations it treats as "custom" - and it classifies anything under `homeassistant/components/` as core regardless of `--integration-path` scoping, so real hassfest always rejects it here. This is structural, not a bug: the workflow runs hassfest with `--skip-plugins manifest` to avoid a permanent false-positive; everything else hassfest checks still runs.
 - Test dependencies: install `requirements_all.txt` + `requirements_test.txt` (+ `requirements_test_pre_commit.txt` for ruff), same as `script/bootstrap`/`ci.yaml` and step 6 above. There is no `requirements_test_all.txt` in this checkout - don't chase it if you see it referenced.
 - Before `pytest`, translations must be compiled for **all** integrations (`python3 -m script.translations develop --all`, <1s, no network) or `check_translations` (`tests/components/conftest.py`) fails any test touching a platform teslemetry's entities inherit services from (e.g. `media_player`, `button`) - not just teslemetry itself. `homeassistant/components/*/translations` is gitignored except teslemetry's own, so this is never pre-populated on a fresh checkout; a local worktree with stale generated files from an earlier `--all` run will falsely pass with only `--integration teslemetry` compiled - verify translation-dependent changes against a clean checkout, not a dev worktree.
-- Publish gating: this workflow is necessary but not sufficient - the actual `gh release create` (step 8) is a manual command outside any workflow, so nothing here can block it directly. Making this job a **required status check on `main`** (branch protection, a repo setting only a captain can enable) is the intended way to guarantee `release-*` branches are cut from a green `main`.
+- Publish gating: this workflow alone can't block `gh release create` (step 8) - it's a manual command outside any workflow, and this repo doesn't use branch-protection required-checks (captain gates at publish, not via a GitHub repo setting). The actual gate is build step 6, which runs this same suite locally and stops the release crew cold on any failure before step 7/8 are reached.
 
 ## Maintaining this file
 
