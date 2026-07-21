@@ -20,7 +20,7 @@ from .const import ADDRESS, VIN
 from tests.common import MockConfigEntry
 
 
-def mock_config_entry() -> MockConfigEntry:
+def mock_config_entry(options: dict | None = None) -> MockConfigEntry:
     """Create a mock config entry."""
 
     return MockConfigEntry(
@@ -35,6 +35,7 @@ def mock_config_entry() -> MockConfigEntry:
                 "expires_at": int(time.time()) + 3600,
             },
         },
+        options=options or {},
     )
 
 
@@ -81,10 +82,11 @@ async def setup_ble_platform(
 async def setup_platform(
     hass: HomeAssistant,
     platforms: list[Platform] | None = None,
+    options: dict | None = None,
 ) -> MockConfigEntry:
     """Set up the Teslemetry platform."""
 
-    mock_entry = mock_config_entry()
+    mock_entry = mock_config_entry(options)
     mock_entry.add_to_hass(hass)
 
     if platforms is None:
