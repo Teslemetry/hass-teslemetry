@@ -124,21 +124,29 @@ Append to `release_notes.txt`:
 
 Commit: `git commit -am "v$VERSION" --no-verify`
 
-### 6. Run tests
+### 6. Run the release gate - blocking, stop on any failure
+
+This is the actual publish gate for this repo (there is no branch-protection required-check - the captain gates at publish, not via a GitHub repo setting). If any command below fails, STOP: do not proceed to step 7 or step 8, and report the failure to the user instead of publishing.
 
 ```bash
 source .venv/bin/activate
 script/setup
-uv pip install -r requirements_all.txt -r requirements_test.txt
+uv pip install -r requirements_all.txt -r requirements_test.txt -r requirements_test_pre_commit.txt
+python3 -m script.translations develop --all
+python3 -m script.hassfest --integration-path homeassistant/components/teslemetry --skip-plugins manifest
+ruff check homeassistant/components/teslemetry tests/components/teslemetry
+ruff format --check homeassistant/components/teslemetry tests/components/teslemetry
 pytest tests/components/teslemetry
 deactivate
 ```
 
+This mirrors `.github/workflows/teslemetry-test.yml` command-for-command (same `--skip-plugins manifest` reasoning - see "CI: the clean per-integration gate" below), so a release cut here can't diverge from what that workflow already checks on the PR. `teslemetry-test.yml` itself stays PR-visibility only; this step is what actually blocks a bad release from shipping.
+
 ### 7. Pause for approval
 
-Show the user:
+Only reached if step 6 passed in full. Show the user:
 - List of applied PRs and any conflicts that were resolved
-- Test results
+- Step 6's results (pytest/hassfest/ruff all green)
 - Ask for confirmation before publishing
 
 ### 8. Publish release
@@ -189,7 +197,7 @@ Kept alongside `teslemetry-test.yml` because they aren't PR/push CI noise: `rele
 - `manifest.json`'s `issue_tracker` key (pointing at this fork's own issue tracker) is deliberate, but hassfest's `manifest` plugin only permits that key on integrations it treats as "custom" - and it classifies anything under `homeassistant/components/` as core regardless of `--integration-path` scoping, so real hassfest always rejects it here. This is structural, not a bug: the workflow runs hassfest with `--skip-plugins manifest` to avoid a permanent false-positive; everything else hassfest checks still runs.
 - Test dependencies: install `requirements_all.txt` + `requirements_test.txt` (+ `requirements_test_pre_commit.txt` for ruff), same as `script/bootstrap`/`ci.yaml` and step 6 above. There is no `requirements_test_all.txt` in this checkout - don't chase it if you see it referenced.
 - Before `pytest`, translations must be compiled for **all** integrations (`python3 -m script.translations develop --all`, <1s, no network) or `check_translations` (`tests/components/conftest.py`) fails any test touching a platform teslemetry's entities inherit services from (e.g. `media_player`, `button`) - not just teslemetry itself. `homeassistant/components/*/translations` is gitignored except teslemetry's own, so this is never pre-populated on a fresh checkout; a local worktree with stale generated files from an earlier `--all` run will falsely pass with only `--integration teslemetry` compiled - verify translation-dependent changes against a clean checkout, not a dev worktree.
-- Publish gating: this workflow is necessary but not sufficient - the actual `gh release create` (step 8) is a manual command outside any workflow, so nothing here can block it directly. Making this job a **required status check on `main`** (branch protection, a repo setting only a captain can enable) is the intended way to guarantee `release-*` branches are cut from a green `main`.
+- Publish gating: this workflow alone can't block `gh release create` (step 8) - it's a manual command outside any workflow, and this repo doesn't use branch-protection required-checks (captain gates at publish, not via a GitHub repo setting). The actual gate is build step 6, which runs this same suite locally and stops the release crew cold on any failure before step 7/8 are reached.
 
 ## Maintaining this file
 
