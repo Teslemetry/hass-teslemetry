@@ -4,7 +4,7 @@ from collections.abc import Mapping
 import logging
 from typing import Any, override
 
-from aiohttp import ClientConnectionError
+from aiohttp import ClientConnectionError, ClientError
 from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
@@ -13,10 +13,6 @@ from tesla_fleet_api.exceptions import (
 from tesla_fleet_api.teslemetry import Teslemetry
 import voluptuous as vol
 
-from homeassistant.components.application_credentials import (
-    ClientCredential,
-    async_import_client_credential,
-)
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
@@ -29,8 +25,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import BooleanSelector
 
 from . import TeslemetryConfigEntry
-from .const import CLIENT_ID, DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK
+from .oauth import async_ensure_client_credential
 
 
 class OAuth2FlowHandler(
@@ -65,11 +62,10 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle a flow start."""
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
+        try:
+            await async_ensure_client_credential(self.hass)
+        except ClientError:
+            return self.async_abort(reason="oauth_error")
         return await super().async_step_user()
 
     @override

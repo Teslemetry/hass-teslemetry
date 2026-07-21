@@ -10,7 +10,9 @@ LOGGER = logging.getLogger(__package__)
 # OAuth
 AUTHORIZE_URL = "https://teslemetry.com/connect"
 TOKEN_URL = "https://api.teslemetry.com/oauth/token"
+REGISTER_URL = "https://api.teslemetry.com/oauth/register"
 CLIENT_ID = "homeassistant"
+SOFTWARE_ID = "home-assistant"
 
 # Where users can purchase more command credits
 CREDITS_URL = "https://teslemetry.com/console/credits"
