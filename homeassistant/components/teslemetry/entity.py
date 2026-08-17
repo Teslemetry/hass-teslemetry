@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, override
 
 from tesla_fleet_api.const import Scope
-from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.router import EnergySiteRouter, VehicleRouter
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 
 from homeassistant.exceptions import ServiceValidationError
@@ -143,7 +143,7 @@ class TeslemetryVehiclePollingEntity(TeslemetryPollingEntity):
 class TeslemetryEnergyLiveEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Energy Site Live entities."""
 
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
@@ -164,7 +164,7 @@ class TeslemetryEnergyLiveEntity(TeslemetryPollingEntity):
 class TeslemetryEnergyInfoEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Energy Site Info Entities."""
 
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
@@ -203,7 +203,7 @@ class TeslemetryWallConnectorEntity(TeslemetryPollingEntity):
     """Parent class for Teslemetry Wall Connector Entities."""
 
     _attr_has_entity_name = True
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
 
     def __init__(
         self,
