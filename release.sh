@@ -30,20 +30,6 @@ DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
 
-# Core PR numbers to hold OUT of the cut. apply_prs applies every open Bre77
-# teslemetry PR by default; a number listed here is fetched, logged loudly, and
-# skipped. Keep this EMPTY unless a specific PR must be deferred.
-#
-# Held for the v6.1.0 "BLE + Powerwall stack" beta: these three depend on the
-# subentry model that collides with hacs_remove_empty_holder_subentries on main
-# (the cleanup prunes their unpaired vehicle/energy_site holders) and fail the
-# build gate. Remove a number only once the 6.1.0 coexistence work has landed and
-# that PR passes the gate in a cut:
-#   176296 - Add Bluetooth control for Teslemetry vehicles
-#   176969 - Add local Powerwall control for Teslemetry energy sites
-#   178735 - Stream Teslemetry energy live status, site info and tariff over SSE
-SKIP_PRS=(176296 176969 178735)
-
 # Core CI/CD workflows this fork deliberately excludes. The core-dev sync would
 # otherwise resurrect them; stripped every cut. Keep in sync with the identical
 # list in AGENTS.md ("CI: the clean per-integration gate").
@@ -224,7 +210,6 @@ apply_prs() {
 
   APPLIED_PRS=()
   CONFLICTED_PRS=()
-  SKIPPED_PRS=()
   NOTE_LINES=()
 
   # Oldest-to-newest == ascending PR number (proxy the runbook already uses).
@@ -239,13 +224,6 @@ apply_prs() {
     local num title
     while IFS=$'\t' read -r num title; do
       [ -n "$num" ] || continue
-      # Held-out PRs (SKIP_PRS): never silent - log the number and title, record
-      # it for the approval summary, and move on without applying.
-      if printf '%s\n' "${SKIP_PRS[@]}" | grep -qx "$num"; then
-        log "  SKIPPING PR #$num: $title (in SKIP_PRS - held for v6.1.0 stack)"
-        SKIPPED_PRS+=("#$num $title")
-        continue
-      fi
       log "  PR #$num: $title"
       # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
       # of every per-PR patch to avoid repeated conflicts; the combined final
@@ -383,10 +361,6 @@ approve_and_publish() {
   if [ "${#APPLIED_PRS[@]}" -eq 0 ]; then info "  (none)"; else printf '      - %s\n' "${APPLIED_PRS[@]}"; fi
   if [ "${#CONFLICTED_PRS[@]}" -gt 0 ]; then
     info "Conflicts resolved during apply: ${CONFLICTED_PRS[*]}"
-  fi
-  if [ "${#SKIPPED_PRS[@]}" -gt 0 ]; then
-    info "Skipped PRs (SKIP_PRS, held for v6.1.0):"
-    printf '      - %s\n' "${SKIPPED_PRS[@]}"
   fi
   info "Build gate: green (step 6 passed in full)"
   echo
