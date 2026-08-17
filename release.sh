@@ -329,6 +329,29 @@ subentry_migration_gate() {
   info "$fn defined, called from async_setup_entry, tests present"
 }
 
+# Hard gate: aiopowerwall is a HACS-side standing pin that lives only on the
+# release branches. Core main has no aiopowerwall entry, and the local-Powerwall
+# PR reintroduces an older pin on every cut, so a fresh compose silently
+# downgrades the library and breaks local grid import/export. The build gate
+# passes green either way (both versions import), so this floor check is the
+# only thing that catches it. See AGENTS.md. Assert the composed pin is not
+# below the last shipped release's.
+aiopowerwall_pin_gate() {
+  log "Gate: aiopowerwall not downgraded below last shipped release"
+  local extract='s/.*"aiopowerwall==\([0-9][0-9.]*\)".*/\1/p'
+  local composed last_tag shipped lowest
+  composed=$(sed -n "$extract" "$INTEGRATION/manifest.json")
+  [ -n "$composed" ] || die "aiopowerwall pin missing from composed $INTEGRATION/manifest.json"
+  last_tag=$(git tag -l 'v*' | sort -V | tail -1)
+  if [ -z "$last_tag" ]; then info "no prior release tag; skipping floor check"; return 0; fi
+  shipped=$(git show "$last_tag:$INTEGRATION/manifest.json" 2>/dev/null | sed -n "$extract")
+  if [ -z "$shipped" ]; then info "$last_tag pins no aiopowerwall; nothing to floor against"; return 0; fi
+  lowest=$(printf '%s\n%s\n' "$shipped" "$composed" | sort -V | head -1)
+  [ "$lowest" = "$shipped" ] \
+    || die "aiopowerwall==$composed downgrades below last shipped $last_tag ($shipped) - the HACS-side standing pin was overwritten by a PR patch. Restore it and regenerate requirements_all.txt. See AGENTS.md."
+  info "aiopowerwall==$composed >= last shipped $shipped ($last_tag)"
+}
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -408,6 +431,7 @@ main() {
   update_version
   device_tracker_gate
   subentry_migration_gate
+  aiopowerwall_pin_gate
   build_gate
   approve_and_publish
 }
