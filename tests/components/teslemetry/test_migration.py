@@ -9,7 +9,10 @@ emitted record is normalized just like an active one.
 
 import pytest
 
-from homeassistant.components.teslemetry import hacs_migrate_subentry_entities
+from homeassistant.components.teslemetry import (
+    hacs_migrate_subentry_entities,
+    hacs_remove_empty_holder_subentries,
+)
 from homeassistant.components.teslemetry.const import DOMAIN
 from homeassistant.config_entries import ConfigSubentryData
 from homeassistant.core import HomeAssistant
@@ -39,6 +42,11 @@ BATTERY_HOLDER_DATA = {
     "key": "keymaterial",
 }
 SOLAR_HOLDER_DATA = {"site_id": SITE_SOLAR}
+
+# Auto-created (unpaired) holders older builds left for every product; their
+# data is just the identity key, so the forward cleanup may remove them.
+EMPTY_VEHICLE_HOLDER_DATA = {"vin": VIN}
+EMPTY_BATTERY_HOLDER_DATA = {"site_id": SITE_BATTERY}
 
 
 def _device_on_main_entry(device: dr.DeviceEntry, entry: MockConfigEntry) -> bool:
@@ -121,6 +129,18 @@ def _entity_parenting_entry() -> MockConfigEntry:
                 data=SOLAR_HOLDER_DATA,
             ),
         ],
+    )
+
+
+def _entry_with_subentries(*subentries_data: ConfigSubentryData) -> MockConfigEntry:
+    """Return a Teslemetry entry carrying the given holder subentries."""
+    entry = mock_config_entry()
+    return MockConfigEntry(
+        domain=entry.domain,
+        version=entry.version,
+        unique_id=entry.unique_id,
+        data=dict(entry.data),
+        subentries_data=list(subentries_data),
     )
 
 
@@ -444,3 +464,233 @@ async def test_recorder_identity_preserved_for_sensor(
     assert after.id == original_reg_id
     assert after.entity_id == original_entity_id
     assert after.unique_id == f"{VIN}_battery_level"
+
+
+async def test_empty_vehicle_holder_removed(hass: HomeAssistant) -> None:
+    """An unpaired vehicle holder (identity key only) is removed."""
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Test Vehicle",
+            data=EMPTY_VEHICLE_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert entry.subentries == {}
+
+
+async def test_empty_energy_holder_removed(hass: HomeAssistant) -> None:
+    """An unpaired energy holder (identity key only) is removed."""
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Battery Site",
+            data=EMPTY_BATTERY_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert entry.subentries == {}
+
+
+async def test_vehicle_holder_with_address_kept(hass: HomeAssistant) -> None:
+    """A vehicle holder carrying a Bluetooth address is kept with its data."""
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Test Vehicle",
+            data=VEHICLE_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+    vehicle_sub = _subentry_id(entry, VIN)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert set(entry.subentries) == {vehicle_sub}
+    assert entry.subentries[vehicle_sub].data == VEHICLE_HOLDER_DATA
+
+
+async def test_energy_holder_with_credentials_kept(hass: HomeAssistant) -> None:
+    """An energy holder carrying Powerwall credentials is kept with its data."""
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Battery Site",
+            data=BATTERY_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+    battery_sub = _subentry_id(entry, SITE_BATTERY)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert set(entry.subentries) == {battery_sub}
+    assert entry.subentries[battery_sub].data == BATTERY_HOLDER_DATA
+
+
+async def test_holder_owning_registry_record_is_kept(hass: HomeAssistant) -> None:
+    """An empty holder that still owns a device or entity is left alone.
+
+    Normalization should have reparented every record first, but the cleanup
+    asserts emptiness rather than assuming it.
+    """
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Test Vehicle",
+            data=EMPTY_VEHICLE_HOLDER_DATA,
+        ),
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Battery Site",
+            data=EMPTY_BATTERY_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+    vehicle_sub = _subentry_id(entry, VIN)
+    battery_sub = _subentry_id(entry, SITE_BATTERY)
+
+    # The vehicle holder still owns a device; the energy holder still owns an
+    # entity. Neither may be removed.
+    _seed_device(hass, entry, identifier=VIN, subentry_id=vehicle_sub)
+    _seed_entity(
+        hass,
+        entry,
+        unique_id=f"{SITE_BATTERY}_battery_power",
+        subentry_id=battery_sub,
+    )
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert set(entry.subentries) == {vehicle_sub, battery_sub}
+
+
+async def test_cleanup_is_idempotent(hass: HomeAssistant) -> None:
+    """A second run leaves the survivors and their data untouched."""
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Test Vehicle",
+            data=EMPTY_VEHICLE_HOLDER_DATA,
+        ),
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Battery Site",
+            data=BATTERY_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+    battery_sub = _subentry_id(entry, SITE_BATTERY)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+    after_first = dict(entry.subentries)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert dict(entry.subentries) == after_first
+    assert set(entry.subentries) == {battery_sub}
+    assert entry.subentries[battery_sub].data == BATTERY_HOLDER_DATA
+
+
+async def test_no_subentries_cleanup_is_noop(hass: HomeAssistant) -> None:
+    """A fresh install with no holders is left untouched."""
+    entry = mock_config_entry()
+    entry.add_to_hass(hass)
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    assert entry.subentries == {}
+
+
+async def test_normalize_then_cleanup_in_one_setup(hass: HomeAssistant) -> None:
+    """Normalization then cleanup, in order, over a single entity-parenting entry.
+
+    An empty auto-created holder that owned records is removed only after those
+    records are reparented; a configured holder that owned records is reparented
+    and kept with its credentials.
+    """
+    entry = _entry_with_subentries(
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Paired Vehicle",
+            data=VEHICLE_HOLDER_DATA,
+        ),
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN_INACCESSIBLE,
+            title="Unpaired Vehicle",
+            data={"vin": VIN_INACCESSIBLE},
+        ),
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Battery Site",
+            data=BATTERY_HOLDER_DATA,
+        ),
+    )
+    entry.add_to_hass(hass)
+    paired_sub = _subentry_id(entry, VIN)
+    unpaired_sub = _subentry_id(entry, VIN_INACCESSIBLE)
+    battery_sub = _subentry_id(entry, SITE_BATTERY)
+
+    # Both vehicle holders own records under the entity-parenting layout.
+    paired_device = _seed_device(hass, entry, identifier=VIN, subentry_id=paired_sub)
+    paired_entity = _seed_entity(
+        hass,
+        entry,
+        unique_id=f"{VIN}_battery_level",
+        subentry_id=paired_sub,
+        device_id=paired_device.id,
+    )
+    unpaired_device = _seed_device(
+        hass, entry, identifier=VIN_INACCESSIBLE, subentry_id=unpaired_sub
+    )
+    unpaired_entity = _seed_entity(
+        hass,
+        entry,
+        unique_id=f"{VIN_INACCESSIBLE}_battery_level",
+        subentry_id=unpaired_sub,
+        device_id=unpaired_device.id,
+    )
+
+    before = {
+        e.entity_id: (e.id, e.unique_id) for e in (paired_entity, unpaired_entity)
+    }
+
+    hacs_migrate_subentry_entities(hass, entry)
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    # Every reparented record survives with its identity intact on the main entry.
+    for entity_id, (reg_id, unique_id) in before.items():
+        after = entity_registry.async_get(entity_id)
+        assert after is not None, f"{entity_id} was deleted"
+        assert after.id == reg_id
+        assert after.unique_id == unique_id
+        assert after.config_subentry_id is None
+    for device in (paired_device, unpaired_device):
+        after_device = device_registry.async_get(device.id)
+        assert after_device is not None
+        assert _device_on_main_entry(after_device, entry)
+
+    # The unpaired holder is gone; the configured holders keep their credentials.
+    assert set(entry.subentries) == {paired_sub, battery_sub}
+    assert entry.subentries[paired_sub].data == VEHICLE_HOLDER_DATA
+    assert entry.subentries[battery_sub].data == BATTERY_HOLDER_DATA
