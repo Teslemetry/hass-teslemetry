@@ -33,6 +33,7 @@ from homeassistant.exceptions import (
 from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
+    entity_registry as er,
     issue_registry as ir,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -247,6 +248,65 @@ def _setup_vehicle_repairs(
     )
 
 
+def hacs_migrate_subentry_entities(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry
+) -> None:
+    """Reparent legacy config-subentry entities and devices onto the main entry.
+
+    HACS-only standing migration (see AGENTS.md for its scope and retirement).
+    Installs that ran the old entity-parenting layout own every vehicle and
+    energy entity and device under a generated config subentry; the current
+    model keeps cloud entities and devices on the main entry and uses subentries
+    only as optional local-control holders. Move every registry record still
+    bound to one of this entry's subentries back onto the main entry, leaving
+    unique IDs, entity IDs, and the subentry objects and their pairing
+    credentials untouched. Idempotent.
+    """
+    subentry_ids = set(entry.subentries)
+    if not subentry_ids:
+        return
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    # Clear each entity's subentry before moving its device: the registry
+    # cascade-deletes an entity left pointing at the subentry its device moves
+    # off, which would detach the user's recorder history behind a new entity ID.
+    for reg_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if reg_entry.config_subentry_id in subentry_ids:
+            entity_registry.async_update_entity(
+                reg_entry.entity_id, config_subentry_id=None
+            )
+
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if hasattr(device, "config_subentry_id"):
+            # Single-owner device registry (core dev): one move to the main entry.
+            if device.config_subentry_id in subentry_ids:
+                device_registry.async_update_device(
+                    device.id, new_config_subentry_id=None
+                )
+            continue
+        # Multi-owner device registry (stable core): add the main entry first,
+        # then drop each stale membership. A combined add+remove, or a lone
+        # remove of a device's only subentry, would delete the device.
+        stale = (
+            device.config_entries_subentries.get(entry.entry_id, set()) & subentry_ids
+        )
+        if not stale:
+            continue
+        device_registry.async_update_device(
+            device.id,
+            add_config_entry_id=entry.entry_id,
+            add_config_subentry_id=None,
+        )
+        for subentry_id in stale:
+            device_registry.async_update_device(
+                device.id,
+                remove_config_entry_id=entry.entry_id,
+                remove_config_subentry_id=subentry_id,
+            )
+
+
 def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Fix beta migration issues."""
     # This is needed to migrate beta users to the new OAuth credential system.
@@ -272,6 +332,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             translation_domain=DOMAIN,
             translation_key="token_data_malformed",
         )
+
+    # Normalize legacy config-subentry records before inventory, stale cleanup,
+    # or platform forwarding so a temporarily inaccessible product is still moved
+    # onto the main entry and never cascade-deleted by later pruning.
+    hacs_migrate_subentry_entities(hass, entry)
 
     # Opt-in ClickStack log shipping (HACS-only). The uid is already known
     # from config flow (entry.unique_id). Shipping is authorized solely by
