@@ -380,11 +380,28 @@ def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> Non
         )
 
 
-async def _async_update_listener(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry
+def _async_setup_option_reload(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry, ship_logs: bool
 ) -> None:
-    """Reload the entry so an options-flow change re-derives shipping state."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Reload only when the ClickStack log-shipping option actually changes.
+
+    An entry update fires for any change (a token refresh, a subentry add or
+    remove); reloading on every one stacks redundant reloads. Only a change to
+    the shipping option needs a reload, to re-derive the shipper force-count.
+    """
+    shipping = ship_logs
+
+    async def _handle_update(
+        hass: HomeAssistant, updated_entry: TeslemetryConfigEntry
+    ) -> None:
+        nonlocal shipping
+        updated = updated_entry.options.get(CONF_SHIP_LOGS_TO_CLICKSTACK, False)
+        if updated == shipping:
+            return
+        shipping = updated
+        await hass.config_entries.async_reload(updated_entry.entry_id)
+
+    entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -413,7 +430,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     logship = async_get_or_create_logship(hass, entry.unique_id or "unknown")
     await logship.async_acquire(force=ship_logs)
     entry.async_on_unload(partial(logship.async_release, force=ship_logs))
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    _async_setup_option_reload(hass, entry, ship_logs)
 
     try:
         beta_migration_fix(hass, entry)

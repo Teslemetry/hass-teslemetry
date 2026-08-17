@@ -31,6 +31,7 @@ from homeassistant.components.teslemetry.coordinator import (
     METADATA_INTERVAL,
     VEHICLE_INTERVAL,
 )
+from homeassistant.components.teslemetry.logship import CONF_SHIP_LOGS_TO_CLICKSTACK
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.components.teslemetry.oauth import TeslemetryImplementation
 from homeassistant.config_entries import ConfigEntryState
@@ -1179,3 +1180,34 @@ async def test_get_access_token_rate_limited_after_setup_is_not_fatal(
     await hass.async_block_till_done()
 
     assert not hass.config_entries.flow.async_progress()
+
+
+async def test_unrelated_entry_update_does_not_reload(hass: HomeAssistant) -> None:
+    """An entry update that leaves the shipping option unchanged does not reload."""
+    entry = await setup_platform(hass, [])
+
+    with patch.object(
+        hass.config_entries, "async_reload", new=AsyncMock()
+    ) as mock_reload:
+        # An update unrelated to the shipping option, e.g. a token refresh.
+        assert hass.config_entries.async_update_entry(
+            entry, data={**entry.data, "token": {"access_token": "refreshed"}}
+        )
+        await hass.async_block_till_done()
+
+    mock_reload.assert_not_called()
+
+
+async def test_shipping_option_change_reloads(hass: HomeAssistant) -> None:
+    """A change to the shipping option reloads the entry to re-derive shipping."""
+    entry = await setup_platform(hass, [])
+
+    with patch.object(
+        hass.config_entries, "async_reload", new=AsyncMock()
+    ) as mock_reload:
+        assert hass.config_entries.async_update_entry(
+            entry, options={CONF_SHIP_LOGS_TO_CLICKSTACK: True}
+        )
+        await hass.async_block_till_done()
+
+    mock_reload.assert_called_once_with(entry.entry_id)
