@@ -29,8 +29,10 @@ SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 
 VIN = "LRW3F7EK4NC700001"
 VIN_INACCESSIBLE = "LRW3F7EK4NC700002"
+VIN_RECORD_OWNER = "LRW3F7EK4NC700003"
 SITE_BATTERY = "111111111"
 SITE_SOLAR = "222222222"
+SITE_BATTERY_UNPAIRED = "333333333"
 
 # Local-control credentials the v6.0.0/6.0.1 and later holders carry; the
 # migration reparents registry records only and must never disturb these.
@@ -694,3 +696,75 @@ async def test_normalize_then_cleanup_in_one_setup(hass: HomeAssistant) -> None:
     assert set(entry.subentries) == {paired_sub, battery_sub}
     assert entry.subentries[paired_sub].data == VEHICLE_HOLDER_DATA
     assert entry.subentries[battery_sub].data == BATTERY_HOLDER_DATA
+
+
+async def test_v6_0_8_auto_created_holders_removed_on_upgrade(
+    hass: HomeAssistant,
+) -> None:
+    """A v6.0.8/9/10 install auto-created an identity-only holder per product.
+
+    Under the opt-in model those unpaired holders are legacy leftovers and must
+    be removed on upgrade, while a holder later paired (carrying credentials) and
+    any holder still owning a registry record are kept. Stable across a second
+    setup so the cleanup never churns a live install.
+    """
+    entry = _entry_with_subentries(
+        # Paired over Bluetooth -> keep (carries an address).
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN,
+            title="Paired Vehicle",
+            data=VEHICLE_HOLDER_DATA,
+        ),
+        # Auto-created, never paired -> remove (identity key only).
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN_INACCESSIBLE,
+            title="Unpaired Vehicle",
+            data={"vin": VIN_INACCESSIBLE},
+        ),
+        # Auto-created and empty, but still owns a device -> keep (guard).
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_VEHICLE,
+            unique_id=VIN_RECORD_OWNER,
+            title="Record-owning Vehicle",
+            data={"vin": VIN_RECORD_OWNER},
+        ),
+        # Paired Powerwall -> keep (carries host/password/key).
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY,
+            title="Paired Battery",
+            data=BATTERY_HOLDER_DATA,
+        ),
+        # Auto-created battery holder, never paired -> remove.
+        ConfigSubentryData(
+            subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+            unique_id=SITE_BATTERY_UNPAIRED,
+            title="Unpaired Battery",
+            data={"site_id": SITE_BATTERY_UNPAIRED},
+        ),
+    )
+    entry.add_to_hass(hass)
+    paired_vehicle = _subentry_id(entry, VIN)
+    record_owner = _subentry_id(entry, VIN_RECORD_OWNER)
+    paired_battery = _subentry_id(entry, SITE_BATTERY)
+
+    # The record-owning holder still owns a device the migration has not yet
+    # reparented; the cleanup asserts emptiness rather than assuming it.
+    _seed_device(hass, entry, identifier=VIN_RECORD_OWNER, subentry_id=record_owner)
+
+    kept = {paired_vehicle, record_owner, paired_battery}
+
+    hacs_remove_empty_holder_subentries(hass, entry)
+
+    # Both never-paired auto-created holders are gone; everything else survives.
+    assert set(entry.subentries) == kept
+    assert entry.subentries[paired_vehicle].data == VEHICLE_HOLDER_DATA
+    assert entry.subentries[paired_battery].data == BATTERY_HOLDER_DATA
+
+    # A second setup removes nothing further and disturbs no survivor's data.
+    hacs_remove_empty_holder_subentries(hass, entry)
+    assert set(entry.subentries) == kept
+    assert entry.subentries[paired_vehicle].data == VEHICLE_HOLDER_DATA
+    assert entry.subentries[paired_battery].data == BATTERY_HOLDER_DATA
