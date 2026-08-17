@@ -587,8 +587,10 @@ async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> 
     """Energy stale-subentry cleanup does not remove other subentry types."""
     entry = mock_config_entry()
     entry.add_to_hass(hass)
+    # A paired vehicle holder (identity key plus credentials) so the empty-holder
+    # cleanup keeps it, isolating what the energy prune does to a foreign subentry.
     foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+        data=MappingProxyType({"vin": "VIN123", "address": "AA:BB:CC:DD:EE:FF"}),
         subentry_type="vehicle",
         title="A Vehicle",
         unique_id="VIN123",
