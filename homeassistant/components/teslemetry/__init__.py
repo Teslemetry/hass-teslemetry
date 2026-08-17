@@ -307,6 +307,69 @@ def hacs_migrate_subentry_entities(
             )
 
 
+# Auto-created (unpaired) holder subentries carry only their identity key.
+# Pairing adds credential keys (a Bluetooth address for a vehicle, the gateway
+# host/password for an energy site), whose presence marks a holder configured.
+# These literals are the on-disk subentry wire format written by older builds.
+_HOLDER_IDENTITY_KEYS: Final[dict[str, str]] = {
+    "vehicle": "vin",
+    "energy_site": "site_id",
+}
+
+
+def hacs_remove_empty_holder_subentries(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry
+) -> None:
+    """Remove auto-created local-control holder subentries that were never paired.
+
+    HACS-only forward cleanup that rides main. Older builds created a vehicle and
+    battery-energy holder for every product whether or not the user paired local
+    control; the current model creates one only when pairing completes, so those
+    unpaired holders are leftover empty configuration. Remove a holder only when
+    it carries no pairing credentials and owns no registry record, leaving every
+    configured holder and its credentials in place. Must run after
+    hacs_migrate_subentry_entities, which reparents any record a holder still
+    owned. Idempotent.
+    """
+    subentries = entry.subentries
+    if not subentries:
+        return
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    # A holder that still owns any registry record is kept, even after
+    # normalization: assert emptiness rather than assume it.
+    owning: set[str] = set()
+    for reg_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if reg_entry.config_subentry_id is not None:
+            owning.add(reg_entry.config_subentry_id)
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if hasattr(device, "config_subentry_id"):
+            # Single-owner device registry (core dev).
+            if device.config_subentry_id is not None:
+                owning.add(device.config_subentry_id)
+            continue
+        # Multi-owner device registry (stable core).
+        owning |= {
+            subentry_id
+            for subentry_id in device.config_entries_subentries.get(
+                entry.entry_id, set()
+            )
+            if subentry_id is not None
+        }
+
+    for subentry_id, subentry in list(subentries.items()):
+        identity_key = _HOLDER_IDENTITY_KEYS.get(subentry.subentry_type)
+        if identity_key is None:
+            continue
+        if subentry_id in owning:
+            continue
+        if set(subentry.data) - {identity_key}:
+            continue
+        hass.config_entries.async_remove_subentry(entry, subentry_id)
+
+
 def beta_migration_fix(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Fix beta migration issues."""
     # This is needed to migrate beta users to the new OAuth credential system.
@@ -337,6 +400,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     # or platform forwarding so a temporarily inaccessible product is still moved
     # onto the main entry and never cascade-deleted by later pruning.
     hacs_migrate_subentry_entities(hass, entry)
+
+    # Drop unpaired auto-created holders older builds left behind, strictly after
+    # reparenting so a holder that still owned records is never removed.
+    hacs_remove_empty_holder_subentries(hass, entry)
 
     # Opt-in ClickStack log shipping (HACS-only). The uid is already known
     # from config flow (entry.unique_id). Shipping is authorized solely by
