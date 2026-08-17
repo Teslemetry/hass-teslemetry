@@ -27,6 +27,8 @@ FORK_REPO="Teslemetry/hass-teslemetry"      # origin: the HACS fork we release
 CORE_REPO="home-assistant/core"             # upstream: core, source of PRs/dev
 INTEGRATION="homeassistant/components/teslemetry"
 DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
+INIT_PY="$INTEGRATION/__init__.py"
+MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
 
 # Core CI/CD workflows this fork deliberately excludes. The core-dev sync would
 # otherwise resurrect them; stripped every cut. Keep in sync with the identical
@@ -295,6 +297,36 @@ $hits"
   info "ATTR_LATITUDE/ATTR_LONGITUDE present, dev-only enum absent from code"
 }
 
+# Hard gate: the HACS-only subentry back-migration silently vanished in v6.0.9
+# when the release branches carrying it were never merged back to main - two
+# releases shipped without it and nothing noticed, because only a doc sentence
+# asserted its existence. See AGENTS.md. Assert against the composed tree that
+# the function is defined, actually CALLED from async_setup_entry (a defined-
+# but-uncalled migration is exactly as broken as a missing one), and its tests
+# ship with it.
+subentry_migration_gate() {
+  log "Gate: hacs_migrate_subentry_entities present in composed release"
+  local fn="hacs_migrate_subentry_entities"
+  [ -f "$INIT_PY" ] || die "$INIT_PY missing"
+  grep -q "def $fn" "$INIT_PY" \
+    || die "$fn not defined in $INIT_PY - the HACS-only subentry back-migration is missing. It silently vanished in v6.0.9; see AGENTS.md."
+  # Extract the async_setup_entry body (up to the next top-level def) and
+  # confirm the call is inside it - a grep for the name alone passes on a
+  # defined-but-never-called function.
+  local called
+  called=$(awk -v fn="$fn" '
+    /^async def async_setup_entry\(/ { inside=1; next }
+    inside && /^(async def |def )/   { inside=0 }
+    inside && index($0, fn "(")       { found=1 }
+    END { print found+0 }
+  ' "$INIT_PY")
+  [ "$called" = 1 ] \
+    || die "$fn is defined but never called from async_setup_entry in $INIT_PY - a defined-but-uncalled migration is as broken as a missing one. See AGENTS.md for the v6.0.9 history."
+  [ -f "$MIGRATION_TEST" ] \
+    || die "$MIGRATION_TEST missing - the subentry back-migration must ship with its tests. See AGENTS.md."
+  info "$fn defined, called from async_setup_entry, tests present"
+}
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -373,6 +405,7 @@ main() {
   apply_prs
   update_version
   device_tracker_gate
+  subentry_migration_gate
   build_gate
   approve_and_publish
 }
