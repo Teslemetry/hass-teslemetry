@@ -21,6 +21,21 @@ DCR_AUTH_DOMAIN = f"{DOMAIN}_dcr"
 # Where users can purchase more command credits
 CREDITS_URL = "https://teslemetry.com/console/credits"
 
+# Config subentry type holding a vehicle's pairing config
+SUBENTRY_TYPE_VEHICLE = "vehicle"
+
+# Vehicle subentry data key. A vehicle subentry also stores CONF_ADDRESS (from
+# homeassistant.const) once paired; its presence enables Bluetooth-first routing.
+CONF_VIN = "vin"
+
+# File holding the integration's EC private key used to sign BLE commands. The
+# matching public/virtual key is what the user adds to the vehicle when pairing.
+VEHICLE_KEY_FILE = "tesla_vehicle.key"
+
+BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
+
+BLE_PARENT_LOCK_KEY = f"{DOMAIN}_ble_parent_lock"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",
