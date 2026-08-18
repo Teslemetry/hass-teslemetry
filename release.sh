@@ -352,6 +352,54 @@ aiopowerwall_pin_gate() {
   info "aiopowerwall==$composed >= last shipped $shipped ($last_tag)"
 }
 
+# Hard gate: a config subentry type declared in code with no translations ships
+# as a bare, unlabelled "+" button and an unlabelled setup flow. v6.0.11 shipped
+# exactly this - SUBENTRY_TYPE_VEHICLE = "vehicle" was declared, but a compose
+# resolving a strings.json conflict kept only the energy_site block and dropped
+# every config_subentries.vehicle string. Same failure shape as the vanished
+# back-migration: content present upstream and on main, lost at cut time, with a
+# green build (no existing gate checks that a declared type has any translations).
+# See AGENTS.md. Assert against the composed tree that every SUBENTRY_TYPE_*
+# declared in const.py has a non-empty initiate_flow.user - the string the button
+# renders - in both strings.json and the separately-compiled translations/en.json.
+subentry_translations_gate() {
+  log "Gate: declared config subentry types carry translations"
+  local const="$INTEGRATION/const.py"
+  local strings="$INTEGRATION/strings.json"
+  local compiled="$INTEGRATION/translations/en.json"
+  [ -f "$const" ] || die "$const missing"
+
+  # Discover declared subentry types by their string value, straight from the
+  # composed const.py, so a future third type is covered without editing this gate.
+  local types
+  types=$(sed -n 's/^SUBENTRY_TYPE_[A-Z0-9_]* *= *"\([^"]*\)".*/\1/p' "$const")
+  if [ -z "$types" ]; then
+    info "no SUBENTRY_TYPE_* declared in const.py; nothing to check"
+    return 0
+  fi
+
+  [ -f "$strings" ]  || die "$strings missing but subentry types are declared in const.py"
+  [ -f "$compiled" ] || die "$compiled missing but subentry types are declared in const.py"
+
+  local type pair file kind
+  while read -r type; do
+    [ -n "$type" ] || continue
+    # strings.json is the source; translations/en.json is compiled separately, so
+    # a block can survive one and not the other - check both.
+    for pair in "$strings|strings.json" "$compiled|compiled translations/en.json"; do
+      file=${pair%%|*}
+      kind=${pair#*|}
+      jq -e --arg t "$type" \
+        '(.config_subentries[$t].initiate_flow.user) as $u
+           | ($u | type == "string") and ($u | length > 0)' \
+        "$file" >/dev/null 2>&1 \
+        || die "config subentry type '$type' is declared in const.py but has no non-empty config_subentries.$type.initiate_flow.user in $kind.
+A declared subentry type without translations renders as a bare unlabelled '+' button and an unlabelled setup flow - v6.0.11 shipped exactly this for 'vehicle'. The block exists upstream and on main; a cut dropped it (likely a strings.json conflict resolved by keeping one side). Restore config_subentries.$type in strings.json and recompile translations; do not hand-edit en.json. See AGENTS.md."
+    done
+    info "subentry type '$type' labelled in source and compiled strings"
+  done <<<"$types"
+}
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -432,6 +480,7 @@ main() {
   device_tracker_gate
   subentry_migration_gate
   aiopowerwall_pin_gate
+  subentry_translations_gate
   build_gate
   approve_and_publish
 }
