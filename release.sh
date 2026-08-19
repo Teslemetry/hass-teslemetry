@@ -47,18 +47,6 @@ CORE_CI_PATHS=(
   .github/workflows/matchers
 )
 
-# HACS-only standing patches applied on top of the core PR patches. Each rides
-# on the tree of an unmerged core PR, so it lives on a fork branch rather than
-# an open PR - apply_prs enumerates OPEN PRs and never finds it. Applied by
-# apply_standing_patches after apply_prs. A dropped standing patch is a silent
-# regression with a green build, the shape that already lost the subentry
-# back-migration and the aiopowerwall pin. Add a new one as a single line here.
-# Fields: <remote-url>|<branch>|<patch-commit>|<reason>. See AGENTS.md
-# ("HACS-only patches that ride main").
-STANDING_PATCHES=(
-  "https://github.com/Bre77/core|fm/teslemetry-ble-key-storage|7469d6924e3234f1d47dd1aea6cbb0fe4631cbb0|Vehicle BLE key stored under STORAGE_DIR, not the config root - based on #176296's tree"
-)
-
 # --- output helpers ----------------------------------------------------------
 log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
@@ -269,58 +257,6 @@ apply_prs() {
   assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
 }
 
-# Step 4b: apply the HACS-only standing patches (STANDING_PATCHES) on top of the
-# core PR patches. Runs after apply_prs because each is based on an unmerged core
-# PR's tree. A patch that will not apply STOPS for a human exactly like apply_prs
-# - never a soft warning, never a silent skip: a dropped standing patch is the
-# regression this step exists to prevent. The one clean skip is when the change
-# has already arrived through the dev sync (its core PR merged upstream), which a
-# reverse-apply check detects. See AGENTS.md ("HACS-only patches that ride main").
-apply_standing_patches() {
-  log "Step 4b: apply HACS-only standing patches"
-
-  APPLIED_PATCHES=()
-
-  local entry url branch sha reason
-  for entry in ${STANDING_PATCHES[@]+"${STANDING_PATCHES[@]}"}; do
-    IFS='|' read -r url branch sha reason <<<"$entry"
-    log "  standing patch: $branch ($reason)"
-
-    # An unresolvable remote/branch or a missing patch commit is a hard failure:
-    # a standing patch we cannot even fetch must never be silently absent.
-    git fetch "$url" "$branch" >/dev/null 2>&1 \
-      || die "cannot fetch standing patch '$branch' from $url - remote or branch unresolvable. See AGENTS.md."
-    git cat-file -e "$sha^{commit}" 2>/dev/null \
-      || die "standing patch commit $sha not found after fetching '$branch' from $url. See AGENTS.md."
-
-    # Already-applied: the change arrived via the dev sync, so the whole patch
-    # reverse-applies. Skip cleanly rather than failing on an empty apply.
-    if git show "$sha" | git apply --reverse --check >/dev/null 2>&1; then
-      info "already present (arrived via dev sync); skipping"
-      continue
-    fi
-
-    # -3 gives a 3-way merge fallback; on conflict it stages unmerged paths and
-    # leaves markers, and we STOP for the human just like apply_prs.
-    if git show "$sha" | git apply -3; then
-      info "applied"
-    else
-      pause "Standing patch '$branch' ($sha) did not apply cleanly. Read its intent (git show $sha), edit files to resolve, 'git add' each. Do NOT commit - this script commits."
-      assert_no_unmerged
-    fi
-
-    # -A: capture any new files the patch adds.
-    git add -A
-    git commit -m "Standing patch: $branch" --no-verify >/dev/null
-    assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
-    APPLIED_PATCHES+=("$branch ($reason)")
-  done
-
-  if [ "${#APPLIED_PATCHES[@]}" -eq 0 ]; then
-    info "no standing patches applied (all already present or none configured)"
-  fi
-}
-
 # Step 5: stamp version into both manifests and write release_notes.txt.
 # release_notes.txt stays untracked: it feeds `gh release create -F`, not a commit.
 update_version() {
@@ -464,34 +400,6 @@ A declared subentry type without translations renders as a bare unlabelled '+' b
   done <<<"$types"
 }
 
-# Hard gate: the vehicle BLE private key must live under STORAGE_DIR, not the
-# user-browsable config root. This is the third HACS-only standing patch (see
-# AGENTS.md), applied by apply_standing_patches; it rides on an unmerged core
-# PR's tree, so a cut that drops it silently reverts the key to the config root
-# with a green build - the same shape that lost the back-migration and the
-# aiopowerwall pin. Assert against the composed tree. Retires gracefully: inert
-# when the tree carries no vehicle key handling; when it does, the key path must
-# resolve under STORAGE_DIR and never the bare config root.
-keystore_gate() {
-  log "Gate: vehicle BLE key stored under STORAGE_DIR"
-  # Detector: does the composed integration handle a vehicle key file at all? If
-  # not (pre-BLE tree, or handling removed upstream), the invariant is vacuous.
-  if ! git grep -q 'VEHICLE_KEY_FILE' -- "$INTEGRATION"; then
-    info "no vehicle BLE key handling in composed tree; gate inert"
-    return 0
-  fi
-  # Regression form: the key file passed to hass.config.path() as the sole
-  # argument resolves to the config root. (The LEGACY_ migration source is a
-  # deliberate config-root read and does not match this anchor.)
-  if git grep -nE 'config\.path\([[:space:]]*VEHICLE_KEY_FILE[[:space:]]*\)' -- "$INTEGRATION"; then
-    die "vehicle BLE key path resolves to the config root (above) - it must be hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE). The HACS-only vehicle BLE key-storage patch was dropped from this cut; re-apply it. See AGENTS.md."
-  fi
-  # Correct form: joined under STORAGE_DIR.
-  git grep -qE 'config\.path\([[:space:]]*STORAGE_DIR[[:space:]]*,[[:space:]]*VEHICLE_KEY_FILE' -- "$INTEGRATION" \
-    || die "vehicle BLE key file is referenced but never joined under STORAGE_DIR - the key-storage patch is missing or incomplete; the key must live under STORAGE_DIR, not the config root. See AGENTS.md."
-  info "vehicle BLE key path resolves under STORAGE_DIR"
-}
-
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -522,8 +430,6 @@ approve_and_publish() {
   info "Version:  v$VERSION"
   info "Applied PRs:"
   if [ "${#APPLIED_PRS[@]}" -eq 0 ]; then info "  (none)"; else printf '      - %s\n' "${APPLIED_PRS[@]}"; fi
-  info "Standing patches:"
-  if [ "${#APPLIED_PATCHES[@]}" -eq 0 ]; then info "  (none applied)"; else printf '      - %s\n' "${APPLIED_PATCHES[@]}"; fi
   if [ "${#CONFLICTED_PRS[@]}" -gt 0 ]; then
     info "Conflicts resolved during apply: ${CONFLICTED_PRS[*]}"
   fi
@@ -570,13 +476,11 @@ main() {
   sync_dev
   create_release_branch
   apply_prs
-  apply_standing_patches
   update_version
   device_tracker_gate
   subentry_migration_gate
   aiopowerwall_pin_gate
   subentry_translations_gate
-  keystore_gate
   build_gate
   approve_and_publish
 }
