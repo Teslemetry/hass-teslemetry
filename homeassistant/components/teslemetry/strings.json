@@ -95,9 +95,7 @@
           "title": "Add Bluetooth vehicle"
         }
       }
-    }
-  },
-  "config_subentries": {
+    },
     "energy_site": {
       "abort": {
         "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
