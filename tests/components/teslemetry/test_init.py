@@ -4,6 +4,8 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from copy import deepcopy
+import os
+from pathlib import Path
 import time
 from types import MappingProxyType
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -39,16 +41,20 @@ from homeassistant.components.teslemetry import (
     _get_access_token,
 )
 from homeassistant.components.teslemetry.const import (
+    BLE_PARENT_KEY,
+    BLE_PARENT_LOCK_KEY,
     CLIENT_ID,
     CONF_SITE_ID,
     CONF_VIN,
     CREDITS_URL,
     DCR_AUTH_DOMAIN,
     DOMAIN,
+    LEGACY_VEHICLE_KEY_FILE,
     SOFTWARE_ID,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
     TOKEN_URL,
+    VEHICLE_KEY_FILE,
 )
 
 # Coordinator constants
@@ -94,6 +100,7 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
+from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.setup import async_setup_component
 
@@ -1874,6 +1881,95 @@ async def test_ble_parent_concurrent_first_init(hass: HomeAssistant) -> None:
     assert all(parent is parents[0] for parent in parents)
     mock_parent.assert_called_once()
     mock_parent.return_value.get_private_key.assert_awaited_once()
+
+
+def _write_key_file(path: str, data: bytes) -> None:
+    """Seed a key file, creating its parent directory if needed."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes(data)
+
+
+async def test_ble_parent_key_stored_in_storage(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """The BLE private key is loaded from the .storage directory."""
+    hass.config.config_dir = str(tmp_path)
+    with patch(
+        "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
+    ) as mock_parent:
+        mock_parent.return_value.get_private_key = AsyncMock()
+        await async_get_ble_parent(hass)
+
+    mock_parent.return_value.get_private_key.assert_awaited_once_with(
+        hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE)
+    )
+
+
+async def test_ble_parent_migrates_legacy_key(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """A key at the legacy config-root path is moved into .storage, never regenerated."""
+    hass.config.config_dir = str(tmp_path)
+    old_path = hass.config.path(LEGACY_VEHICLE_KEY_FILE)
+    new_path = hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE)
+    await hass.async_add_executor_job(_write_key_file, old_path, b"legacy-key")
+
+    with patch(
+        "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
+    ) as mock_parent:
+        mock_parent.return_value.get_private_key = AsyncMock()
+        await async_get_ble_parent(hass)
+
+    # The existing key is reused at the new path, so the paired vehicle is not stranded.
+    assert not await hass.async_add_executor_job(os.path.isfile, old_path)
+    assert await hass.async_add_executor_job(Path(new_path).read_bytes) == b"legacy-key"
+    mock_parent.return_value.get_private_key.assert_awaited_once_with(new_path)
+
+
+async def test_last_entry_removal_cleans_up_ble_key(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Removing the last entry deletes the shared key and drops the cached parent."""
+    hass.config.config_dir = str(tmp_path)
+    entry = mock_config_entry()
+    entry.add_to_hass(hass)
+    key_path = hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE)
+    await hass.async_add_executor_job(_write_key_file, key_path, b"key")
+    hass.data[BLE_PARENT_KEY] = MagicMock()
+    hass.data[BLE_PARENT_LOCK_KEY] = asyncio.Lock()
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert not await hass.async_add_executor_job(os.path.isfile, key_path)
+    assert BLE_PARENT_KEY not in hass.data
+    assert BLE_PARENT_LOCK_KEY not in hass.data
+
+
+async def test_key_kept_while_another_entry_remains(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Removing one of several entries leaves the shared key and parent in place."""
+    hass.config.config_dir = str(tmp_path)
+    entry = mock_config_entry()
+    entry.add_to_hass(hass)
+    other = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        unique_id="def-456",
+        data=dict(entry.data),
+    )
+    other.add_to_hass(hass)
+    key_path = hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE)
+    await hass.async_add_executor_job(_write_key_file, key_path, b"key")
+    parent = MagicMock()
+    hass.data[BLE_PARENT_KEY] = parent
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert await hass.async_add_executor_job(os.path.isfile, key_path)
+    assert hass.data[BLE_PARENT_KEY] is parent
 
 
 async def test_router_does_not_fail_over_on_unconfirmed() -> None:

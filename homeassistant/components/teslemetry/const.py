@@ -28,9 +28,14 @@ SUBENTRY_TYPE_VEHICLE = "vehicle"
 # homeassistant.const) once paired; its presence enables Bluetooth-first routing.
 CONF_VIN = "vin"
 
-# File holding the integration's EC private key used to sign BLE commands. The
-# matching public/virtual key is what the user adds to the vehicle when pairing.
-VEHICLE_KEY_FILE = "tesla_vehicle.key"
+# File holding the integration's EC private key (PEM) used to sign BLE commands.
+# The matching public/virtual key is what the user adds to the vehicle when
+# pairing. Stored under STORAGE_DIR with a domain-namespaced filename.
+VEHICLE_KEY_FILE = "teslemetry_vehicle_key.pem"
+
+# Legacy config-root filename written by early v6.0.11 pre-releases. Kept only as
+# the migration source so an existing key is reused rather than regenerated.
+LEGACY_VEHICLE_KEY_FILE = "tesla_vehicle.key"
 
 BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
 

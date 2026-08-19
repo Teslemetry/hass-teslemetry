@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Awaitable
+import os
 from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api.exceptions import InsufficientCredits, TeslaFleetError
@@ -10,12 +11,14 @@ from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
+from homeassistant.helpers.storage import STORAGE_DIR
 
 from .const import (
     BLE_PARENT_KEY,
     BLE_PARENT_LOCK_KEY,
     CREDITS_URL,
     DOMAIN,
+    LEGACY_VEHICLE_KEY_FILE,
     LOGGER,
     VEHICLE_KEY_FILE,
 )
@@ -40,6 +43,23 @@ def insufficient_credits_issue_id(entry: TeslemetryConfigEntry) -> str:
     return f"{INSUFFICIENT_CREDITS_ISSUE}_{entry.entry_id}"
 
 
+def vehicle_key_path(hass: HomeAssistant) -> str:
+    """Return the path to the vehicle BLE private key under .storage."""
+    return hass.config.path(STORAGE_DIR, VEHICLE_KEY_FILE)
+
+
+def _migrate_vehicle_key_file(old_path: str, new_path: str) -> None:
+    """Move a pre-existing key from the config root into .storage, once.
+
+    Early v6.0.11 pre-releases wrote the key to the config root; the same key
+    must be reused so a vehicle paired against it is not stranded. Regenerating
+    a fresh key would silently break local control for that vehicle.
+    """
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+    if not os.path.isfile(new_path) and os.path.isfile(old_path):
+        os.replace(old_path, new_path)
+
+
 async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
     """Return a shared TeslaBluetooth parent with the private key loaded."""
     parent: TeslaBluetooth | None = hass.data.get(BLE_PARENT_KEY)
@@ -50,7 +70,13 @@ async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
         parent = hass.data.get(BLE_PARENT_KEY)
         if parent is None:
             parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
-            await parent.get_private_key(hass.config.path(VEHICLE_KEY_FILE))
+            new_path = vehicle_key_path(hass)
+            await hass.async_add_executor_job(
+                _migrate_vehicle_key_file,
+                hass.config.path(LEGACY_VEHICLE_KEY_FILE),
+                new_path,
+            )
+            await parent.get_private_key(new_path)
             hass.data[BLE_PARENT_KEY] = parent
     return parent
 

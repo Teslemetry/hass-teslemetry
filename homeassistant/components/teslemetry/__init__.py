@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Callable
 from functools import partial
+import os
 from pathlib import Path
 from typing import Any, Final, cast
 
@@ -61,6 +62,8 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .const import (
+    BLE_PARENT_KEY,
+    BLE_PARENT_LOCK_KEY,
     CLIENT_ID,
     CONF_VIN,
     DOMAIN,
@@ -84,6 +87,7 @@ from .helpers import (
     async_update_device_sw_version,
     flatten,
     insufficient_credits_issue_id,
+    vehicle_key_path,
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
@@ -1094,6 +1098,24 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
                         "Error disconnecting Bluetooth for %s: %s", vehicle.vin, err
                     )
     return unloaded
+
+
+def _remove_vehicle_key_file(path: str) -> None:
+    """Delete the shared BLE private key file if it exists."""
+    if os.path.isfile(path):
+        os.remove(path)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+    """Drop the shared BLE parent and key once the last entry is removed."""
+    if any(
+        other.entry_id != entry.entry_id
+        for other in hass.config_entries.async_entries(DOMAIN)
+    ):
+        return
+    hass.data.pop(BLE_PARENT_KEY, None)
+    hass.data.pop(BLE_PARENT_LOCK_KEY, None)
+    await hass.async_add_executor_job(_remove_vehicle_key_file, vehicle_key_path(hass))
 
 
 async def async_migrate_entry(
