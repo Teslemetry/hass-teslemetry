@@ -123,9 +123,13 @@ preflight() {
 # as when a bad build is yanked. Keying off releases would then recompute the
 # yanked number and collide with the retained tag at publish. Reading tags also
 # matches aiopowerwall_pin_gate, so the version driver and pin floor agree.
+# Release tags point at release branches, not main, so main's fetches never
+# bring them down - fetch tags first, or a stale local list recomputes a taken
+# version and reopens this very bug. Fail loud rather than read a stale list.
 determine_version() {
   log "Step 1: determine version"
   local last major minor patch
+  git fetch --tags origin || die "could not fetch tags from origin - refusing to compute a version off a stale local tag list"
   last=$(git tag -l 'v*' | sort -V | tail -1)
   [ -n "$last" ] || die "could not read latest release tag from git (no 'v*' tags found)"
   info "latest release tag: $last"
