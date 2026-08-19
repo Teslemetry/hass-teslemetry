@@ -117,13 +117,18 @@ preflight() {
   info "branch=$branch publish=$PUBLISH"
 }
 
-# Step 1: determine and bump the version off the latest published release.
+# Step 1: determine and bump the version off the latest release tag.
+# Tags, not the GitHub release list, are the durable record of which version
+# numbers have been used: a release object can be deleted while its tag is kept,
+# as when a bad build is yanked. Keying off releases would then recompute the
+# yanked number and collide with the retained tag at publish. Reading tags also
+# matches aiopowerwall_pin_gate, so the version driver and pin floor agree.
 determine_version() {
   log "Step 1: determine version"
   local last major minor patch
-  last=$(gh release list --repo "$FORK_REPO" --limit 1 --json tagName --jq '.[0].tagName')
-  [ -n "$last" ] || die "could not read latest release tag from $FORK_REPO"
-  info "latest release: $last"
+  last=$(git tag -l 'v*' | sort -V | tail -1)
+  [ -n "$last" ] || die "could not read latest release tag from git (no 'v*' tags found)"
+  info "latest release tag: $last"
 
   IFS='.' read -r major minor patch <<<"${last#v}"
   [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]] \
