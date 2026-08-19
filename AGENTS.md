@@ -19,7 +19,7 @@ The whole release runs through one committed helper, **`release.sh`** (repo root
 
 ### What the pipeline does, and where it stops for you
 
-It runs every release phase automatically: version bump off the latest release; the `sync-dev` merge of `upstream/dev` + CI-strip + **non-force** `git push origin sync-dev:main` (with concurrent-push re-merge/retry); cutting `release-$VERSION`; applying Bre77's open core PRs oldest-to-newest; stamping both manifests; writing `release_notes.txt` (standing compat note prepended verbatim); the full local build gate; then the approval pause and publish. It **never** runs `git checkout main`, rebases, or force-pushes, so it is safe from an isolated worktree.
+It runs every release phase automatically: version bump off the latest release **tag** (`git tag -l 'v*'`, version-sorted - tags are the durable record even when a release object is deleted, e.g. a yanked build whose tag is kept, and this matches the source `aiopowerwall_pin_gate` reads); the `sync-dev` merge of `upstream/dev` + CI-strip + **non-force** `git push origin sync-dev:main` (with concurrent-push re-merge/retry); cutting `release-$VERSION`; applying Bre77's open core PRs oldest-to-newest; stamping both manifests; writing `release_notes.txt` (standing compat note prepended verbatim); the full local build gate; then the approval pause and publish. It **never** runs `git checkout main`, rebases, or force-pushes, so it is safe from an isolated worktree.
 
 It pauses and hands control to you at exactly these points; everything else is automatic and fail-stop:
 
