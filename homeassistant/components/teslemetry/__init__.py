@@ -911,10 +911,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Reload when a local-energy-site subentry is added or reconfigured so the
-    # affected site starts (or stops) routing through its local gateway.
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
-
     _setup_dynamic_discovery(
         hass,
         entry,
@@ -950,13 +946,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         entry.async_create_background_task(hass, stream.listen(), "Teslemetry Stream")
 
     return True
-
-
-async def _async_update_listener(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry
-) -> None:
-    """Reload the entry when its subentries change."""
-    hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 def create_handle_energy_stream_connection(
