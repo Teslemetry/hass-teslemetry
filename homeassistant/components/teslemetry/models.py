@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
 
@@ -49,11 +50,18 @@ class TeslemetryVehicleData:
 
 @dataclass
 class TeslemetryEnergyData:
-    """Data for a vehicle in the Teslemetry integration."""
+    """Data for an energy site in the Teslemetry integration."""
 
-    api: EnergySite
+    api: EnergySite | EnergySiteRouter
     live_coordinator: TeslemetryEnergySiteLiveCoordinator | None
     info_coordinator: TeslemetryEnergySiteInfoCoordinator
     history_coordinator: TeslemetryEnergyHistoryCoordinator | None
     id: int
     device: DeviceInfo
+    # True when the site has a battery/Powerwall and can therefore be opted into
+    # local (TEDAPI) control via an "Add local energy site" subentry. Solar-only
+    # and wall-connector-only sites cannot pair and are never offered.
+    can_local_control: bool
+    # The id of the user-added local-control subentry bound to this site, or None
+    # when the site has not been opted into local control.
+    subentry_id: str | None
