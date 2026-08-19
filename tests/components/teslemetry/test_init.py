@@ -2293,7 +2293,9 @@ async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> 
     entry = mock_config_entry()
     entry.add_to_hass(hass)
     foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+        # A paired vehicle holder (with its Bluetooth address) so the HACS-only
+        # empty-holder cleanup keeps it; this isolates energy-only pruning.
+        data=MappingProxyType({"vin": "VIN123", CONF_ADDRESS: "AA:BB:CC:DD:EE:FF"}),
         subentry_type="vehicle",
         title="A Vehicle",
         unique_id="VIN123",

@@ -459,7 +459,7 @@ def _async_setup_option_reload(
 def _setup_subentry_change_reload(
     hass: HomeAssistant, entry: TeslemetryConfigEntry
 ) -> None:
-    """Reload the entry when a vehicle subentry is added or removed."""
+    """Reload the entry when a vehicle or energy-site subentry is added or removed."""
     known = set(entry.subentries)
 
     async def _handle_update(
@@ -945,8 +945,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         vehicle_metadata,
     )
 
-    _setup_subentry_change_reload(hass, entry)
-
     if stream:
         entry.async_on_unload(stream.close)
         entry.async_on_unload(
@@ -964,26 +962,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         entry.async_create_background_task(hass, stream.listen(), "Teslemetry Stream")
 
     return True
-
-
-def _setup_subentry_change_reload(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry
-) -> None:
-    """Reload the entry when a local-energy-site subentry is added or removed."""
-    known = set(entry.subentries)
-
-    async def _handle_update(
-        hass: HomeAssistant, updated_entry: TeslemetryConfigEntry
-    ) -> None:
-        nonlocal known
-        current = set(updated_entry.subentries)
-        if known.symmetric_difference(current):
-            hass.config_entries.async_schedule_reload(updated_entry.entry_id)
-        # Track the latest set so further updates before the reload runs (e.g. a
-        # token refresh) do not re-schedule it off the same change.
-        known = current
-
-    entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
 def create_handle_energy_stream_connection(
