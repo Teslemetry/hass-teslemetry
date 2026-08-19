@@ -23,7 +23,13 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util.unit_conversion import PressureConverter
 
 from . import assert_entities, assert_entities_alt, setup_platform
-from .const import ENERGY_HISTORY_EMPTY, LIVE_STATUS, METADATA, PRODUCTS, VEHICLE_DATA_ALT
+from .const import (
+    ENERGY_HISTORY_EMPTY,
+    LIVE_STATUS,
+    METADATA,
+    PRODUCTS,
+    VEHICLE_DATA_ALT,
+)
 
 from tests.common import async_fire_time_changed
 

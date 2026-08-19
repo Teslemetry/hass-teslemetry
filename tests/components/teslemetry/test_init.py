@@ -1532,7 +1532,6 @@ async def test_get_access_token_rate_limited_after_setup_is_not_fatal(
         await _get_access_token(session)
     await hass.async_block_till_done()
 
-
     assert not hass.config_entries.flow.async_progress()
 
 
