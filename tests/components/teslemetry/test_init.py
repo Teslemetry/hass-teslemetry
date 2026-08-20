@@ -2193,6 +2193,7 @@ async def test_no_subentry_created_at_setup(hass: HomeAssistant) -> None:
 )
 async def test_local_control_failure_falls_back_to_cloud(
     hass: HomeAssistant,
+    issue_registry: ir.IssueRegistry,
     local_error: Exception,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -2200,7 +2201,8 @@ async def test_local_control_failure_falls_back_to_cloud(
 
     Local control is opt-in per site, so one site's bad local config must leave
     the entry loaded with cloud functionality intact rather than tearing the
-    whole integration down.
+    whole integration down, and raise a repair so the user learns local control
+    is inactive instead of silently paying for cloud calls.
     """
     entry = _entry_with_powerwall()
     entry.add_to_hass(hass)
@@ -2226,6 +2228,46 @@ async def test_local_control_failure_falls_back_to_cloud(
         record.levelname == "WARNING" and str(SITE_ID) in record.message
         for record in caplog.records
     )
+    # The failure is isolated to the site and surfaced as a repair.
+    issue = issue_registry.async_get_issue(
+        DOMAIN, f"local_control_unavailable_{entry.entry_id}_{SITE_ID}"
+    )
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+
+
+async def test_local_control_success_clears_repair(
+    hass: HomeAssistant,
+    issue_registry: ir.IssueRegistry,
+) -> None:
+    """A site whose local gateway resolves carries no local-control repair."""
+    entry = _entry_with_powerwall()
+    entry.add_to_hass(hass)
+
+    # Seed a stale repair as if a previous setup had failed, then set up cleanly.
+    issue_id = f"local_control_unavailable_{entry.entry_id}_{SITE_ID}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="local_control_unavailable",
+        translation_placeholders={"site": "Energy Site"},
+    )
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", []),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert isinstance(entry.runtime_data.energysites[0].api, EnergySiteRouter)
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
 
 
 async def test_get_rsa_key_pem_generates_and_caches(hass: HomeAssistant) -> None:

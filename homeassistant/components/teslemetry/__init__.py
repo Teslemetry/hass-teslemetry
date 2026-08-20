@@ -84,6 +84,7 @@ from .helpers import (
     async_update_device_sw_version,
     flatten,
     insufficient_credits_issue_id,
+    local_control_issue_id,
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
@@ -632,19 +633,25 @@ async def _async_resolve_local_control(
     entry: TeslemetryConfigEntry,
     battery: bool,
     site_id: int,
+    site_name: str,
     cloud_energy_site: EnergySite,
 ) -> tuple[bool, str | None, EnergySite | EnergySiteRouter]:
     """Resolve opt-in local control for an energy site."""
+    issue_id = local_control_issue_id(entry, site_id)
     # Only a battery/Powerwall (TEDAPI) gateway can pair for local control;
     # solar-only and wall-connector-only sites cannot.
     if not battery:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
         return False, None, cloud_energy_site
     subentry_id = _find_energy_subentry_id(entry, site_id)
     if subentry_id is None:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
         return True, None, cloud_energy_site
     # Local control is opt-in per site; a failure resolving one site's local
     # gateway (key I/O, key parsing, or client construction) must not tear down
-    # the whole integration, so fall back to cloud control for this site.
+    # the whole integration, so isolate it to this site: fall back to cloud
+    # control and raise a repair so the user knows local control is inactive and
+    # this site is still spending cloud command credits.
     try:
         api = await _async_resolve_energy_site_api(
             hass, entry, subentry_id, cloud_energy_site
@@ -656,7 +663,18 @@ async def _async_resolve_local_control(
             site_id,
             exc_info=True,
         )
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="local_control_unavailable",
+            translation_placeholders={"site": site_name},
+            learn_more_url=f"https://teslemetry.com/console/energy/{site_id}",
+        )
         return True, subentry_id, cloud_energy_site
+    ir.async_delete_issue(hass, DOMAIN, issue_id)
     return True, subentry_id, api
 
 
@@ -888,11 +906,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 }
 
             energy_site = teslemetry.energySites.create(site_id)
+            site_name = product.get("site_name", "Energy Site")
             device = DeviceInfo(
                 identifiers={(DOMAIN, str(site_id))},
                 manufacturer="Tesla",
                 configuration_url=f"https://teslemetry.com/console/energy/{site_id}",
-                name=product.get("site_name", "Energy Site"),
+                name=site_name,
                 serial_number=str(site_id),
             )
 
@@ -919,7 +938,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 subentry_id,
                 energy_site_api,
             ) = await _async_resolve_local_control(
-                hass, entry, bool(battery), site_id, energy_site
+                hass, entry, bool(battery), site_id, site_name, energy_site
             )
 
             energysites.append(

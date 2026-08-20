@@ -40,6 +40,19 @@ def insufficient_credits_issue_id(entry: TeslemetryConfigEntry) -> str:
     return f"{INSUFFICIENT_CREDITS_ISSUE}_{entry.entry_id}"
 
 
+LOCAL_CONTROL_UNAVAILABLE_ISSUE = "local_control_unavailable"
+
+
+def local_control_issue_id(entry: TeslemetryConfigEntry, site_id: int) -> str:
+    """Return the per-site local-control-unavailable issue id.
+
+    Scoped to the config entry and the energy site so one paired site failing to
+    reach its local gateway raises (and clears) a repair independent of any other
+    site or account.
+    """
+    return f"{LOCAL_CONTROL_UNAVAILABLE_ISSUE}_{entry.entry_id}_{site_id}"
+
+
 async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
     """Return a shared TeslaBluetooth parent with the private key loaded."""
     parent: TeslaBluetooth | None = hass.data.get(BLE_PARENT_KEY)

@@ -1344,6 +1344,10 @@
       },
       "title": "Pair the virtual key for {vehicle}"
     },
+    "local_control_unavailable": {
+      "description": "Local control could not be started for the energy site \"{site}\", so it has fallen back to controlling this site over the cloud.\n\nUntil local control is restored, commands to this site go through the Teslemetry cloud and consume command credits, and local-only features are unavailable. Check that the gateway is reachable on your network and that its stored password is still correct; you can update the credentials by reconfiguring the site's local energy subentry.\n\nThis issue will be removed automatically once local control is working again.",
+      "title": "Local control unavailable for {site}"
+    },
     "streaming_toggle": {
       "fix_flow": {
         "error": {
