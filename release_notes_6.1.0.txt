@@ -1,0 +1,19 @@
+> ⚠️ **6.1 is the features-preview line — no backwards-compatibility promise**
+>
+> 6.1 is a deliberately divergent "art of the possible" preview built on top of the 6.0.x line. It carries the full Bre77/core feature stack plus follow-up work, refined for **this branch** rather than for upstream mergeability. It is **not guaranteed to stay compatible** with the Home Assistant Core releases these features eventually land in — settings, migrations, and behaviour may differ from the final upstream form. Treat it as a preview, not a maintenance line, and expect to remove and re-add rather than upgrade in place if a later build changes shape.
+
+> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**
+>
+> This beta pins a newer `tesla-fleet-api` than the latest released Home Assistant Core version ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so this beta is incompatible with them whenever its pinned `tesla-fleet-api` is ahead of the version in the latest core release — which is almost always. Do not run this beta alongside the built-in Tessie or Tesla Fleet integrations.
+
+## What's in 6.1
+
+This preview builds on the 6.0.x feature stack (credits repair, OAuth dynamic client registration, Bluetooth vehicle control, local Powerwall control, FSD/regen sensors, energy live/site/tariff streaming, accessory-power buttons) and adds:
+
+- **Order-safe energy streaming + local control** — the energy-streaming helper builds its coordinators and the call site assembles the result and resolves local control separately, so the two no longer depend on each other's setup order.
+- **Per-site local-control isolation with a repair** — if a paired site's local gateway cannot be reached, that site alone falls back to cloud control and raises a repair telling you local control is inactive (and still spending cloud command credits), instead of failing silently.
+- **Local energy-site reconfigure, retry, and clearer errors** — edit a paired site's gateway credentials in place; an expired approval window offers an in-place retry; a gateway-unreachable (502) shows a distinct, retryable message instead of a generic connection error.
+- **Bluetooth robustness** — the on-unload disconnect is time-bounded so a wedged adapter cannot strand the entry in unload, and the signing key is generated off the event loop.
+- **One precise subentry-change reload** — adding, removing, or editing a vehicle or energy-site subentry reloads the entry exactly when it should, so a credential edit takes effect immediately.
+
+Builds older than v3.0.0 request vehicle data every 30 seconds; v3.0.0 lowered that to every 15 minutes, and v4.0.0 changed it to every 60 seconds (v4.0.1 added the gate). Current builds do not poll modern streaming vehicles at all, and fall back to 60-second polling only for vehicles that cannot use signed commands. Upgrading stops the excess polling.

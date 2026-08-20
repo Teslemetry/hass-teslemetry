@@ -2,6 +2,8 @@
 
 This repository is the **HACS beta release** of the Teslemetry integration for Home Assistant. The only code that matters is in `homeassistant/components/teslemetry/`. Everything else is upstream HA core scaffolding for testing.
 
+The normal maintenance line (6.0.x) is cut with `release.sh` as below. The **6.1 "art of the possible" features-preview line** is cut differently - based on the latest 6.0.x tag, skipping the sync/branch/apply-PR steps and reusing only the gates and publish steps; see **`RELEASE-6.1.md`** (repo root) for that process. 6.1 deliberately diverges from what upstream will merge and makes no backwards-compatibility promise.
+
 ## Task: build a release
 
 The whole release runs through one committed helper, **`release.sh`** (repo root). The user says **major**, **minor**, or **patch**; you invoke:
