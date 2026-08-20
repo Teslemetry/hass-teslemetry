@@ -124,6 +124,10 @@ STREAM_TOPICS: Final = (
     SseTopic.TARIFF_CONTENT_V2,
 )
 
+# Ceiling on the on-unload Bluetooth disconnect. A wedged adapter that never
+# returns must not strand the entry in unload; giving up beats never reloading.
+BLE_DISCONNECT_TIMEOUT: Final = 5
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
@@ -1150,7 +1154,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
         for vehicle in entry.runtime_data.vehicles:
             if isinstance(vehicle.api, VehicleRouter):
                 try:
-                    await vehicle.api.primary.disconnect()
+                    async with asyncio.timeout(BLE_DISCONNECT_TIMEOUT):
+                        await vehicle.api.primary.disconnect()
                 except (BleakError, TeslaFleetError, TimeoutError) as err:
                     LOGGER.debug(
                         "Error disconnecting Bluetooth for %s: %s", vehicle.vin, err

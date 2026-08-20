@@ -2,8 +2,12 @@
 
 import asyncio
 from collections.abc import Awaitable
+import os
 from typing import TYPE_CHECKING, Any
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from tesla_fleet_api.exceptions import InsufficientCredits, TeslaFleetError
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
 
@@ -53,6 +57,36 @@ def local_control_issue_id(entry: TeslemetryConfigEntry, site_id: int) -> str:
     return f"{LOCAL_CONTROL_UNAVAILABLE_ISSUE}_{entry.entry_id}_{site_id}"
 
 
+def _owner_only_opener(path: str, flags: int) -> int:
+    """Open a new key file exclusively, born at mode 0o600 with no chmod window."""
+    return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+
+
+def _generate_vehicle_key_if_missing(path: str) -> None:
+    """Create the BLE signing key off the event loop when the file is absent.
+
+    The library's get_private_key generates the EC key and serializes it to PEM
+    synchronously on the event loop the first time; pre-creating the file in the
+    executor keeps that CPU work off the loop, after which the library only loads
+    the key, which it already offloads. Interim until the library offloads its
+    own key generation.
+    """
+    if os.path.exists(path):
+        return
+    key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+    pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    try:
+        with open(path, "wb", opener=_owner_only_opener) as key_file:
+            key_file.write(pem)
+    except FileExistsError:
+        # Another writer won the create race; the library loads the winner's key.
+        return
+
+
 async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
     """Return a shared TeslaBluetooth parent with the private key loaded."""
     parent: TeslaBluetooth | None = hass.data.get(BLE_PARENT_KEY)
@@ -63,7 +97,9 @@ async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
         parent = hass.data.get(BLE_PARENT_KEY)
         if parent is None:
             parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
-            await parent.get_private_key(hass.config.path(VEHICLE_KEY_FILE))
+            path = hass.config.path(VEHICLE_KEY_FILE)
+            await hass.async_add_executor_job(_generate_vehicle_key_if_missing, path)
+            await parent.get_private_key(path)
             hass.data[BLE_PARENT_KEY] = parent
     return parent
 

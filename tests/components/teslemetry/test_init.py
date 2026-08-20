@@ -5,6 +5,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from copy import deepcopy
 import logging
+import os
+from pathlib import Path
 import time
 from types import MappingProxyType
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,7 +15,7 @@ from aiohttp import ClientResponseError
 from aiopowerwall import PowerwallError
 from bleak.exc import BleakError
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from freezegun.api import FrozenDateTimeFactory
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -50,6 +52,7 @@ from homeassistant.components.teslemetry.const import (
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
     TOKEN_URL,
+    VEHICLE_KEY_FILE,
 )
 
 # Coordinator constants
@@ -59,7 +62,10 @@ from homeassistant.components.teslemetry.coordinator import (
     METADATA_INTERVAL,
     VEHICLE_INTERVAL,
 )
-from homeassistant.components.teslemetry.helpers import async_get_ble_parent
+from homeassistant.components.teslemetry.helpers import (
+    _generate_vehicle_key_if_missing,
+    async_get_ble_parent,
+)
 from homeassistant.components.teslemetry.logship import CONF_SHIP_LOGS_TO_CLICKSTACK
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.components.teslemetry.oauth import TeslemetryImplementation
@@ -1930,6 +1936,87 @@ async def test_ble_parent_concurrent_first_init(hass: HomeAssistant) -> None:
     assert all(parent is parents[0] for parent in parents)
     mock_parent.assert_called_once()
     mock_parent.return_value.get_private_key.assert_awaited_once()
+
+
+def test_generate_vehicle_key_if_missing(tmp_path: Path) -> None:
+    """A fresh key is generated once; an existing key is left untouched."""
+    path = str(tmp_path / "tesla_vehicle.key")
+
+    _generate_vehicle_key_if_missing(path)
+    assert os.path.exists(path)
+    written = Path(path).read_bytes()
+    # A valid EC private key was written, born owner-only.
+    key = serialization.load_pem_private_key(written, password=None)
+    assert isinstance(key, ec.EllipticCurvePrivateKey)
+    assert oct(os.stat(path).st_mode & 0o777) == "0o600"
+
+    # Second call is a no-op: an existing key must never be regenerated.
+    _generate_vehicle_key_if_missing(path)
+    assert Path(path).read_bytes() == written
+
+
+async def test_ble_parent_generates_key_off_loop(hass: HomeAssistant) -> None:
+    """The key is pre-created in the executor before the library loads it.
+
+    The library generates the key synchronously; doing that in the executor keeps
+    the blocking work off the event loop.
+    """
+    with (
+        patch(
+            "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
+        ) as mock_parent,
+        patch(
+            "homeassistant.components.teslemetry.helpers._generate_vehicle_key_if_missing"
+        ) as mock_generate,
+    ):
+        mock_parent.return_value.get_private_key = AsyncMock()
+        await async_get_ble_parent(hass)
+
+    key_path = hass.config.path(VEHICLE_KEY_FILE)
+    mock_generate.assert_called_once_with(key_path)
+    mock_parent.return_value.get_private_key.assert_awaited_once_with(key_path)
+
+
+async def test_unload_bounds_hung_bluetooth_disconnect(hass: HomeAssistant) -> None:
+    """Unload completes even when the BLE disconnect never returns.
+
+    A wedged adapter must not strand the entry in unload, so the on-unload
+    disconnect is time-bounded and its timeout swallowed.
+    """
+    entry = _entry_with_ble()
+    entry.add_to_hass(hass)
+    bluetooth_vehicle = AsyncMock()
+    bluetooth_vehicle.set_device = MagicMock()
+
+    async def _never_returns() -> None:
+        await asyncio.Event().wait()
+
+    bluetooth_vehicle.disconnect = AsyncMock(side_effect=_never_returns)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.async_ble_device_from_address",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
+        ) as mock_parent,
+        patch("homeassistant.components.teslemetry.PLATFORMS", []),
+        patch("homeassistant.components.teslemetry.BLE_DISCONNECT_TIMEOUT", 0.01),
+    ):
+        mock_parent.return_value.get_private_key = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = (
+            bluetooth_vehicle
+        )
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert isinstance(entry.runtime_data.vehicles[0].api, VehicleRouter)
+
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.NOT_LOADED
+    bluetooth_vehicle.disconnect.assert_awaited_once()
 
 
 async def test_router_does_not_fail_over_on_unconfirmed() -> None:
