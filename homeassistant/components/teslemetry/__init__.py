@@ -872,17 +872,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 serial_number=str(site_id),
             )
 
+            (
+                live_coordinator,
+                info_coordinator,
+                history_coordinator,
+            ) = await _async_setup_energy_site(
+                hass,
+                entry,
+                stream,
+                energy_site,
+                product,
+                site_id,
+                powerwall,
+            )
+
+            # Local control is opt-in per site: a subentry only exists once the
+            # user pairs one through the "Add local energy site" flow. Resolving
+            # it here, at the call site, keeps the streaming helper independent of
+            # local-control setup order.
+            (
+                can_local_control,
+                subentry_id,
+                energy_site_api,
+            ) = await _async_resolve_local_control(
+                hass, entry, bool(battery), site_id, energy_site
+            )
+
             energysites.append(
-                await _async_setup_energy_site(
-                    hass,
-                    entry,
-                    stream,
-                    energy_site,
-                    product,
-                    site_id,
-                    battery,
-                    powerwall,
-                    device,
+                TeslemetryEnergyData(
+                    api=energy_site_api,
+                    live_coordinator=live_coordinator,
+                    info_coordinator=info_coordinator,
+                    history_coordinator=history_coordinator,
+                    id=site_id,
+                    device=device,
+                    can_local_control=can_local_control,
+                    subentry_id=subentry_id,
                 )
             )
 
@@ -997,10 +1022,12 @@ async def _async_setup_energy_site(
     energy_site: EnergySite,
     product: dict[str, Any],
     site_id: int,
-    battery: bool,
     powerwall: Any,
-    device: DeviceInfo,
-) -> TeslemetryEnergyData:
+) -> tuple[
+    TeslemetryEnergySiteLiveCoordinator | None,
+    TeslemetryEnergySiteInfoCoordinator,
+    TeslemetryEnergyHistoryCoordinator | None,
+]:
     """Cold-read live status, build the energy coordinators, and register listeners."""
     # The stream has no ready boundary, so keep a deterministic REST cold read
     # for setup auth/error handling before switching to listener-driven updates.
@@ -1056,31 +1083,13 @@ async def _async_setup_energy_site(
         )
     )
 
-    # Local control is opt-in: a subentry only exists once the user adds one for
-    # this site through the "Add local energy site" flow, and its presence is
-    # what enables Powerwall-first routing.
-    (
-        can_local_control,
-        subentry_id,
-        energy_site_api,
-    ) = await _async_resolve_local_control(
-        hass, entry, bool(battery), site_id, energy_site
+    history_coordinator = (
+        TeslemetryEnergyHistoryCoordinator(hass, entry, energy_site)
+        if powerwall
+        else None
     )
 
-    return TeslemetryEnergyData(
-        api=energy_site_api,
-        live_coordinator=live_coordinator,
-        info_coordinator=info_coordinator,
-        history_coordinator=(
-            TeslemetryEnergyHistoryCoordinator(hass, entry, energy_site)
-            if powerwall
-            else None
-        ),
-        id=site_id,
-        device=device,
-        can_local_control=can_local_control,
-        subentry_id=subentry_id,
-    )
+    return live_coordinator, info_coordinator, history_coordinator
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
