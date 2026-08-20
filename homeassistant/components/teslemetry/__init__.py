@@ -456,21 +456,45 @@ def _async_setup_option_reload(
     entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
+def _subentry_snapshot(
+    entry: TeslemetryConfigEntry,
+) -> dict[str, tuple[str, tuple[tuple[str, Any], ...]]]:
+    """Snapshot each subentry's type and data for change detection.
+
+    A vehicle subentry carries its Bluetooth address and an energy-site subentry
+    its local gateway credentials; both drive which backend a product routes
+    through, so a data edit (reconfigure) matters as much as an add or remove.
+    """
+    return {
+        subentry_id: (
+            subentry.subentry_type,
+            tuple(sorted(subentry.data.items())),
+        )
+        for subentry_id, subentry in entry.subentries.items()
+    }
+
+
 def _setup_subentry_change_reload(
     hass: HomeAssistant, entry: TeslemetryConfigEntry
 ) -> None:
-    """Reload the entry when a vehicle or energy-site subentry is added or removed."""
-    known = set(entry.subentries)
+    """Reload the entry when a vehicle or energy-site subentry changes.
+
+    Covers both BLE-paired vehicle subentries and local-control energy-site
+    subentries: adding, removing, or editing one must re-run setup so the product
+    starts, stops, or re-points its local backend. Entry-level updates that leave
+    every subentry untouched (a token refresh, an options change) never reload.
+    """
+    known = _subentry_snapshot(entry)
 
     async def _handle_update(
         hass: HomeAssistant, updated_entry: TeslemetryConfigEntry
     ) -> None:
         nonlocal known
-        current = set(updated_entry.subentries)
-        if known.symmetric_difference(current):
+        current = _subentry_snapshot(updated_entry)
+        if current != known:
             hass.config_entries.async_schedule_reload(updated_entry.entry_id)
-        # Track the latest set so further updates before the reload runs (e.g. a
-        # token refresh) do not re-schedule it off the same change.
+        # Track the latest snapshot so further updates before the reload runs
+        # (e.g. a token refresh) do not re-schedule it off the same change.
         known = current
 
     entry.async_on_unload(entry.add_update_listener(_handle_update))
@@ -950,8 +974,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Reload when a local-energy-site subentry is added or removed so the
-    # affected site starts (or stops) routing through its local gateway.
+    # Reload when a vehicle or energy-site subentry is added, removed, or edited
+    # so the affected product starts, stops, or re-points its local backend (BLE
+    # for a vehicle, the Powerwall gateway for an energy site).
     _setup_subentry_change_reload(hass, entry)
 
     _setup_dynamic_discovery(

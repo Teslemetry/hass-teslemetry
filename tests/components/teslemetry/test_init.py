@@ -2462,6 +2462,48 @@ async def test_update_listener_reloads_on_subentry_change(
     mock_reload.assert_called_once_with(entry.entry_id)
 
 
+async def test_update_listener_reloads_on_subentry_data_change(
+    hass: HomeAssistant,
+) -> None:
+    """Editing a local-energy-site subentry's credentials reloads the entry.
+
+    A reconfigure changes the subentry's host/password without changing the
+    subentry set, so the reload must key off the subentry data, not just its id.
+    """
+    entry = mock_config_entry()
+    entry.add_to_hass(hass)
+    with patch("homeassistant.components.teslemetry.PLATFORMS", []):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Add the subentry first so it is part of the tracked snapshot; the reload it
+    # triggers is not under test here.
+    with patch.object(hass.config_entries, "async_schedule_reload"):
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data=MappingProxyType(
+                    {CONF_SITE_ID: SITE_ID, CONF_HOST: HOST, CONF_PASSWORD: PASSWORD}
+                ),
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                title="Energy Site",
+                unique_id=str(SITE_ID),
+            ),
+        )
+        await hass.async_block_till_done()
+
+    subentry = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0]
+    with patch.object(hass.config_entries, "async_schedule_reload") as mock_reload:
+        hass.config_entries.async_update_subentry(
+            entry,
+            subentry,
+            data={CONF_SITE_ID: SITE_ID, CONF_HOST: "10.0.0.9", CONF_PASSWORD: PASSWORD},
+        )
+        await hass.async_block_till_done()
+
+    mock_reload.assert_called_once_with(entry.entry_id)
+
+
 def test_stream_topic_allowlist() -> None:
     """The stream subscribes to exactly the topics the integration consumes."""
     assert [topic.value for topic in STREAM_TOPICS] == [
