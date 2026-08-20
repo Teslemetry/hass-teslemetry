@@ -127,6 +127,15 @@ def mock_vehicle() -> Generator[AsyncMock]:
 
 
 @pytest.fixture(autouse=True)
+def mock_generate_vehicle_key() -> Generator[MagicMock]:
+    """Skip real BLE key generation so tests never write a key file to disk."""
+    with patch(
+        "homeassistant.components.teslemetry.helpers._generate_vehicle_key_if_missing"
+    ) as mock_generate:
+        yield mock_generate
+
+
+@pytest.fixture(autouse=True)
 def mock_request():
     """Mock Tesla Fleet API Vehicle Specific class."""
     with patch(
