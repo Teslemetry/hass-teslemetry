@@ -2285,7 +2285,7 @@ async def test_energy_subentry_reconfigure_updates_credentials(
             "homeassistant.components.teslemetry.config_flow.PowerwallClient",
             return_value=client,
         ),
-        patch.object(hass.config_entries, "async_schedule_reload"),
+        patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
     ):
         result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
         assert result["type"] is FlowResultType.FORM
@@ -2304,6 +2304,23 @@ async def test_energy_subentry_reconfigure_updates_credentials(
     assert len(subentries) == 1
     assert entry.subentries[subentry_id].data[CONF_HOST] == "10.0.0.9"
     assert entry.subentries[subentry_id].data[CONF_PASSWORD] == "abcde"
+    # The unified subentry-change listener alone reloads the entry once.
+    mock_reload.assert_called_once_with(entry.entry_id)
+
+
+@pytest.mark.usefixtures("mock_rsa_key")
+async def test_energy_subentry_reconfigure_site_not_resolved(
+    hass: HomeAssistant,
+) -> None:
+    """Reconfigure aborts when the subentry no longer maps to a resolved site."""
+    entry, subentry_id = await _setup_reconfigurable_energy_site(hass)
+    # Drop the resolved site so the subentry has nothing to reconfigure against.
+    entry.runtime_data.energysites.clear()
+
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "cannot_connect"
 
 
 @pytest.mark.usefixtures("mock_rsa_key")

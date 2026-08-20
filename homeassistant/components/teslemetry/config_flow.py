@@ -810,17 +810,14 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         reloads (via its update listener) so the site starts routing locally.
         """
         if self.source == SOURCE_RECONFIGURE:
-            entry = self._get_entry()
-            subentry = self._get_reconfigure_subentry()
-            if (
-                self._async_update(
-                    entry,
-                    subentry,
-                    data_updates={CONF_HOST: host, CONF_PASSWORD: password},
-                )
-                and not entry.update_listeners
-            ):
-                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            # The unified subentry-change listener reacts to a subentry's data
+            # changing, so persisting the new credentials is enough to reload the
+            # entry and re-point the site at its gateway.
+            self._async_update(
+                self._get_entry(),
+                self._get_reconfigure_subentry(),
+                data_updates={CONF_HOST: host, CONF_PASSWORD: password},
+            )
             return self.async_abort(reason="reconfigure_successful")
 
         return self.async_create_entry(

@@ -1955,6 +1955,20 @@ def test_generate_vehicle_key_if_missing(tmp_path: Path) -> None:
     assert Path(path).read_bytes() == written
 
 
+def test_generate_vehicle_key_handles_create_race(tmp_path: Path) -> None:
+    """A create race (FileExistsError) is swallowed; the winner's key is kept."""
+    path = str(tmp_path / "tesla_vehicle.key")
+    with patch(
+        "homeassistant.components.teslemetry.helpers.open",
+        side_effect=FileExistsError,
+        create=True,
+    ):
+        # Must not raise: the library loads the winning writer's key afterwards.
+        _generate_vehicle_key_if_missing(path)
+    # We wrote nothing ourselves.
+    assert not Path(path).exists()
+
+
 async def test_ble_parent_generates_key_off_loop(hass: HomeAssistant) -> None:
     """The key is pre-created in the executor before the library loads it.
 
