@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Mapping
+from http import HTTPStatus
 import logging
 from pathlib import Path
 from typing import Any, cast, override
@@ -29,6 +30,7 @@ from tesla_fleet_api.exceptions import (
     TeslemetryRegistrationError,
     WhitelistOperationAttemptingToAddExistingKey,
 )
+from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import Teslemetry
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, TeslemetryEnergySite
@@ -72,7 +74,18 @@ from .const import (
 )
 from .helpers import async_get_ble_parent
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK
+from .models import TeslemetryEnergyData
 from .oauth import async_ensure_client_credential
+
+
+class PowerwallUnreachableError(Exception):
+    """Signal that an energy gateway-relay command returned HTTP 502.
+
+    The Teslemetry API returns 502 Bad Gateway on gateway-relay commands when the
+    customer's Powerwall gateway is unreachable (for example it has dropped off
+    the network). This is a retryable upstream condition, distinct from an
+    ordinary API failure.
+    """
 
 
 class PowerwallLookupError(Exception):
@@ -84,6 +97,31 @@ class PowerwallKeyRejectedError(Exception):
 
 
 _PENDING_STATES = (AuthorizedClientState.PENDING_VERIFICATION,)
+
+
+def _cloud_energy_site(energy_data: TeslemetryEnergyData) -> TeslemetryEnergySite:
+    """Return the cloud energy-site API for pairing.
+
+    Pairing always talks to the Teslemetry cloud to register the key; when a site
+    is already paired its api is an EnergySiteRouter, so unwrap the cloud
+    secondary rather than the local Powerwall primary.
+    """
+    return cast(
+        TeslemetryEnergySite,
+        energy_data.api.secondary
+        if isinstance(energy_data.api, EnergySiteRouter)
+        else energy_data.api,
+    )
+
+
+def _is_gateway_unreachable(err: TeslaFleetError | ClientError) -> bool:
+    """Return whether err is a 502 Bad Gateway from an energy gateway command.
+
+    A bodyless 502 surfaces from tesla-fleet-api as a TeslaFleetError carrying
+    status; a 502 with a JSON body surfaces as aiohttp.ClientResponseError.
+    status is read with getattr since neither is guaranteed to carry one.
+    """
+    return getattr(err, "status", None) == HTTPStatus.BAD_GATEWAY
 
 
 class OAuth2FlowHandler(
@@ -520,10 +558,7 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
             energy_data = available[user_input[CONF_SITE_ID]]
             self._site_id = energy_data.id
             self._site_name = energy_data.device.get("name") or "Energy Site"
-            # Only unpaired sites are offered here, so their api is always the
-            # cloud EnergySite that exposes the pairing endpoints (a paired site
-            # would carry an EnergySiteRouter instead).
-            await self._prepare_energy_site(cast(TeslemetryEnergySite, energy_data.api))
+            await self._prepare_energy_site(_cloud_energy_site(energy_data))
             return await self._async_begin_pairing()
 
         return self.async_show_form(
@@ -539,6 +574,31 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
                 }
             ),
         )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Look up the site's cloud API and start (or resume) key pairing."""
+        subentry = self._get_reconfigure_subentry()
+        entry = cast(TeslemetryConfigEntry, self._get_entry())
+        # runtime_data (the resolved energy sites) only exists while the entry is
+        # loaded; core clears it on unload, so bail out cleanly if it is not.
+        if entry.state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="entry_not_loaded")
+        energy_data = next(
+            (
+                energysite
+                for energysite in entry.runtime_data.energysites
+                if energysite.subentry_id == subentry.subentry_id
+            ),
+            None,
+        )
+        if energy_data is None:
+            return self.async_abort(reason="cannot_connect")
+        self._site_id = energy_data.id
+        self._site_name = energy_data.device.get("name") or "Energy Site"
+        await self._prepare_energy_site(_cloud_energy_site(energy_data))
+        return await self._async_begin_pairing()
 
     async def _prepare_energy_site(self, energy_site: TeslemetryEnergySite) -> None:
         """Discover the gateway address and load the integration's RSA key."""
@@ -563,6 +623,8 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         """Resume or begin key pairing based on the key's state on the gateway."""
         try:
             client = await self._find_authorized_client()
+        except PowerwallUnreachableError:
+            return self.async_abort(reason="powerwall_unreachable")
         except PowerwallLookupError:
             return self.async_abort(reason="cannot_connect")
         if client is not None:
@@ -573,12 +635,24 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
                 return await self.async_step_credentials()
             if client.state in _PENDING_STATES:
                 return await self.async_step_pair()
+            if client.state == AuthorizedClientState.PENDING_VERIFICATION_TIMEOUT:
+                # The approval window expired; offer to request a new one
+                # in-place rather than sending the user back to setup.
+                return await self.async_step_retry()
             # The typed accessor preserves an unrecognized state verbatim. Such
             # a read is not usable, so treat it as a lookup failure rather than
             # resuming pairing on a state we cannot reason about.
             LOGGER.debug("Unrecognized authorized-client state: %s", client.state)
             return self.async_abort(reason="cannot_connect")
 
+        return await self._register_authorized_client()
+
+    async def _register_authorized_client(self) -> SubentryFlowResult:
+        """Push our key to the gateway to open an approval window, then wait.
+
+        Shared by the initial registration and the retry step; re-registering
+        requests a fresh approval window and resumes the verification wait.
+        """
         assert self._energy_site is not None
         try:
             # Not revoked on removal by design; see the class docstring.
@@ -590,10 +664,24 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
                 authorized_client_type=AuthorizedClientType.CUSTOMER_MOBILE_APP,
             )
         except (ClientError, TeslaFleetError) as err:
+            if _is_gateway_unreachable(err):
+                return self.async_abort(reason="powerwall_unreachable")
             LOGGER.error("Add authorized client failed: %s", err)
             return self.async_abort(reason="cannot_connect")
 
         return await self.async_step_pair()
+
+    async def async_step_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Offer to request a new approval window after the previous one expired.
+
+        On submit, re-registers the key to open a fresh approval window and
+        resumes the verification wait, exactly as the first attempt does.
+        """
+        if user_input is None:
+            return self.async_show_form(step_id="retry")
+        return await self._register_authorized_client()
 
     async def async_step_pair(
         self, user_input: dict[str, Any] | None = None
@@ -605,6 +693,10 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
 
         try:
             client = await self._find_authorized_client()
+        except PowerwallUnreachableError:
+            return self.async_show_form(
+                step_id="pair", errors={"base": "powerwall_unreachable"}
+            )
         except PowerwallLookupError:
             return self.async_show_form(
                 step_id="pair", errors={"base": "cannot_connect"}
@@ -618,6 +710,10 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
             return await self.async_step_credentials()
         if client.state == AuthorizedClientState.PENDING_VERIFICATION:
             return self.async_show_form(step_id="pair", errors={"base": "key_pending"})
+        if client.state == AuthorizedClientState.PENDING_VERIFICATION_TIMEOUT:
+            # The approval window expired; offer to request a new one in-place
+            # rather than re-submitting this form forever.
+            return await self.async_step_retry()
         # Only an explicit PENDING_VERIFICATION may claim the approval is still
         # awaiting the user; an unrecognized state is a failed read, and
         # reporting it as pending would trap the user in the form retrying forever.
@@ -630,9 +726,12 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         try:
             result = await self._energy_site.find_authorized_clients()
         except (ClientError, TeslaFleetError) as err:
-            # Gateway returned no usable client list; raise so the caller aborts
-            # rather than mistaking a failed lookup for an unregistered key and
-            # re-registering it (which would reset an already pending key).
+            # A 502 is a reachable-cloud/unreachable-gateway condition the user
+            # can retry; any other failure means no usable client list, so raise
+            # rather than mistaking it for an unregistered key and re-registering
+            # it (which would reset an already pending key).
+            if _is_gateway_unreachable(err):
+                raise PowerwallUnreachableError from err
             LOGGER.debug("find_authorized_clients failed: %s", err)
             raise PowerwallLookupError from err
         return next(
@@ -704,7 +803,26 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
 
     @callback
     def _async_save_credentials(self, host: str, password: str) -> SubentryFlowResult:
-        """Persist the verified gateway credentials to a new subentry."""
+        """Persist the verified gateway credentials to the subentry.
+
+        Creates a new subentry bound to the selected site during the add flow, or
+        updates the existing one during reconfigure. Either way the parent entry
+        reloads (via its update listener) so the site starts routing locally.
+        """
+        if self.source == SOURCE_RECONFIGURE:
+            entry = self._get_entry()
+            subentry = self._get_reconfigure_subentry()
+            if (
+                self._async_update(
+                    entry,
+                    subentry,
+                    data_updates={CONF_HOST: host, CONF_PASSWORD: password},
+                )
+                and not entry.update_listeners
+            ):
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
+
         return self.async_create_entry(
             title=self._site_name,
             data={

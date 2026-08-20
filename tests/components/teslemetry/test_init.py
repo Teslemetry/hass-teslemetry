@@ -2626,7 +2626,11 @@ async def test_update_listener_reloads_on_subentry_data_change(
         hass.config_entries.async_update_subentry(
             entry,
             subentry,
-            data={CONF_SITE_ID: SITE_ID, CONF_HOST: "10.0.0.9", CONF_PASSWORD: PASSWORD},
+            data={
+                CONF_SITE_ID: SITE_ID,
+                CONF_HOST: "10.0.0.9",
+                CONF_PASSWORD: PASSWORD,
+            },
         )
         await hass.async_block_till_done()
 
