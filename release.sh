@@ -2,7 +2,7 @@
 #
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
-# Usage:  ./release.sh <major|minor|patch> [--publish]
+# Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -85,14 +85,21 @@ assert_no_unmerged() {
 parse_args() {
   BUMP=""
   PUBLISH=0
-  for arg in "$@"; do
-    case "$arg" in
-      major|minor|patch) BUMP="$arg" ;;
+  LINE=""   # optional <major.minor> series selector; empty = derive from tags
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      major|minor|patch) BUMP="$1" ;;
       --publish)         PUBLISH=1 ;;
-      *) die "unknown argument: $arg (usage: ./release.sh <major|minor|patch> [--publish])" ;;
+      --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
+      --line=*)          LINE="${1#--line=}" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish])" ;;
     esac
+    shift
   done
   [ -n "$BUMP" ] || die "specify one of: major | minor | patch"
+  if [ -n "$LINE" ]; then
+    [[ "$LINE" =~ ^[0-9]+\.[0-9]+$ ]] || die "--line must be <major.minor> (e.g. 6.0), got: $LINE"
+  fi
 }
 
 preflight() {
@@ -117,6 +124,39 @@ preflight() {
   info "branch=$branch publish=$PUBLISH"
 }
 
+# Memory-independent guard for the no-line path. With --line omitted we bump off
+# the overall newest tag, which is safe only while the newest line is
+# unambiguous. It stops being unambiguous the moment a newer line opens above a
+# still-tagged one: a v6.1.0-beta preview while v6.0.x is still maintained makes
+# sort -V pick the 6.1 tag, so a bare `patch` meant for 6.0.x silently computes
+# 6.1.x. This derives the ambiguity purely from the tag list - no memory, no
+# clock - and dies demanding --line in exactly that shape. A cross-major stable
+# transition with a still-live lower major is undecidable from tags alone and is
+# not covered; see AGENTS.md ("How the release line is selected").
+require_unambiguous_line() {
+  local tip tip_ver tip_major minor_count
+  tip=$(git tag -l 'v*' | sort -V | tail -1)
+  [ -n "$tip" ] || return 0   # no tags at all: the absent-tag die handles it
+  tip_ver=${tip#v}
+  tip_major=${tip_ver%%.*}
+
+  # (a) A pre-release tip means a preview line is open above the stable line, so
+  # which line to cut is genuinely ambiguous.
+  case "$tip_ver" in
+    *-*) die "newest tag $tip is a pre-release - a preview line is open. Pass --line <major.minor> to name the line you are cutting (e.g. --line ${tip_major}.0 to keep maintaining the stable line)." ;;
+  esac
+
+  # (b) More than one minor line under the current major means the newest line is
+  # ambiguous within the major you are almost certainly working in.
+  minor_count=$(git tag -l 'v*' \
+    | sed -n 's/^v\([0-9][0-9]*\)\.\([0-9][0-9]*\)\..*/\1 \2/p' \
+    | awk -v M="$tip_major" '$1==M {print $2}' \
+    | sort -u | wc -l | tr -d '[:space:]')
+  if [ "$minor_count" -gt 1 ]; then
+    die "more than one ${tip_major}.x minor line exists in tags - the newest line is ambiguous. Pass --line <major.minor> to name the line you are cutting (e.g. --line ${tip_major}.0)."
+  fi
+}
+
 # Step 1: determine and bump the version off the latest release tag.
 # Tags, not the GitHub release list, are the durable record of which version
 # numbers have been used: a release object can be deleted while its tag is kept,
@@ -130,9 +170,25 @@ determine_version() {
   log "Step 1: determine version"
   local last major minor patch
   git fetch --tags origin || die "could not fetch tags from origin - refusing to compute a version off a stale local tag list"
-  last=$(git tag -l 'v*' | sort -V | tail -1)
-  [ -n "$last" ] || die "could not read latest release tag from git (no 'v*' tags found)"
-  info "latest release tag: $last"
+
+  if [ -n "$LINE" ]; then
+    # Explicit line: bump off the highest tag in exactly this major.minor series,
+    # so a 6.1 preview tag can never pull a 6.0.x maintenance cut onto the 6.1
+    # line. `|| true` lets the empty-series die below fire instead of set -e.
+    local lmaj lmin
+    IFS='.' read -r lmaj lmin <<<"$LINE"
+    last=$(git tag -l 'v*' | grep -E "^v${lmaj}\.${lmin}\." | sort -V | tail -1 || true)
+    [ -n "$last" ] || die "no 'v${LINE}.*' release tags found - cannot bump the $LINE line off an empty series"
+    info "line $LINE selected; latest tag in series: $last"
+  else
+    # No line given: keep the historical behaviour (bump off the overall latest
+    # tag) - but only after asserting the newest line is unambiguous, so a
+    # forgotten --line cannot silently hijack a maintenance line.
+    require_unambiguous_line
+    last=$(git tag -l 'v*' | sort -V | tail -1)
+    [ -n "$last" ] || die "could not read latest release tag from git (no 'v*' tags found)"
+    info "latest release tag: $last"
+  fi
 
   IFS='.' read -r major minor patch <<<"${last#v}"
   [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]] \
