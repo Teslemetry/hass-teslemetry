@@ -82,7 +82,7 @@
                         "host": "Host",
                         "password": "Password"
                     },
-                    "description": "Enter your Powerwall system's local network address and its Wi-Fi password. Only the last 5 characters of the password are needed - find them on the QR label behind the front cover of your Powerwall 3, or behind the Backup Gateway door on Powerwall 2.",
+                    "description": "Enter your Powerwall system's local network address and its Wi-Fi password. If the address was found automatically it is filled in below; otherwise it could not be discovered, so enter your Powerwall's local IP address manually - or {ap_address} if you are connected directly to the Powerwall's setup Wi-Fi. Only the last 5 characters of the password are needed - find them on the QR label behind the front cover of your Powerwall 3, or behind the Backup Gateway door on Powerwall 2.",
                     "title": "Connect to your Powerwall system"
                 },
                 "pair": {

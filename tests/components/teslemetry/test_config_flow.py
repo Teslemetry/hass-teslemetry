@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Generator
 from copy import deepcopy
+import logging
 import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
@@ -1537,12 +1538,17 @@ async def _setup_account_no_subentry(hass: HomeAssistant) -> MockConfigEntry:
     return entry
 
 
-def _credentials_host_default(result: SubentryFlowResult) -> str:
-    """Return the CONF_HOST field's schema default from a credentials form result."""
+def _credentials_host_marker(result: SubentryFlowResult) -> Any:
+    """Return the CONF_HOST marker from a credentials form result's schema."""
     for key in result["data_schema"].schema:
         if key == CONF_HOST:
-            return key.default()
+            return key
     raise AssertionError("CONF_HOST field not found in credentials schema")
+
+
+def _credentials_host_default(result: SubentryFlowResult) -> str:
+    """Return the CONF_HOST field's schema default from a credentials form result."""
+    return _credentials_host_marker(result).default()
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
@@ -1911,11 +1917,12 @@ async def test_add_flow_aborts_when_entry_not_loaded(hass: HomeAssistant) -> Non
 
 @pytest.mark.usefixtures("mock_rsa_key")
 async def test_gateway_discovery_failure_proceeds_without_host(
-    hass: HomeAssistant,
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """A failed gateway-address discovery leaves the host default unset."""
+    """A failed gateway-address discovery leaves the host blank and warns."""
     entry = await _setup_account_no_subentry(hass)
 
+    caplog.set_level(logging.WARNING)
     with (
         patch(
             "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_gateway_address",
@@ -1932,7 +1939,34 @@ async def test_gateway_discovery_failure_proceeds_without_host(
 
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "credentials"
-    assert _credentials_host_default(result) == DEFAULT_GATEWAY_HOST
+    # The host is left blank rather than pre-filled with the setup-AP default,
+    # so a failed discovery is never presented as a discovered address. The
+    # default is offered only as guidance text via the placeholder.
+    assert not callable(_credentials_host_marker(result).default)
+    assert result["description_placeholders"]["ap_address"] == DEFAULT_GATEWAY_HOST
+    assert "discovery failed" in caplog.text
+
+
+@pytest.mark.usefixtures("mock_rsa_key")
+async def test_gateway_discovery_empty_leaves_host_blank(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Discovery returning no address leaves the host blank and warns."""
+    entry = await _setup_account_no_subentry(hass)
+
+    caplog.set_level(logging.WARNING)
+    with patch(
+        "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
+        new=AsyncMock(return_value=_own_key_clients(AuthorizedClientState.VERIFIED)),
+    ):
+        # The autouse mock_gateway_discovery fixture returns no address.
+        result = await _start_add_flow_select_site(hass, entry)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "credentials"
+    assert not callable(_credentials_host_marker(result).default)
+    assert result["description_placeholders"]["ap_address"] == DEFAULT_GATEWAY_HOST
+    assert "returned no address" in caplog.text
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
