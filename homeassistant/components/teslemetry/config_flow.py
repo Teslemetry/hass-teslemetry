@@ -547,8 +547,15 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         try:
             self._discovered_host = await energy_site.find_gateway_address() or ""
         except (ClientError, TeslaFleetError) as err:
-            LOGGER.debug("Gateway address discovery failed: %s", err)
+            LOGGER.warning(
+                "Gateway address discovery failed, prompting for manual entry: %s", err
+            )
             self._discovered_host = ""
+        else:
+            if not self._discovered_host:
+                LOGGER.warning(
+                    "Gateway address discovery returned no address, prompting for manual entry"
+                )
 
         path = self.hass.config.path(POWERWALL_KEY_FILE)
         keyholder = Teslemetry(
@@ -688,17 +695,24 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
             else:
                 return self._async_save_credentials(host, password)
 
+        # Only pre-fill the host when discovery actually found it. A failed
+        # discovery leaves the field blank so the setup-AP default is never
+        # presented as if it were the discovered address.
+        host_key = (
+            vol.Required(CONF_HOST, default=self._discovered_host)
+            if self._discovered_host
+            else vol.Required(CONF_HOST)
+        )
+
         return self.async_show_form(
             step_id="credentials",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_HOST,
-                        default=self._discovered_host or DEFAULT_GATEWAY_HOST,
-                    ): str,
+                    host_key: str,
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
+            description_placeholders={"ap_address": DEFAULT_GATEWAY_HOST},
             errors=errors,
         )
 
