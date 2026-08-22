@@ -2,6 +2,7 @@
 
 import asyncio
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
@@ -19,6 +20,9 @@ from .coordinator import (
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
+
+if TYPE_CHECKING:
+    from .ble import TeslemetryBLEDataManager
 
 
 @dataclass
@@ -45,6 +49,7 @@ class TeslemetryVehicleData:
     vin: str
     firmware: str
     device: DeviceInfo
+    ble: TeslemetryBLEDataManager | None = None
     wakelock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 

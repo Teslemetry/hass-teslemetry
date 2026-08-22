@@ -2,9 +2,16 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import cast, override
+from typing import Any, cast, override
 
 from tesla_fleet_api import firmware_at_least
+
+# pylint: disable-next=no-name-in-module
+from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
+    ClosureState_E,
+    UserPresence_E,
+    VehicleSleepStatus_E,
+)
 from teslemetry_stream.vehicle import TeslemetryStreamVehicle
 
 from homeassistant.components.binary_sensor import (
@@ -19,6 +26,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 
 from . import TeslemetryConfigEntry
+from .ble import BroadcastRegister, TeslemetryVehicleBluetoothEntity
 from .const import TeslemetryState
 from .entity import (
     TeslemetryEnergyInfoEntity,
@@ -37,6 +45,37 @@ WINDOW_STATES = {
 }
 
 
+def _closure_is_open(value: int) -> bool | None:
+    """Map a VCSEC closure enum onto an open/closed binary state.
+
+    UNKNOWN and FAILED_UNLATCH carry no usable state, so they are unavailable.
+    """
+    if value in (
+        ClosureState_E.CLOSURESTATE_UNKNOWN,
+        ClosureState_E.CLOSURESTATE_FAILED_UNLATCH,
+    ):
+        return None
+    return value != ClosureState_E.CLOSURESTATE_CLOSED
+
+
+def _sleep_is_online(value: int) -> bool | None:
+    """Map the VCSEC sleep enum onto connectivity; unknown is unavailable."""
+    if value == VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE:
+        return True
+    if value == VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_ASLEEP:
+        return False
+    return None
+
+
+def _user_is_present(value: int) -> bool | None:
+    """Map the VCSEC user-presence enum; unknown is unavailable."""
+    if value == UserPresence_E.VEHICLE_USER_PRESENCE_PRESENT:
+        return True
+    if value == UserPresence_E.VEHICLE_USER_PRESENCE_NOT_PRESENT:
+        return False
+    return None
+
+
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Teslemetry binary sensor entity."""
@@ -51,6 +90,8 @@ class TeslemetryBinarySensorEntityDescription(BinarySensorEntityDescription):
         | None
     ) = None
     streaming_firmware: str = "2024.26"
+    bluetooth_listener: BroadcastRegister | None = None
+    bluetooth_value_fn: Callable[[Any], bool | None] | None = None
 
 
 VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
@@ -59,6 +100,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         polling=True,
         polling_value_fn=lambda value: value == TeslemetryState.ONLINE,
         streaming_listener=lambda vehicle, callback: vehicle.listen_State(callback),
+        bluetooth_listener=lambda ble, callback: ble.listen_vehicle_sleep_status(
+            callback
+        ),
+        bluetooth_value_fn=_sleep_is_online,
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -160,6 +205,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
     TeslemetryBinarySensorEntityDescription(
         key="vehicle_state_is_user_present",
         polling=True,
+        bluetooth_listener=lambda ble, callback: ble.listen_user_presence(callback),
+        bluetooth_value_fn=_user_is_present,
         device_class=BinarySensorDeviceClass.PRESENCE,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -237,6 +284,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_listener=lambda vehicle, callback: vehicle.listen_FrontDriverDoor(
             callback
         ),
+        bluetooth_listener=lambda ble, callback: ble.listen_front_driver_door(callback),
+        bluetooth_value_fn=_closure_is_open,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -246,6 +295,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_listener=lambda vehicle, callback: vehicle.listen_RearDriverDoor(
             callback
         ),
+        bluetooth_listener=lambda ble, callback: ble.listen_rear_driver_door(callback),
+        bluetooth_value_fn=_closure_is_open,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -255,6 +306,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_listener=lambda vehicle, callback: vehicle.listen_FrontPassengerDoor(
             callback
         ),
+        bluetooth_listener=lambda ble, callback: ble.listen_front_passenger_door(
+            callback
+        ),
+        bluetooth_value_fn=_closure_is_open,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -264,6 +319,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryBinarySensorEntityDescription, ...] = (
         streaming_listener=lambda vehicle, callback: vehicle.listen_RearPassengerDoor(
             callback
         ),
+        bluetooth_listener=lambda ble, callback: ble.listen_rear_passenger_door(
+            callback
+        ),
+        bluetooth_value_fn=_closure_is_open,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     TeslemetryBinarySensorEntityDescription(
@@ -565,7 +624,13 @@ async def async_setup_entry(
     entities: list[BinarySensorEntity] = []
     for vehicle in entry.runtime_data.vehicles:
         for description in VEHICLE_DESCRIPTIONS:
-            if (
+            # A paired vehicle sources its broadcast-backed sensors locally and
+            # never falls back to the stream or cloud for them.
+            if vehicle.ble is not None and description.bluetooth_listener is not None:
+                entities.append(
+                    TeslemetryVehicleBluetoothBinarySensorEntity(vehicle, description)
+                )
+            elif (
                 not vehicle.poll
                 and description.streaming_listener
                 and firmware_at_least(vehicle.firmware, description.streaming_firmware)
@@ -656,6 +721,44 @@ class TeslemetryVehicleStreamingBinarySensorEntity(
         self._attr_available = value is not None
         self._attr_is_on = value
         self.async_write_ha_state()
+
+
+class TeslemetryVehicleBluetoothBinarySensorEntity(
+    TeslemetryVehicleBluetoothEntity, BinarySensorEntity
+):
+    """Base class for Teslemetry vehicle binary sensors sourced from BLE broadcasts."""
+
+    entity_description: TeslemetryBinarySensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetryBinarySensorEntityDescription,
+    ) -> None:
+        """Initialize the binary sensor."""
+        self.entity_description = description
+        super().__init__(data, description.key)
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Register the broadcast listener for this sensor."""
+        await super().async_added_to_hass()
+        assert self.entity_description.bluetooth_listener is not None
+        assert self.entity_description.bluetooth_value_fn is not None
+        value_fn = self.entity_description.bluetooth_value_fn
+        self.async_on_remove(
+            self.manager.async_on_broadcast(
+                self.entity_description.bluetooth_listener,
+                value_fn,
+                self._handle_broadcast,
+            )
+        )
+
+    @property
+    @override
+    def is_on(self) -> bool | None:
+        """Return the last broadcast state; None while unavailable."""
+        return cast("bool | None", self._value)
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(

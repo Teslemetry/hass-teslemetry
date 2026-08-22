@@ -60,6 +60,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
+from .ble import TeslemetryBLEDataManager
 from .const import (
     CLIENT_ID,
     CONF_VIN,
@@ -522,7 +523,20 @@ async def _async_resolve_vehicle_api(
     vin: str,
     cloud_vehicle: Vehicle,
 ) -> Vehicle | VehicleRouter:
-    """Return the API a vehicle's platforms should call."""
+    """Return the API a vehicle's platforms should call.
+
+    An unpaired vehicle (its subentry carries no BLE ``address``) uses the cloud
+    Vehicle. A paired vehicle always gets a VehicleRouter, whether or not it is
+    in range right now: the router's health check re-reads Home Assistant's
+    Bluetooth discovery cache on every command, so a vehicle that drives away
+    and comes back resumes local routing on its own. A vehicle out of range is
+    skipped by the health check, sending the command straight to cloud without
+    attempting Bluetooth.
+
+    The router's ``primary`` is the direct BLE client local data readers take
+    unsolicited broadcasts from, without going through the router, for which
+    cloud fallback is forbidden on BLE-sourced state.
+    """
     address = _ble_address_for_vin(entry, vin)
     if not address:
         return cloud_vehicle
@@ -866,6 +880,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 vehicle,
             )
 
+            # A paired vehicle's router exposes the direct BLE client as its
+            # primary; local data reads take broadcasts from it, never the router.
+            ble: TeslemetryBLEDataManager | None = None
+            if isinstance(vehicle_api, VehicleRouter):
+                ble = TeslemetryBLEDataManager(hass, vehicle_api.primary, vin)
+                ble.async_start()
+                entry.async_on_unload(ble.async_stop)
+
             vehicles.append(
                 TeslemetryVehicleData(
                     api=vehicle_api,
@@ -877,6 +899,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     vin=vin,
                     firmware=firmware or "Unknown",
                     device=device,
+                    ble=ble,
                 )
             )
 
