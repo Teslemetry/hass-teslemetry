@@ -17,8 +17,10 @@ from homeassistant.components.teslemetry.const import CONF_VIN, SUBENTRY_TYPE_VE
 from homeassistant.config_entries import ConfigSubentryData
 from homeassistant.const import (
     CONF_ADDRESS,
+    STATE_CLOSED,
     STATE_OFF,
     STATE_ON,
+    STATE_OPEN,
     STATE_UNAVAILABLE,
     Platform,
 )
@@ -54,9 +56,11 @@ def _entry_with_ble() -> MockConfigEntry:
 
 
 async def _setup_ble(
-    hass: HomeAssistant, connected: bool = True
+    hass: HomeAssistant,
+    connected: bool = True,
+    platforms: tuple[Platform, ...] = (Platform.BINARY_SENSOR,),
 ) -> tuple[MockConfigEntry, MagicMock]:
-    """Set up the binary sensor platform for a BLE-paired vehicle.
+    """Set up the given platforms for a BLE-paired vehicle.
 
     Returns the entry and the BLE client mock. The client's ``listen_*`` methods
     record the manager's broadcast callbacks so tests can feed them raw values;
@@ -77,9 +81,7 @@ async def _setup_ble(
         patch(
             "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
         ) as mock_parent,
-        patch(
-            "homeassistant.components.teslemetry.PLATFORMS", [Platform.BINARY_SENSOR]
-        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", list(platforms)),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
         mock_parent.return_value.vehicles.createBluetooth.return_value = (
@@ -301,3 +303,87 @@ async def test_no_info_requests(hass: HomeAssistant) -> None:
     bluetooth.vehicle_data.assert_not_called()
     bluetooth.closures_state.assert_not_called()
     bluetooth.climate_state.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("listener", "entity_key"),
+    [
+        ("listen_charge_port", "charge_state_charge_port_door_open"),
+        ("listen_front_trunk", "vehicle_state_ft"),
+        ("listen_rear_trunk", "vehicle_state_rt"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (ClosureState_E.CLOSURESTATE_CLOSED, STATE_CLOSED),
+        (ClosureState_E.CLOSURESTATE_OPEN, STATE_OPEN),
+        (ClosureState_E.CLOSURESTATE_AJAR, STATE_OPEN),
+        (ClosureState_E.CLOSURESTATE_OPENING, STATE_OPEN),
+        (ClosureState_E.CLOSURESTATE_CLOSING, STATE_OPEN),
+        (ClosureState_E.CLOSURESTATE_UNKNOWN, STATE_UNAVAILABLE),
+        (ClosureState_E.CLOSURESTATE_FAILED_UNLATCH, STATE_UNAVAILABLE),
+    ],
+)
+async def test_cover_closure_conversion(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    listener: str,
+    entity_key: str,
+    raw: int,
+    expected: str,
+) -> None:
+    """Each broadcast cover maps its closure enum; unknown is unavailable."""
+    _entry, bluetooth = await _setup_ble(hass, platforms=(Platform.COVER,))
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-{entity_key}"
+    )
+    assert cover_id is not None
+
+    _emit(getattr(bluetooth, listener), raw)
+    await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == expected
+
+
+async def test_cover_link_loss_marks_unavailable(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """A broadcast cover goes unavailable on link loss with no cloud fallback."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_ft"
+    )
+
+    _emit(bluetooth.listen_front_trunk, ClosureState_E.CLOSURESTATE_CLOSED)
+    await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == STATE_CLOSED
+
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
+
+
+async def test_cover_command_routes_through_api(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """A broadcast cover still sends its command through the command router."""
+    entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-charge_state_charge_port_door_open"
+    )
+
+    _emit(bluetooth.listen_charge_port, ClosureState_E.CLOSURESTATE_CLOSED)
+    await hass.async_block_till_done()
+
+    router = entry.runtime_data.vehicles[0].api
+    router.charge_port_door_open = AsyncMock(
+        return_value={"response": {"result": True, "reason": ""}}
+    )
+    await hass.services.async_call(
+        "cover", "open_cover", {"entity_id": cover_id}, blocking=True
+    )
+    router.charge_port_door_open.assert_awaited_once()
