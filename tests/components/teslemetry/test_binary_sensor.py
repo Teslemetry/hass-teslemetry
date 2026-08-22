@@ -1,21 +1,32 @@
 """Test the Teslemetry binary sensor platform."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from freezegun.api import FrozenDateTimeFactory
 import pytest
 from syrupy.assertion import SnapshotAssertion
+from tesla_fleet_api.exceptions import TeslaFleetError
 from teslemetry_stream import Signal
 
-from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
-from homeassistant.const import Platform
+from homeassistant.components.teslemetry.const import (
+    CONF_SITE_ID,
+    SUBENTRY_TYPE_ENERGY_SITE,
+)
+from homeassistant.components.teslemetry.coordinator import (
+    ENERGY_LIVE_INTERVAL,
+    VEHICLE_INTERVAL,
+)
+from homeassistant.config_entries import ConfigSubentryData
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, STATE_UNAVAILABLE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from . import assert_entities, assert_entities_alt, setup_platform
+from . import assert_entities, assert_entities_alt, mock_config_entry, setup_platform
 from .const import VEHICLE_DATA_ALT
 
-from tests.common import async_fire_time_changed
+from tests.common import MockConfigEntry, async_fire_time_changed
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -142,3 +153,130 @@ async def test_binary_sensors_connectivity(
     # Assert the entities have correct state with concrete assertions
     assert hass.states.get("binary_sensor.test_cellular").state == "on"
     assert hass.states.get("binary_sensor.test_wi_fi").state == "off"
+
+
+SITE_ID = 123456
+HOST = "192.168.91.1"
+PASSWORD = "abcde"
+
+# aiopowerwall's PowerwallClient parses the PEM at construction, so a paired
+# site needs a real (if undersized, for speed) RSA key rather than fake bytes.
+_TEST_RSA_KEY_PEM = rsa.generate_private_key(
+    public_exponent=65537, key_size=1024
+).private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.TraditionalOpenSSL,
+    encryption_algorithm=serialization.NoEncryption(),
+)
+
+# Local gateway live_status: grid_status differs from the cloud fixture
+# ("Active") so a reroute is observable, and the cloud-only booleans come back
+# None as the local adapter actually returns them.
+LOCAL_LIVE_STATUS = {
+    "response": {
+        "solar_power": 2000,
+        "energy_left": 20000,
+        "total_pack_energy": 40000,
+        "percentage_charged": 80.0,
+        "backup_capable": None,
+        "battery_power": 3000,
+        "load_power": 4000,
+        "grid_status": "Inactive",
+        "grid_services_active": None,
+        "grid_power": 1000,
+        "grid_services_power": None,
+        "generator_power": 500,
+        "island_status": "off_grid",
+        "storm_mode_active": None,
+        "timestamp": None,
+        "wall_connectors": None,
+    }
+}
+
+
+def _paired_entry() -> MockConfigEntry:
+    """Return a config entry whose energy site is paired for local control."""
+    entry = mock_config_entry()
+    return MockConfigEntry(
+        domain=entry.domain,
+        version=entry.version,
+        minor_version=entry.minor_version,
+        unique_id=entry.unique_id,
+        data=dict(entry.data),
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                unique_id=str(SITE_ID),
+                title="Energy Site",
+                data={
+                    CONF_SITE_ID: SITE_ID,
+                    CONF_HOST: HOST,
+                    CONF_PASSWORD: PASSWORD,
+                },
+            )
+        ],
+    )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_paired_site_grid_status_reads_local(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    mock_live_status: AsyncMock,
+) -> None:
+    """A paired site reroutes only grid status to the local gateway.
+
+    grid status follows the local snapshot while the other live binary sensors
+    (backup capable, grid services active, storm watch active) stay on cloud.
+    """
+    entry = _paired_entry()
+    entry.add_to_hass(hass)
+
+    local_live = AsyncMock(return_value=LOCAL_LIVE_STATUS)
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch(
+            "aiopowerwall.energysite.PowerwallEnergySite.live_status",
+            new=local_live,
+        ),
+        patch(
+            "homeassistant.components.teslemetry.PLATFORMS",
+            [Platform.BINARY_SENSOR],
+        ),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        freezer.tick(ENERGY_LIVE_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+        # Cloud grid_status is "Active" (on); the local snapshot is "Inactive".
+        assert hass.states.get("binary_sensor.energy_site_grid_status").state == "off"
+        # Cloud-only live binary sensors keep their cloud values.
+        assert hass.states.get("binary_sensor.energy_site_backup_capable").state == "on"
+        assert (
+            hass.states.get("binary_sensor.energy_site_grid_services_active").state
+            == "off"
+        )
+
+        # A cloud outage leaves the rerouted grid status available while the
+        # cloud-only binary sensors go unavailable with the cloud coordinator.
+        # The cloud coordinator is stream-driven, so fail its retained REST
+        # recovery refresh; the local coordinator keeps polling the LAN gateway.
+        mock_live_status.side_effect = TeslaFleetError
+        cloud_coordinator = entry.runtime_data.energysites[0].live_coordinator
+        assert cloud_coordinator is not None
+        await cloud_coordinator.async_refresh()
+        freezer.tick(ENERGY_LIVE_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    assert hass.states.get("binary_sensor.energy_site_grid_status").state == "off"
+    assert (
+        hass.states.get("binary_sensor.energy_site_backup_capable").state
+        == STATE_UNAVAILABLE
+    )
