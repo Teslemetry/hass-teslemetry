@@ -4,6 +4,8 @@ from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from freezegun.api import FrozenDateTimeFactory
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -16,14 +18,25 @@ from homeassistant.components.select import (
     DOMAIN as SELECT_DOMAIN,
     SERVICE_SELECT_OPTION,
 )
+from homeassistant.components.teslemetry.const import (
+    CONF_SITE_ID,
+    SUBENTRY_TYPE_ENERGY_SITE,
+)
 from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.components.teslemetry.select import HIGH, LEVEL, LOW, MEDIUM, OFF
-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform
+from homeassistant.config_entries import ConfigSubentryData
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    CONF_HOST,
+    CONF_PASSWORD,
+    STATE_UNKNOWN,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from . import assert_entities, reload_platform, setup_platform
+from . import assert_entities, mock_config_entry, reload_platform, setup_platform
 from .const import (
     COMMAND_ERRORS,
     COMMAND_OK,
@@ -33,7 +46,7 @@ from .const import (
     VEHICLE_DATA_ALT,
 )
 
-from tests.common import async_fire_time_changed
+from tests.common import MockConfigEntry, async_fire_time_changed
 
 # Entity description keys for the rear seat-heater entities gated by config.
 REAR_LEFT = "climate_state_seat_heater_rear_left"
@@ -558,3 +571,76 @@ async def test_export_rule_update_attrs_logic(
     state = hass.states.get("select.energy_site_allow_export")
     assert state
     assert state.state == expected_state
+
+
+SITE_ID = 123456
+HOST = "192.168.91.1"
+PASSWORD = "abcde"
+
+# aiopowerwall's PowerwallClient parses the PEM at construction, so a paired
+# site needs a real (if undersized, for speed) RSA key rather than fake bytes.
+_TEST_RSA_KEY_PEM = rsa.generate_private_key(
+    public_exponent=65537, key_size=1024
+).private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.TraditionalOpenSSL,
+    encryption_algorithm=serialization.NoEncryption(),
+)
+
+
+def _paired_entry() -> MockConfigEntry:
+    """Return a config entry whose energy site is paired for local control."""
+    entry = mock_config_entry()
+    return MockConfigEntry(
+        domain=entry.domain,
+        version=entry.version,
+        minor_version=entry.minor_version,
+        unique_id=entry.unique_id,
+        data=dict(entry.data),
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                unique_id=str(SITE_ID),
+                title="Energy Site",
+                data={
+                    CONF_SITE_ID: SITE_ID,
+                    CONF_HOST: HOST,
+                    CONF_PASSWORD: PASSWORD,
+                },
+            )
+        ],
+    )
+
+
+async def test_paired_site_operation_mode_reads_local(
+    hass: HomeAssistant,
+    mock_powerwall_config: AsyncMock,
+) -> None:
+    """A paired site reads the operation mode back from local config.json.
+
+    The cloud site_info mode is "self_consumption"; the operation select
+    instead reflects the local top-level default_real_mode, while the
+    export-rule select stays on cloud.
+    """
+    entry = _paired_entry()
+    entry.add_to_hass(hass)
+    mock_powerwall_config.return_value = {
+        "default_real_mode": EnergyOperationMode.AUTONOMOUS
+    }
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", [Platform.SELECT]),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert (
+        hass.states.get("select.energy_site_operation_mode").state
+        == EnergyOperationMode.AUTONOMOUS
+    )
+    # The export rule select is not rerouted and keeps its cloud value.
+    assert hass.states.get("select.energy_site_allow_export").state == "pv_only"

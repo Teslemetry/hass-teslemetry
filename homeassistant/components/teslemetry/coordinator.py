@@ -96,6 +96,7 @@ LOCAL_LIVE_COORDINATOR_KEYS: frozenset[str] = frozenset(
 LOCAL_CONFIG_COORDINATOR_KEYS: frozenset[str] = frozenset(
     {
         "backup_reserve_percent",
+        "default_real_mode",
     }
 )
 
@@ -114,6 +115,9 @@ def _local_config_snapshot(config: dict[str, Any]) -> dict[str, Any]:
             # config.json stores the raw reserve (5% is an inaccessible buffer);
             # scale it to the user-facing percentage the cloud site_info reports.
             snapshot["backup_reserve_percent"] = raw_to_scaled_reserve(raw_reserve)
+    mode = config.get("default_real_mode")
+    if isinstance(mode, str):
+        snapshot["default_real_mode"] = mode
     return snapshot
 
 
