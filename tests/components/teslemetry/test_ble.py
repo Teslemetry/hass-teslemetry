@@ -10,9 +10,11 @@ import pytest
 from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
     ClosureState_E,
     UserPresence_E,
+    VehicleLockState_E,
     VehicleSleepStatus_E,
 )
 
+from homeassistant.components.lock import LockState
 from homeassistant.components.teslemetry.const import CONF_VIN, SUBENTRY_TYPE_VEHICLE
 from homeassistant.config_entries import ConfigSubentryData
 from homeassistant.const import (
@@ -387,3 +389,53 @@ async def test_cover_command_routes_through_api(
         "cover", "open_cover", {"entity_id": cover_id}, blocking=True
     )
     router.charge_port_door_open.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (VehicleLockState_E.VEHICLELOCKSTATE_LOCKED, LockState.LOCKED),
+        (VehicleLockState_E.VEHICLELOCKSTATE_INTERNAL_LOCKED, LockState.LOCKED),
+        (VehicleLockState_E.VEHICLELOCKSTATE_UNLOCKED, LockState.UNLOCKED),
+        (VehicleLockState_E.VEHICLELOCKSTATE_SELECTIVE_UNLOCKED, LockState.UNLOCKED),
+        (99, STATE_UNAVAILABLE),
+    ],
+)
+async def test_lock_state_conversion(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    raw: int,
+    expected: str,
+) -> None:
+    """The vehicle lock maps its VCSEC enum; an unrecognized value is unavailable."""
+    _entry, bluetooth = await _setup_ble(hass, platforms=(Platform.LOCK,))
+    lock_id = entity_registry.async_get_entity_id(
+        "lock", "teslemetry", f"{VIN}-vehicle_state_locked"
+    )
+    assert lock_id is not None
+
+    _emit(bluetooth.listen_vehicle_lock_state, raw)
+    await hass.async_block_till_done()
+    assert hass.states.get(lock_id).state == expected
+
+
+async def test_lock_link_loss_marks_unavailable(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """The broadcast vehicle lock goes unavailable on link loss, no cloud fallback."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.LOCK,)
+    )
+    lock_id = entity_registry.async_get_entity_id(
+        "lock", "teslemetry", f"{VIN}-vehicle_state_locked"
+    )
+
+    _emit(
+        bluetooth.listen_vehicle_lock_state, VehicleLockState_E.VEHICLELOCKSTATE_LOCKED
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(lock_id).state == LockState.LOCKED
+
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+    assert hass.states.get(lock_id).state == STATE_UNAVAILABLE
