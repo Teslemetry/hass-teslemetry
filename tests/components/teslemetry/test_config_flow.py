@@ -2381,7 +2381,9 @@ def test_cloud_energy_site_unwraps_router() -> None:
     routed = TeslemetryEnergyData(
         api=router,
         live_coordinator=None,
+        live_local_coordinator=None,
         info_coordinator=MagicMock(),
+        config_local_coordinator=None,
         history_coordinator=None,
         id=SITE_ID,
         device=MagicMock(),
@@ -2391,7 +2393,9 @@ def test_cloud_energy_site_unwraps_router() -> None:
     plain = TeslemetryEnergyData(
         api=cloud,
         live_coordinator=None,
+        live_local_coordinator=None,
         info_coordinator=MagicMock(),
+        config_local_coordinator=None,
         history_coordinator=None,
         id=SITE_ID,
         device=MagicMock(),
