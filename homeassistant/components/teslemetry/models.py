@@ -17,6 +17,7 @@ from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
+    TeslemetryEnergySiteLiveLocalCoordinator,
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
@@ -59,6 +60,9 @@ class TeslemetryEnergyData:
 
     api: EnergySite | EnergySiteRouter
     live_coordinator: TeslemetryEnergySiteLiveCoordinator | None
+    # Local-first live coordinator, present only for a paired Powerwall site;
+    # None keeps the site's live entities on the cloud coordinator.
+    live_local_coordinator: TeslemetryEnergySiteLiveLocalCoordinator | None
     info_coordinator: TeslemetryEnergySiteInfoCoordinator
     history_coordinator: TeslemetryEnergyHistoryCoordinator | None
     id: int

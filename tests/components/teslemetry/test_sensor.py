@@ -1,17 +1,29 @@
 """Test the Teslemetry sensor platform."""
 
 from copy import deepcopy
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from freezegun.api import FrozenDateTimeFactory
 import pytest
 from syrupy.assertion import SnapshotAssertion
+from tesla_fleet_api.exceptions import TeslaFleetError
 from teslemetry_stream import Signal
 
-from homeassistant.components.teslemetry.const import DOMAIN
-from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.components.teslemetry.const import (
+    CONF_SITE_ID,
+    DOMAIN,
+    SUBENTRY_TYPE_ENERGY_SITE,
+)
+from homeassistant.components.teslemetry.coordinator import (
+    ENERGY_LIVE_INTERVAL,
+    VEHICLE_INTERVAL,
+)
+from homeassistant.config_entries import ConfigEntryState, ConfigSubentryData
 from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     EntityCategory,
@@ -22,7 +34,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util.unit_conversion import PressureConverter
 
-from . import assert_entities, assert_entities_alt, setup_platform
+from . import assert_entities, assert_entities_alt, mock_config_entry, setup_platform
 from .const import (
     ENERGY_HISTORY_EMPTY,
     LIVE_STATUS,
@@ -31,7 +43,7 @@ from .const import (
     VEHICLE_DATA_ALT,
 )
 
-from tests.common import async_fire_time_changed
+from tests.common import MockConfigEntry, async_fire_time_changed
 
 # VIN used across the Teslemetry test fixtures.
 VEHICLE_VIN = "LRW3F7EK4NC700000"
@@ -483,3 +495,174 @@ async def test_energy_history_no_time_series(
 
     state = hass.states.get(entity_id)
     assert state.state == STATE_UNAVAILABLE
+
+
+SITE_ID = 123456
+HOST = "192.168.91.1"
+PASSWORD = "abcde"
+
+# aiopowerwall's PowerwallClient parses the PEM at construction, so a paired
+# site needs a real (if undersized, for speed) RSA key rather than fake bytes.
+_TEST_RSA_KEY_PEM = rsa.generate_private_key(
+    public_exponent=65537, key_size=1024
+).private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.TraditionalOpenSSL,
+    encryption_algorithm=serialization.NoEncryption(),
+)
+
+# A local gateway live_status snapshot: distinct values for the nine locally
+# supported keys, and None for every cloud-only key (as the local adapter
+# actually returns) so a local success can be shown not to clobber them.
+LOCAL_LIVE_STATUS = {
+    "response": {
+        "solar_power": 2000,
+        "energy_left": 20000,
+        "total_pack_energy": 40000,
+        "percentage_charged": 80.0,
+        "backup_capable": None,
+        "battery_power": 3000,
+        "load_power": 4000,
+        "grid_status": "Active",
+        "grid_services_active": None,
+        "grid_power": 1000,
+        "grid_services_power": None,
+        "generator_power": 500,
+        "island_status": "off_grid",
+        "storm_mode_active": None,
+        "timestamp": None,
+        "wall_connectors": None,
+    }
+}
+
+# entity_id -> local state string once the local snapshot has been applied.
+_LOCAL_SENSOR_STATES = {
+    "sensor.energy_site_solar_power": "2.0",
+    "sensor.energy_site_energy_left": "20.0",
+    "sensor.energy_site_total_pack_energy": "40.0",
+    "sensor.energy_site_percentage_charged": "80.0",
+    "sensor.energy_site_battery_power": "3.0",
+    "sensor.energy_site_load_power": "4.0",
+    "sensor.energy_site_grid_power": "1.0",
+    "sensor.energy_site_generator_power": "0.5",
+    "sensor.energy_site_island_status": "off_grid",
+}
+
+
+def _paired_entry() -> MockConfigEntry:
+    """Return a config entry whose energy site is paired for local control."""
+    entry = mock_config_entry()
+    return MockConfigEntry(
+        domain=entry.domain,
+        version=entry.version,
+        minor_version=entry.minor_version,
+        unique_id=entry.unique_id,
+        data=dict(entry.data),
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                unique_id=str(SITE_ID),
+                title="Energy Site",
+                data={
+                    CONF_SITE_ID: SITE_ID,
+                    CONF_HOST: HOST,
+                    CONF_PASSWORD: PASSWORD,
+                },
+            )
+        ],
+    )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_paired_site_live_sensors_read_local(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A paired site serves the nine live sensors from the local gateway.
+
+    One local snapshot feeds all nine entities (no per-entity gateway request),
+    and a local success must not clobber the cloud-only live fields with None.
+    """
+    entry = _paired_entry()
+    entry.add_to_hass(hass)
+
+    local_live = AsyncMock(return_value=LOCAL_LIVE_STATUS)
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch(
+            "aiopowerwall.energysite.PowerwallEnergySite.live_status",
+            new=local_live,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", [Platform.SENSOR]),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # One shared snapshot per refresh: a single interval tick makes exactly
+        # one local gateway call regardless of how many entities read it.
+        local_live.reset_mock()
+        freezer.tick(ENERGY_LIVE_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    assert local_live.await_count == 1
+
+    for entity_id, expected in _LOCAL_SENSOR_STATES.items():
+        assert hass.states.get(entity_id).state == expected
+
+    # grid_services_power is cloud-only; the local success returned None for it,
+    # but its entity reads the separate cloud coordinator and keeps that value.
+    assert hass.states.get("sensor.energy_site_grid_services_power").state == "0.0"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_paired_site_cloud_outage_keeps_local_sensors(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    mock_live_status: AsyncMock,
+) -> None:
+    """A cloud outage leaves the nine local sensors available.
+
+    The separate cloud coordinator fails and marks the cloud-only live entities
+    unavailable, while the local coordinator keeps the nine local ones alive.
+    """
+    entry = _paired_entry()
+    entry.add_to_hass(hass)
+
+    local_live = AsyncMock(return_value=LOCAL_LIVE_STATUS)
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch(
+            "aiopowerwall.energysite.PowerwallEnergySite.live_status",
+            new=local_live,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", [Platform.SENSOR]),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # The cloud live coordinator is stream-driven, so simulate a cloud
+        # outage by failing its retained REST recovery refresh; the local
+        # coordinator keeps polling the LAN gateway on its own interval.
+        mock_live_status.side_effect = TeslaFleetError
+        cloud_coordinator = entry.runtime_data.energysites[0].live_coordinator
+        assert cloud_coordinator is not None
+        await cloud_coordinator.async_refresh()
+        freezer.tick(ENERGY_LIVE_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    for entity_id, expected in _LOCAL_SENSOR_STATES.items():
+        assert hass.states.get(entity_id).state == expected
+
+    # Cloud-only live entity goes unavailable with the cloud coordinator.
+    assert (
+        hass.states.get("sensor.energy_site_grid_services_power").state
+        == STATE_UNAVAILABLE
+    )
