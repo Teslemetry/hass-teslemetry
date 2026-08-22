@@ -18,7 +18,7 @@ from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
 )
 
 # pylint: disable-next=no-name-in-module
-from tesla_fleet_api.tesla.vehicle.proto.vehicle_pb2 import ClosuresState
+from tesla_fleet_api.tesla.vehicle.proto.vehicle_pb2 import ClimateState, ClosuresState
 from teslemetry_stream import Signal
 
 from homeassistant.components.lock import LockState
@@ -38,7 +38,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from . import mock_config_entry, setup_platform
-from .const import PRODUCTS
+from .const import METADATA, PRODUCTS
 
 from tests.common import MockConfigEntry, async_fire_time_changed
 
@@ -71,6 +71,7 @@ async def _setup_ble(
     connected: bool = True,
     platforms: tuple[Platform, ...] = (Platform.BINARY_SENSOR,),
     sunroof: bool = False,
+    third_row: bool = False,
 ) -> tuple[MockConfigEntry, MagicMock]:
     """Set up the given platforms for a BLE-paired vehicle.
 
@@ -79,7 +80,7 @@ async def _setup_ble(
     ``listen_connection_status`` records the manager's connection callback. When
     ``connected`` the link is brought up via that callback, as the library does
     once a session is established. ``sunroof`` reports the vehicle's metadata as
-    sunroof-installed.
+    sunroof-installed; ``third_row`` reports it as a heated-third-row Model X.
     """
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
@@ -91,6 +92,12 @@ async def _setup_ble(
     if sunroof:
         products["response"][0]["vehicle_config"]["sun_roof_installed"] = True
 
+    metadata = deepcopy(METADATA)
+    if third_row:
+        config = metadata["vehicles"][VIN]["config"]
+        config["rear_seat_heaters"] = 3
+        config["third_row_seats"] = "FoldFlatWithLatch"
+
     with (
         patch(
             "homeassistant.components.teslemetry.async_ble_device_from_address",
@@ -101,6 +108,7 @@ async def _setup_ble(
         ) as mock_parent,
         patch("homeassistant.components.teslemetry.PLATFORMS", list(platforms)),
         patch("tesla_fleet_api.teslemetry.Teslemetry.products", return_value=products),
+        patch("tesla_fleet_api.teslemetry.Teslemetry.metadata", return_value=metadata),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
         mock_parent.return_value.vehicles.createBluetooth.return_value = (
@@ -598,3 +606,117 @@ async def test_sunroof_absent_makes_no_reads(
     await hass.async_block_till_done()
 
     bluetooth.closures_state.assert_not_called()
+
+
+def _climate(left: int = 0, right: int = 0, climate_on: bool = True) -> ClimateState:
+    """Build a BLE climate snapshot with third-row heater levels."""
+    return ClimateState(
+        seat_heater_third_row_left=left,
+        seat_heater_third_row_right=right,
+        is_climate_on=climate_on,
+    )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_third_row_reads_over_climate(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """A heated-third-row Model X reads its levels over one climate snapshot."""
+    _entry, bluetooth = await _setup_ble(
+        hass,
+        connected=True,
+        platforms=(Platform.COVER, Platform.SELECT),
+        third_row=True,
+    )
+    left_id = entity_registry.async_get_entity_id(
+        "select", "teslemetry", f"{VIN}-climate_state_seat_heater_third_row_left"
+    )
+    assert left_id is not None
+    assert hass.states.get(left_id).state == STATE_UNAVAILABLE
+
+    bluetooth.climate_state = AsyncMock(return_value=_climate(left=2))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+
+    bluetooth.climate_state.assert_awaited_once()
+    bluetooth.vehicle_data.assert_not_called()
+    assert hass.states.get(left_id).state == "medium"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_third_row_and_sunroof_read_sequentially(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """Two configured endpoints each read once, never as an aggregate call."""
+    _entry, bluetooth = await _setup_ble(
+        hass,
+        connected=True,
+        platforms=(Platform.COVER, Platform.SELECT),
+        sunroof=True,
+        third_row=True,
+    )
+    left_id = entity_registry.async_get_entity_id(
+        "select", "teslemetry", f"{VIN}-climate_state_seat_heater_third_row_left"
+    )
+    sunroof_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_sun_roof_state"
+    )
+
+    bluetooth.climate_state = AsyncMock(return_value=_climate(left=3))
+    bluetooth.closures_state = AsyncMock(return_value=_closures("Closed"))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+
+    bluetooth.climate_state.assert_awaited_once()
+    bluetooth.closures_state.assert_awaited_once()
+    bluetooth.vehicle_data.assert_not_called()
+    assert hass.states.get(left_id).state == "high"
+    assert hass.states.get(sunroof_id).state == STATE_CLOSED
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_third_row_absent_no_entity(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """A vehicle without a heated third row has no third-row select entity."""
+    await _setup_ble(hass, platforms=(Platform.SELECT,), third_row=False)
+    assert (
+        entity_registry.async_get_entity_id(
+            "select", "teslemetry", f"{VIN}-climate_state_seat_heater_third_row_left"
+        )
+        is None
+    )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_third_row_link_loss_marks_unavailable(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """The third-row select goes unavailable on link loss, no cloud fallback."""
+    _entry, bluetooth = await _setup_ble(
+        hass,
+        connected=True,
+        platforms=(Platform.COVER, Platform.SELECT),
+        third_row=True,
+    )
+    left_id = entity_registry.async_get_entity_id(
+        "select", "teslemetry", f"{VIN}-climate_state_seat_heater_third_row_left"
+    )
+
+    bluetooth.climate_state = AsyncMock(return_value=_climate(left=1))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+    assert hass.states.get(left_id).state == "low"
+
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+    assert hass.states.get(left_id).state == STATE_UNAVAILABLE

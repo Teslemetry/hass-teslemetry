@@ -12,11 +12,12 @@ from tesla_fleet_api.teslemetry import Vehicle
 from teslemetry_stream import TeslemetryStreamVehicle
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import TeslemetryConfigEntry
+from .ble import TeslemetryVehicleBluetoothEntity
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryRootEntity,
@@ -49,6 +50,7 @@ class TeslemetrySelectEntityDescription(SelectEntityDescription):
         ]
         | None
     ) = None
+    bluetooth_field: str | None = None
     options: list[str]
 
 
@@ -138,6 +140,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySelectEntityDescription, ...] = (
             data.get("rear_seat_heaters") == 3
             and data.get("third_row_seats", "None") != "None"
         ),
+        bluetooth_field="seat_heater_third_row_left",
         entity_registry_enabled_default=False,
         options=[
             OFF,
@@ -158,6 +161,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySelectEntityDescription, ...] = (
             data.get("rear_seat_heaters") == 3
             and data.get("third_row_seats", "None") != "None"
         ),
+        bluetooth_field="seat_heater_third_row_right",
         entity_registry_enabled_default=False,
         options=[
             OFF,
@@ -218,7 +222,11 @@ async def async_setup_entry(
     async_add_entities(
         chain(
             (
-                TeslemetryVehiclePollingSelectEntity(
+                TeslemetryBluetoothSelectEntity(
+                    vehicle, description, entry.runtime_data.scopes
+                )
+                if vehicle.ble is not None and description.bluetooth_field is not None
+                else TeslemetryVehiclePollingSelectEntity(
                     vehicle, description, entry.runtime_data.scopes
                 )
                 if vehicle.poll
@@ -359,6 +367,50 @@ class TeslemetryStreamingSelectEntity(
     def _climate_callback(self, value: bool | None) -> None:
         """Update the value of the entity."""
         self._climate = bool(value)
+
+
+class TeslemetryBluetoothSelectEntity(
+    TeslemetryVehicleBluetoothEntity, TeslemetrySelectEntity
+):
+    """Vehicle seat select entity read over a parked climate INFO snapshot."""
+
+    _attr_current_option: str | None = None
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        description: TeslemetrySelectEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the vehicle seat select entity."""
+        self.entity_description = description
+        super().__init__(data, description.key)
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Register the parked climate INFO endpoint for the seat heater."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.manager.async_on_endpoint(
+                "climate",
+                lambda ble: ble.climate_state(),
+                self._handle_endpoint,
+            )
+        )
+
+    @callback
+    def _handle_endpoint(self, value: Any, generation: int) -> None:
+        """Render the seat heater level from a climate snapshot."""
+        self._value = value
+        self._generation = generation
+        if value is not None:
+            self._climate = value.is_climate_on
+            assert self.entity_description.bluetooth_field is not None
+            level = getattr(value, self.entity_description.bluetooth_field)
+            options = self.entity_description.options
+            self._attr_current_option = options[max(0, min(level, len(options) - 1))]
+        self.async_write_ha_state()
 
 
 class TeslemetryOperationSelectEntity(TeslemetryEnergyInfoEntity, SelectEntity):
