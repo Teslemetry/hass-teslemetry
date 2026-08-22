@@ -15,6 +15,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
+    TeslemetryEnergySiteConfigLocalCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryEnergySiteLiveLocalCoordinator,
@@ -64,6 +65,9 @@ class TeslemetryEnergyData:
     # None keeps the site's live entities on the cloud coordinator.
     live_local_coordinator: TeslemetryEnergySiteLiveLocalCoordinator | None
     info_coordinator: TeslemetryEnergySiteInfoCoordinator
+    # Local config.json coordinator, present only for a paired Powerwall site;
+    # None keeps the site's config-backed entities on the cloud info coordinator.
+    config_local_coordinator: TeslemetryEnergySiteConfigLocalCoordinator | None
     history_coordinator: TeslemetryEnergyHistoryCoordinator | None
     id: int
     device: DeviceInfo

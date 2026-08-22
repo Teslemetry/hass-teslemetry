@@ -3,6 +3,7 @@
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, override
 
+from aiopowerwall import PowerwallClient, PowerwallError, raw_to_scaled_reserve
 from tesla_fleet_api.const import TeslaEnergyPeriod, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
     GatewayTimeout,
@@ -46,9 +47,11 @@ def _get_retry_after(e: TeslaFleetError) -> float:
 
 VEHICLE_INTERVAL = timedelta(seconds=60)
 VEHICLE_WAIT = timedelta(minutes=15)
-# The cloud live coordinator is stream-driven, but a LAN Powerwall gateway has
-# no stream, so the local live coordinator polls it on this interval.
+# The cloud live and info coordinators are stream-driven, but a LAN Powerwall
+# gateway has no stream, so the local live and config coordinators poll it on
+# these intervals.
 ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
+ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 ENERGY_HISTORY_INTERVAL = timedelta(seconds=60)
 METADATA_INTERVAL = timedelta(hours=1)
 
@@ -86,6 +89,32 @@ LOCAL_LIVE_COORDINATOR_KEYS: frozenset[str] = frozenset(
         "grid_status",
     }
 )
+
+# info/config keys a local Powerwall can serve from its config.json. Entities
+# for these keys read the local config coordinator on a paired site; every
+# other info key stays on the cloud info coordinator.
+LOCAL_CONFIG_COORDINATOR_KEYS: frozenset[str] = frozenset(
+    {
+        "backup_reserve_percent",
+    }
+)
+
+
+def _local_config_snapshot(config: dict[str, Any]) -> dict[str, Any]:
+    """Map a local ``config.json`` payload onto cloud-shaped info keys.
+
+    Only the keys a local gateway can faithfully serve are emitted; anything
+    missing is left out so the entity reads unavailable rather than a guess.
+    """
+    snapshot: dict[str, Any] = {}
+    site_info = config.get("site_info")
+    if isinstance(site_info, dict):
+        raw_reserve = site_info.get("backup_reserve_percent")
+        if isinstance(raw_reserve, (int, float)):
+            # config.json stores the raw reserve (5% is an inaccessible buffer);
+            # scale it to the user-facing percentage the cloud site_info reports.
+            snapshot["backup_reserve_percent"] = raw_to_scaled_reserve(raw_reserve)
+    return snapshot
 
 
 class TeslemetryMetadataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -375,6 +404,47 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             ) from e
 
         return self._ingest_site_info(data)
+
+
+class TeslemetryEnergySiteConfigLocalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Local config coordinator for a paired Powerwall energy site.
+
+    Reads the gateway's ``config.json`` over the local network so the site's
+    config-backed entities read back from the LAN gateway. One shared snapshot
+    serves every such entity; the write path stays on the local-first router.
+    """
+
+    config_entry: TeslemetryConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: TeslemetryConfigEntry,
+        client: PowerwallClient,
+    ) -> None:
+        """Initialize Teslemetry Energy Site Local Config coordinator."""
+        super().__init__(
+            hass,
+            LOGGER,
+            config_entry=config_entry,
+            name="Teslemetry Energy Site Local Config",
+            update_interval=ENERGY_INFO_INTERVAL,
+        )
+        self.client = client
+        self.data = {}
+
+    @override
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Read the local gateway config.json."""
+        try:
+            config = await self.client.get_config()
+        except PowerwallError as e:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="update_failed",
+                translation_placeholders={"message": str(e)},
+            ) from e
+        return _local_config_snapshot(config)
 
 
 class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):

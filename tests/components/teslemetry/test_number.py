@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, patch
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 import pytest
 from syrupy.assertion import SnapshotAssertion
 from tesla_fleet_api.exceptions import InvalidCommand
@@ -12,13 +14,20 @@ from homeassistant.components.number import (
     DOMAIN as NUMBER_DOMAIN,
     SERVICE_SET_VALUE,
 )
-from homeassistant.const import ATTR_ENTITY_ID, Platform
+from homeassistant.components.teslemetry.const import (
+    CONF_SITE_ID,
+    SUBENTRY_TYPE_ENERGY_SITE,
+)
+from homeassistant.config_entries import ConfigSubentryData
+from homeassistant.const import ATTR_ENTITY_ID, CONF_HOST, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from . import assert_entities, reload_platform, setup_platform
+from . import assert_entities, mock_config_entry, reload_platform, setup_platform
 from .const import COMMAND_ERRORS, COMMAND_OK, VEHICLE_DATA_ALT
+
+from tests.common import MockConfigEntry
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -178,3 +187,81 @@ async def test_number_streaming(
     # Assert the entities restored their values with concrete assertions
     assert hass.states.get("number.test_charge_current").state == "24"
     assert hass.states.get("number.test_charge_limit").state == "99"
+
+
+SITE_ID = 123456
+HOST = "192.168.91.1"
+PASSWORD = "abcde"
+
+# aiopowerwall's PowerwallClient parses the PEM at construction, so a paired
+# site needs a real (if undersized, for speed) RSA key rather than fake bytes.
+_TEST_RSA_KEY_PEM = rsa.generate_private_key(
+    public_exponent=65537, key_size=1024
+).private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.TraditionalOpenSSL,
+    encryption_algorithm=serialization.NoEncryption(),
+)
+
+
+def _paired_entry() -> MockConfigEntry:
+    """Return a config entry whose energy site is paired for local control."""
+    entry = mock_config_entry()
+    return MockConfigEntry(
+        domain=entry.domain,
+        version=entry.version,
+        minor_version=entry.minor_version,
+        unique_id=entry.unique_id,
+        data=dict(entry.data),
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                unique_id=str(SITE_ID),
+                title="Energy Site",
+                data={
+                    CONF_SITE_ID: SITE_ID,
+                    CONF_HOST: HOST,
+                    CONF_PASSWORD: PASSWORD,
+                },
+            )
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    ("raw_reserve", "expected"),
+    [
+        # config.json stores the raw reserve; raw_to_scaled_reserve is
+        # (raw - 5) / 0.95, so raw 24 -> 20.0 and raw 100 -> 100.0.
+        pytest.param(24, "20.0", id="mid"),
+        pytest.param(100, "100.0", id="full"),
+    ],
+)
+async def test_paired_site_backup_reserve_reads_local(
+    hass: HomeAssistant,
+    mock_powerwall_config: AsyncMock,
+    raw_reserve: int,
+    expected: str,
+) -> None:
+    """A paired site reads the backup reserve back from local config.json.
+
+    The cloud site_info reserve is 0; the number instead reflects the local
+    raw value scaled to the user-facing percentage.
+    """
+    entry = _paired_entry()
+    entry.add_to_hass(hass)
+    mock_powerwall_config.return_value = {
+        "site_info": {"backup_reserve_percent": raw_reserve}
+    }
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", [Platform.NUMBER]),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert hass.states.get("number.energy_site_backup_reserve").state == expected
