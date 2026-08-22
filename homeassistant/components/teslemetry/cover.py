@@ -110,9 +110,16 @@ async def async_setup_entry(
                 for vehicle in entry.runtime_data.vehicles
             ),
             (
+                TeslemetryBluetoothSunroofEntity(vehicle, entry.runtime_data.scopes)
+                for vehicle in entry.runtime_data.vehicles
+                if vehicle.ble is not None
+                and vehicle.coordinator.data.get("vehicle_config_sun_roof_installed")
+            ),
+            (
                 TeslemetrySunroofEntity(vehicle, entry.runtime_data.scopes)
                 for vehicle in entry.runtime_data.vehicles
-                if vehicle.poll
+                if vehicle.ble is None
+                and vehicle.poll
                 and vehicle.coordinator.data.get("vehicle_config_sun_roof_installed")
             ),
             (
@@ -125,6 +132,16 @@ async def async_setup_entry(
             ),
         )
     )
+
+
+def _sunroof_is_closed(closures: Any) -> bool | None:
+    """Map a BLE closures snapshot's sunroof oneof onto a closed state."""
+    if not closures.HasField("sun_roof_state"):
+        return None
+    which = closures.sun_roof_state.WhichOneof("type")
+    if which in (None, "Unknown", "Calibrating"):
+        return None
+    return bool(which == "Closed")
 
 
 class CoverRestoreEntity(RestoreEntity, CoverEntity):
@@ -759,3 +776,76 @@ class TeslemetryBluetoothRearTrunkEntity(
                 self._handle_broadcast,
             )
         )
+
+
+class TeslemetryBluetoothSunroofEntity(TeslemetryVehicleBluetoothEntity, CoverEntity):
+    """Bluetooth cover entity for the sunroof, read over a parked INFO snapshot."""
+
+    _attr_device_class = CoverDeviceClass.WINDOW
+    _attr_supported_features = (
+        CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+    )
+    _attr_entity_registry_enabled_default = False
+    _attr_is_closed: bool | None = None
+    _attr_current_cover_position: int | None = None
+
+    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
+        """Initialize the cover."""
+        super().__init__(vehicle, "vehicle_state_sun_roof_state")
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        if not self.scoped:
+            self._attr_supported_features = CoverEntityFeature(0)
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Register the parked closures INFO endpoint for the sunroof."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.manager.async_on_endpoint(
+                "closures",
+                lambda ble: ble.closures_state(),
+                self._handle_endpoint,
+            )
+        )
+
+    @callback
+    def _handle_endpoint(self, value: Any, generation: int) -> None:
+        """Render the sunroof state and position from a closures snapshot."""
+        self._value = value
+        self._generation = generation
+        if value is not None:
+            self._attr_is_closed = _sunroof_is_closed(value)
+            self._attr_current_cover_position = value.sun_roof_percent_open
+        self.async_write_ha_state()
+
+    @override
+    async def async_open_cover(self, **kwargs: Any) -> None:
+        """Vent the sunroof."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.sun_roof_control(SunRoofCommand.VENT)
+        )
+        self._attr_is_closed = False
+        self.async_write_ha_state()
+
+    @override
+    async def async_close_cover(self, **kwargs: Any) -> None:
+        """Close the sunroof."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await handle_vehicle_command(
+            self.hass,
+            self.config_entry,
+            self.api.sun_roof_control(SunRoofCommand.CLOSE),
+        )
+        self._attr_is_closed = True
+        self.async_write_ha_state()
+
+    @override
+    async def async_stop_cover(self, **kwargs: Any) -> None:
+        """Stop the sunroof."""
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.sun_roof_control(SunRoofCommand.STOP)
+        )
+        self._attr_is_closed = False
+        self.async_write_ha_state()

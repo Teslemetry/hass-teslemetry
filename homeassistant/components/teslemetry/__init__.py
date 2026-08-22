@@ -884,7 +884,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             # primary; local data reads take broadcasts from it, never the router.
             ble: TeslemetryBLEDataManager | None = None
             if isinstance(vehicle_api, VehicleRouter):
-                ble = TeslemetryBLEDataManager(hass, vehicle_api.primary, vin)
+                ble = TeslemetryBLEDataManager(
+                    hass, vehicle_api.primary, stream_vehicle, vin
+                )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
 

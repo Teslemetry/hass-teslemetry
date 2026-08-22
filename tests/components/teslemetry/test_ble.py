@@ -1,9 +1,12 @@
 """Test the Teslemetry BLE broadcast data source."""
 
 from collections.abc import Callable
+from copy import deepcopy
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from freezegun.api import FrozenDateTimeFactory
 import pytest
 
 # pylint: disable-next=no-name-in-module
@@ -13,6 +16,10 @@ from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
     VehicleLockState_E,
     VehicleSleepStatus_E,
 )
+
+# pylint: disable-next=no-name-in-module
+from tesla_fleet_api.tesla.vehicle.proto.vehicle_pb2 import ClosuresState
+from teslemetry_stream import Signal
 
 from homeassistant.components.lock import LockState
 from homeassistant.components.teslemetry.const import CONF_VIN, SUBENTRY_TYPE_VEHICLE
@@ -28,10 +35,12 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from . import mock_config_entry, setup_platform
+from .const import PRODUCTS
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, async_fire_time_changed
 
 VIN = "LRW3F7EK4NC700000"
 ADDRESS = "AA:BB:CC:DD:EE:FF"
@@ -61,6 +70,7 @@ async def _setup_ble(
     hass: HomeAssistant,
     connected: bool = True,
     platforms: tuple[Platform, ...] = (Platform.BINARY_SENSOR,),
+    sunroof: bool = False,
 ) -> tuple[MockConfigEntry, MagicMock]:
     """Set up the given platforms for a BLE-paired vehicle.
 
@@ -68,12 +78,18 @@ async def _setup_ble(
     record the manager's broadcast callbacks so tests can feed them raw values;
     ``listen_connection_status`` records the manager's connection callback. When
     ``connected`` the link is brought up via that callback, as the library does
-    once a session is established.
+    once a session is established. ``sunroof`` reports the vehicle's metadata as
+    sunroof-installed.
     """
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
     bluetooth_vehicle = MagicMock()
     bluetooth_vehicle.client = MagicMock()
+    bluetooth_vehicle.disconnect = AsyncMock()
+
+    products = deepcopy(PRODUCTS)
+    if sunroof:
+        products["response"][0]["vehicle_config"]["sun_roof_installed"] = True
 
     with (
         patch(
@@ -84,6 +100,7 @@ async def _setup_ble(
             "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
         ) as mock_parent,
         patch("homeassistant.components.teslemetry.PLATFORMS", list(platforms)),
+        patch("tesla_fleet_api.teslemetry.Teslemetry.products", return_value=products),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
         mock_parent.return_value.vehicles.createBluetooth.return_value = (
@@ -439,3 +456,145 @@ async def test_lock_link_loss_marks_unavailable(
     _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
     assert hass.states.get(lock_id).state == STATE_UNAVAILABLE
+
+
+def _closures(sunroof: str | None, percent: int = 0) -> ClosuresState:
+    """Build a BLE closures snapshot with a sunroof oneof case and position."""
+    closures = ClosuresState(sun_roof_percent_open=percent)
+    if sunroof is not None:
+        getattr(closures.sun_roof_state, sunroof).SetInParent()
+    return closures
+
+
+def _make_active(bluetooth: MagicMock, mock_add_listener: MagicMock) -> None:
+    """Drive the manager to connected, awake, and parked."""
+    # A broadcast proves the link is up.
+    _emit(bluetooth.listen_charge_port, ClosureState_E.CLOSURESTATE_CLOSED)
+    # On a cover-only setup the manager is the only sleep/gear listener.
+    _emit(
+        bluetooth.listen_vehicle_sleep_status,
+        VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE,
+    )
+    mock_add_listener.send({"vin": VIN, "data": {Signal.GEAR: "P"}})
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_sunroof_reads_when_parked_and_awake(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """A parked, awake vehicle reads the sunroof over a single closures snapshot."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,), sunroof=True
+    )
+    sunroof_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_sun_roof_state"
+    )
+    assert sunroof_id is not None
+    assert hass.states.get(sunroof_id).state == STATE_UNAVAILABLE
+
+    bluetooth.closures_state = AsyncMock(return_value=_closures("Closed", 20))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+
+    bluetooth.closures_state.assert_awaited_once()
+    bluetooth.vehicle_data.assert_not_called()
+    state = hass.states.get(sunroof_id)
+    assert state.state == STATE_CLOSED
+    assert state.attributes["current_position"] == 20
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+@pytest.mark.parametrize(
+    ("sleep", "gear"),
+    [
+        (VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE, "D"),
+        (VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE, "Unknown"),
+        (VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_ASLEEP, "P"),
+        (VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_UNKNOWN, "P"),
+    ],
+)
+async def test_sunroof_gate_blocks_reads(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+    sleep: int,
+    gear: str,
+) -> None:
+    """Neither a moving nor an asleep vehicle issues an INFO read."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,), sunroof=True
+    )
+    sunroof_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_sun_roof_state"
+    )
+    bluetooth.closures_state = AsyncMock(return_value=_closures("Closed"))
+
+    _emit(bluetooth.listen_charge_port, ClosureState_E.CLOSURESTATE_CLOSED)
+    _emit(bluetooth.listen_vehicle_sleep_status, sleep)
+    mock_add_listener.send({"vin": VIN, "data": {Signal.GEAR: gear}})
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+
+    bluetooth.closures_state.assert_not_called()
+    assert hass.states.get(sunroof_id).state == STATE_UNAVAILABLE
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_sunroof_rests_and_disconnects_after_idle(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """After 15 idle minutes the manager stops reading and disconnects."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,), sunroof=True
+    )
+    sunroof_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_sun_roof_state"
+    )
+
+    bluetooth.closures_state = AsyncMock(return_value=_closures("Closed"))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+    assert hass.states.get(sunroof_id).state == STATE_CLOSED
+
+    freezer.tick(timedelta(minutes=16))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    bluetooth.disconnect.assert_awaited()
+    assert bluetooth.closures_state.await_count == 1
+    # The manager also marks the link down once disconnect takes effect.
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+    assert hass.states.get(sunroof_id).state == STATE_UNAVAILABLE
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_sunroof_absent_makes_no_reads(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """A vehicle without a sunroof has no entity and issues no INFO reads."""
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,), sunroof=False
+    )
+    assert (
+        entity_registry.async_get_entity_id(
+            "cover", "teslemetry", f"{VIN}-vehicle_state_sun_roof_state"
+        )
+        is None
+    )
+
+    bluetooth.closures_state = AsyncMock(return_value=_closures("Closed"))
+    _make_active(bluetooth, mock_add_listener)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done()
+
+    bluetooth.closures_state.assert_not_called()
