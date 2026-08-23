@@ -19,6 +19,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
     TeslemetryRegistrationError,
 )
+from tesla_fleet_api.funnel import ObservationFunnel
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry, Vehicle
@@ -82,6 +83,7 @@ from .coordinator import (
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
+from .funnel import async_setup_funnel
 from .helpers import (
     async_get_ble_parent,
     async_handle_credits,
@@ -886,12 +888,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             # A paired vehicle's router exposes the direct BLE client as its
             # primary; local data reads take broadcasts from it, never the router.
             ble: TeslemetryBLEDataManager | None = None
+            funnel: ObservationFunnel | None = None
             if isinstance(vehicle_api, VehicleRouter):
                 ble = TeslemetryBLEDataManager(
                     hass, vehicle_api.primary, stream_vehicle, vin
                 )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
+                funnel = async_setup_funnel(entry, vehicle_api.primary, coordinator)
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -905,6 +909,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     firmware=firmware or "Unknown",
                     device=device,
                     ble=ble,
+                    funnel=funnel,
                 )
             )
 

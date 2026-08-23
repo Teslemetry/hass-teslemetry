@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from tesla_fleet_api.const import Scope
+from tesla_fleet_api.funnel import ObservationFunnel
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
@@ -52,6 +53,7 @@ class TeslemetryVehicleData:
     firmware: str
     device: DeviceInfo
     ble: TeslemetryBLEDataManager | None = None
+    funnel: ObservationFunnel | None = None
     wakelock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
