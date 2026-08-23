@@ -1638,6 +1638,10 @@ def _ble_backend() -> AsyncMock:
     backend.listen_connection_status = MagicMock(return_value=MagicMock())
     backend.listen_vehicle_sleep_status = MagicMock(return_value=MagicMock())
     backend.listen_user_presence = MagicMock(return_value=MagicMock())
+    # The observation logger subscribes to these broadcast fields at setup.
+    backend.listen_vehicle_lock_state = MagicMock(return_value=MagicMock())
+    backend.listen_charge_port = MagicMock(return_value=MagicMock())
+    backend.listen_front_trunk = MagicMock(return_value=MagicMock())
     return backend
 
 

@@ -95,6 +95,7 @@ from .helpers import (
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .oauth import async_ensure_client_credential
+from .observation_log import async_setup_observation_log
 from .services import async_setup_services
 
 PLATFORMS: Final = [
@@ -896,6 +897,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
                 funnel = async_setup_funnel(entry, vehicle_api.primary, coordinator)
+                async_setup_observation_log(
+                    entry,
+                    hass,
+                    vehicle_api.primary,
+                    stream,
+                    stream_vehicle,
+                    vin,
+                )
 
             vehicles.append(
                 TeslemetryVehicleData(
