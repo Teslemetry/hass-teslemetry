@@ -1286,12 +1286,14 @@ async def test_subentry_add_flow_keeps_device_on_parent(
     assert bound_device.config_subentry_id is None
 
     # The vehicle entities keep their unique IDs and stay on the parent entry.
+    # Pairing additionally creates the BLE-only Bluetooth connection sensor,
+    # which a cloud-only vehicle cannot have before it is paired.
     bound_entities = er.async_entries_for_device(
         entity_registry, bound_device.id, include_disabled_entities=True
     )
     assert {entity.unique_id for entity in bound_entities} == {
         entity.unique_id for entity in vehicle_entities
-    }
+    } | {f"{VIN}-bluetooth_connection"}
     assert all(entity.config_subentry_id is None for entity in bound_entities)
 
 

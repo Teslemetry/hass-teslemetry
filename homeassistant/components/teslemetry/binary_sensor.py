@@ -623,6 +623,12 @@ async def async_setup_entry(
 
     entities: list[BinarySensorEntity] = []
     for vehicle in entry.runtime_data.vehicles:
+        # Only a BLE-paired vehicle has a link whose state is worth reporting;
+        # without a manager the entity would be permanently unavailable, so skip it.
+        if vehicle.ble is not None:
+            entities.append(
+                TeslemetryVehicleBluetoothConnectivityBinarySensorEntity(vehicle)
+            )
         for description in VEHICLE_DESCRIPTIONS:
             # A paired vehicle sources its broadcast-backed sensors locally and
             # never falls back to the stream or cloud for them.
@@ -759,6 +765,42 @@ class TeslemetryVehicleBluetoothBinarySensorEntity(
     def is_on(self) -> bool | None:
         """Return the last broadcast state; None while unavailable."""
         return cast("bool | None", self._value)
+
+
+class TeslemetryVehicleBluetoothConnectivityBinarySensorEntity(
+    TeslemetryVehicleBluetoothEntity, BinarySensorEntity
+):
+    """Reports whether the vehicle is reachable over its local Bluetooth link.
+
+    This is on only while the direct BLE link is up. It is not the car's
+    awake/asleep state and not its cellular or Wi-Fi connectivity, all of which
+    already have their own connectivity sensors on this device.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, data: TeslemetryVehicleData) -> None:
+        """Initialize the Bluetooth connectivity sensor."""
+        super().__init__(data, "bluetooth_connection")
+
+    @property
+    @override
+    def available(self) -> bool:
+        """Stay available even when the link is down.
+
+        Deliberately does not inherit the other BLE entities'
+        unavailable-on-disconnect behaviour: a connectivity sensor that went
+        unavailable on disconnect could never report a disconnect, which is the
+        one thing it exists to report. It stays available and reads off instead.
+        """
+        return True
+
+    @property
+    @override
+    def is_on(self) -> bool:
+        """Return whether the local Bluetooth link is currently up."""
+        return self.manager.connected
 
 
 class TeslemetryEnergyLiveBinarySensorEntity(
