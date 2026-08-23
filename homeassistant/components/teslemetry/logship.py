@@ -30,15 +30,21 @@ CONF_SHIP_LOGS_TO_CLICKSTACK = "ship_logs_to_clickstack"
 # string equality only, so reusing it needs no server-side change.
 INGEST_KEY = "8f40841f-391a-4bfd-970a-b33f5fe0c2e1"
 
-# Privacy hard line: only these three loggers are ever attached to. Never
-# root, never other integrations, never HA system logs.
+_INTERNAL_LOGGER_NAME = __name__
+
+# The integration's own logger root, derived from this module's runtime package
+# so it matches whichever install shape is live: custom_components.teslemetry
+# under HACS, homeassistant.components.teslemetry under core. A hardcoded core
+# name never sees a HACS install's own records and ships nothing from them.
+_INTEGRATION_LOGGER_NAME = _INTERNAL_LOGGER_NAME.rpartition(".")[0]
+
+# Privacy hard line: only these loggers are ever attached to. Never root, never
+# other integrations, never HA system logs.
 SHIPPED_LOGGERS = (
-    "homeassistant.components.teslemetry",
+    _INTEGRATION_LOGGER_NAME,
     "tesla_fleet_api",
     "teslemetry_stream",
 )
-
-_INTERNAL_LOGGER_NAME = __name__
 
 # This module's own diagnostics logger. _OTLPLogHandler.emit excludes it by
 # name, so its warnings never get shipped or feed back into the buffer.

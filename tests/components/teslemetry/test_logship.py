@@ -7,6 +7,7 @@ from unittest.mock import patch
 from aiohttp import ClientConnectionError
 import pytest
 
+from homeassistant.components.teslemetry import logship, observation_log
 from homeassistant.components.teslemetry.const import DOMAIN
 from homeassistant.components.teslemetry.logship import (
     INGEST_KEY,
@@ -69,6 +70,36 @@ async def test_self_skip_avoids_feedback_loop(
 
     logging.getLogger(COMPONENT_LOGGER).debug("a real message")
     assert len(shipper._buffer) == 1
+
+
+async def test_integration_logger_derived_from_module_package(
+    hass: HomeAssistant,
+    shipper: TeslemetryLogShipper,
+) -> None:
+    """The shipped integration logger is this module's package root at runtime.
+
+    Under HACS the integration runs as custom_components.teslemetry, not
+    homeassistant.components.teslemetry; a hardcoded core name ships nothing
+    from the integration's own modules there. The expectation is computed from
+    the module's __name__, never a literal, so a regression to a hardcoded name
+    is caught in whichever shape the tests run under - and the handler is
+    asserted actually attached to that derived logger.
+    """
+    integration_root = logship.__name__.rpartition(".")[0]
+
+    # The shipped name is the module's own runtime package root, not a literal:
+    # _INTERNAL_LOGGER_NAME is this module's __name__, and the shipped
+    # integration logger is its parent package.
+    assert logship.__name__ == logship._INTERNAL_LOGGER_NAME
+    assert integration_root in logship.SHIPPED_LOGGERS
+
+    # observation_log emits the event= diagnostic rows; it sits under the same
+    # root, so attaching to that root is what carries its records to the handler
+    # by propagation. This is the exact relationship the core-name hardcode broke.
+    assert observation_log.__name__.rpartition(".")[0] == integration_root
+
+    # The handler is genuinely attached to the derived integration logger.
+    assert shipper._handler in logging.getLogger(integration_root).handlers
 
 
 async def test_bounded_buffer_drops_oldest(
