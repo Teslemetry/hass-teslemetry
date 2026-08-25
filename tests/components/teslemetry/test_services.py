@@ -32,6 +32,7 @@ from homeassistant.components.teslemetry.services import (
     SERVICE_SPEED_LIMIT,
     SERVICE_TIME_OF_USE,
     SERVICE_VALET_MODE,
+    async_get_device_for_service_call,
 )
 from homeassistant.const import (
     ATTR_ID,
@@ -42,7 +43,7 @@ from homeassistant.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
@@ -473,3 +474,27 @@ async def test_service_validation_errors(
             blocking=True,
         )
     assert exc_info.value.translation_key == "no_config_entry_for_device"
+
+
+async def test_get_device_for_service_call(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the shared device lookup resolves a targeted vehicle device."""
+    await setup_platform(hass)
+    vehicle_device = entity_registry.async_get("sensor.test_charging").device_id
+
+    call = ServiceCall(
+        hass,
+        DOMAIN,
+        SERVICE_NAVIGATE_ATTR_GPS_REQUEST,
+        {CONF_DEVICE_ID: vehicle_device},
+    )
+    assert async_get_device_for_service_call(hass, call).id == vehicle_device
+
+    bad_call = ServiceCall(
+        hass, DOMAIN, SERVICE_NAVIGATE_ATTR_GPS_REQUEST, {CONF_DEVICE_ID: "nope"}
+    )
+    with pytest.raises(ServiceValidationError) as exc_info:
+        async_get_device_for_service_call(hass, bad_call)
+    assert exc_info.value.translation_key == "invalid_device"
