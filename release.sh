@@ -27,6 +27,7 @@ FORK_REPO="Teslemetry/hass-teslemetry"      # origin: the HACS fork we release
 CORE_REPO="home-assistant/core"             # upstream: core, source of PRs/dev
 INTEGRATION="homeassistant/components/teslemetry"
 DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
+SERVICES_PY="$INTEGRATION/services.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
 
@@ -364,6 +365,26 @@ $hits"
   info "ATTR_LATITUDE/ATTR_LONGITUDE present, dev-only enum absent from code"
 }
 
+# Hard gate: services.py must not call async_get with the dev-only
+# include_child_devices kwarg. Core PR #178666 added it to teslemetry's own
+# service helper on dev; it is absent on every released core, so it raises
+# TypeError there and every device-targeted Action fails with "unknown error" -
+# and the dev-form build gate passes green because dev has the kwarg. The sync
+# from core dev re-introduces it on the exact line every cut. Retire this gate
+# when the minimum core floor reaches 2026.9.0 (the kwarg's first release).
+services_child_devices_gate() {
+  log "Gate: services.py free of dev-only include_child_devices kwarg"
+  [ -f "$SERVICES_PY" ] || die "$SERVICES_PY missing"
+  # Forbidden only in code; allowed inside a comment explaining the shim.
+  local hits
+  hits=$(awk '{ code=$0; sub(/#.*/,"",code);
+               if (code ~ /include_child_devices/) print NR": "$0 }' \
+             "$SERVICES_PY" || true)
+  [ -z "$hits" ] || die "$SERVICES_PY passes dev-only include_child_devices to async_get - drop the kwarg (call async_get(device_id)); it raises TypeError on released cores. Re-introduced by the core-dev sync:
+$hits"
+  info "include_child_devices absent from services.py code"
+}
+
 # Hard gate: the HACS-only subentry back-migration silently vanished in v6.0.9
 # when the release branches carrying it were never merged back to main - two
 # releases shipped without it and nothing noticed, because only a doc sentence
@@ -543,6 +564,7 @@ main() {
   apply_prs
   update_version
   device_tracker_gate
+  services_child_devices_gate
   subentry_migration_gate
   aiopowerwall_pin_gate
   subentry_translations_gate

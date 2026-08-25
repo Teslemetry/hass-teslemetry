@@ -1,7 +1,7 @@
 """Service calls for the Teslemetry integration."""
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import voluptuous as vol
 from voluptuous import All, Range
@@ -70,18 +70,18 @@ def async_get_device_for_service_call(
     """Get the device entry related to a service call."""
     device_id = call.data[CONF_DEVICE_ID]
     device_registry = dr.async_get(hass)
-    if (
-        device_entry := device_registry.async_get(
-            device_id, include_child_devices=False
-        )
-    ) is None:
+    # Teslemetry never parents devices (only via_device_id), so a targeted device is
+    # always a main device. The include_child_devices=False kwarg that would narrow
+    # this on dev core is absent on released cores and raises TypeError there; the
+    # cast restores the narrow return type the kwarg used to provide.
+    if (device_entry := device_registry.async_get(device_id)) is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="invalid_device",
             translation_placeholders={"device_id": device_id},
         )
 
-    return device_entry
+    return cast(dr.DeviceEntry, device_entry)
 
 
 def async_get_config_for_device(
