@@ -59,7 +59,8 @@ approve_and_publish`. For 6.1:
   `--line 6.0` is **mandatory**: it filters candidate tags to the `v6.0.*` series
   before taking the version-sorted max, so a stray non-semver or newer tag can
   never hijack the number. Confirm it prints `6.1.0` before anything is tagged.
-- **The four standing gates** — `device_tracker_gate`, `subentry_migration_gate`,
+- **The five standing gates** — `device_tracker_gate`,
+  `services_child_devices_gate`, `subentry_migration_gate`,
   `aiopowerwall_pin_gate`, `subentry_translations_gate` — run against the
   composed tree. The gate discipline is what caught the v6.0.11/12 losses; keep
   it even though 6.1 diverges.
@@ -75,7 +76,7 @@ source the rest, and call the gate functions directly:
 
 ```bash
 sed '/^main "\$@"$/d' release.sh > /tmp/release_sourceable.sh
-for g in device_tracker_gate subentry_migration_gate \
+for g in device_tracker_gate services_child_devices_gate subentry_migration_gate \
          aiopowerwall_pin_gate subentry_translations_gate; do
   bash -c "source /tmp/release_sourceable.sh; $g" || echo "FAIL: $g"
 done
