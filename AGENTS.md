@@ -36,6 +36,8 @@ It pauses and hands control to you at exactly these points; everything else is a
 
 This guard is **not** a full inference of the line - a *cross-major* stable transition (a stable `v7.0.0` while `6.x` is still maintained) is undecidable from tags alone (the dead-vs-live lower-major problem above), so it is not covered; condition (a) catches that line while it is still in preview, which is when it is cut. Do not "simplify" the guard back to a bare `sort -V | tail -1`, and do not weaken the parse/bump arithmetic it feeds - the whole point is that a forgotten flag stops the release loudly instead of shipping the wrong series.
 
+An incremental cut based on a release TAG inherits that tag's frozen copy of `release.sh`, which may predate current gates and flags - the `v6.0.18` tree's copy had neither `--line` nor `services_child_devices_gate`. Any cut based on a tag must adopt `main`'s current `release.sh` before resolving the version or running gates, exactly as `RELEASE-6.1.md` already requires for the 6.1 line.
+
 ### What the gates guarantee (all fail-stop, enforced by the script)
 
 - **Conflict-marker grep after every commit** over the integration + tests - a leaked `<<<<<<<`/`>>>>>>>` stops the release.
