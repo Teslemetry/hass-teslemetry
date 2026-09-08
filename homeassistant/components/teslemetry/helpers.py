@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api.exceptions import InsufficientCredits, TeslaFleetError
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from teslemetry_stream.const import CreditsEvent
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -188,15 +189,14 @@ def async_remove_stale_vehicle_entities(
 
 @callback
 def async_handle_credits(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry, credits: dict[str, Any]
+    hass: HomeAssistant, entry: TeslemetryConfigEntry, credits: CreditsEvent
 ) -> None:
     """Record the latest credit state and clear the issue when credits return."""
-    quota = credits.get("quota")
-    fraction = quota.get("fraction") if isinstance(quota, dict) else None
+    fraction = credits.quota.get("fraction")
     quota_available: bool | None = None
     if isinstance(fraction, (int, float)) and not isinstance(fraction, bool):
         quota_available = fraction < CREDITS_QUOTA_FRACTION_THRESHOLD
-    balance = credits.get("balance")
+    balance = credits.balance
     balance_available: bool | None = None
     if isinstance(balance, (int, float)) and not isinstance(balance, bool):
         balance_available = balance > CREDITS_BALANCE_THRESHOLD

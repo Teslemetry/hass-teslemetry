@@ -311,6 +311,7 @@ async def test_vehicle_asleep_polling(
             {
                 "type": "command",
                 "cost": 1,
+                "name": "command",
                 "quota": {
                     "used": 5,
                     "fraction": 0.5,
@@ -325,6 +326,7 @@ async def test_vehicle_asleep_polling(
             {
                 "type": "command",
                 "cost": 1,
+                "name": "command",
                 "quota": {
                     "used": 10,
                     "fraction": 1.0,
@@ -339,7 +341,7 @@ async def test_vehicle_asleep_polling(
             # The listen_Credits filter fires for any event with a top-level
             # credits object, so one lacking a quota/balance snapshot must not
             # clear the repair or raise while parsing the missing shape.
-            {"type": "command", "cost": 1},
+            {"type": "command", "cost": 1, "name": "command", "balance": None},
             False,
             id="malformed_missing_quota_and_balance",
         ),
