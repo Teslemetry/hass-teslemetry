@@ -371,7 +371,9 @@ async def test_service_validation_errors(
     await setup_platform(hass)
     vehicle_device = entity_registry.async_get("sensor.test_charging").device_id
 
-    # Bad device ID - verify translation key is used
+    # Bad device ID - verify translation key is used. The fork's kwarg-less
+    # device lookup raises invalid_device, not core's service_device_not_found;
+    # see AGENTS.md (services_child_devices shim).
     with pytest.raises(ServiceValidationError) as exc_info:
         await hass.services.async_call(
             DOMAIN,
@@ -382,7 +384,7 @@ async def test_service_validation_errors(
             },
             blocking=True,
         )
-    assert exc_info.value.translation_key == "service_device_not_found"
+    assert exc_info.value.translation_key == "invalid_device"
 
     # Test set_scheduled_charging validation error (enable=True but no time)
     with pytest.raises(ServiceValidationError) as exc_info:
