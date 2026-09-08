@@ -1,5 +1,6 @@
 """Test the Teslemetry button platform."""
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -15,7 +16,9 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 
 from . import assert_entities, setup_platform
-from .const import COMMAND_OK
+from .const import COMMAND_OK, METADATA
+
+VIN = "LRW3F7EK4NC700000"
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -39,6 +42,8 @@ async def test_button(
         ("keyless_driving", "remote_start_drive"),
         ("play_fart", "remote_boombox"),
         ("homelink", "trigger_homelink"),
+        ("enable_keep_accessory_power", "set_keep_accessory_power_mode"),
+        ("disable_keep_accessory_power", "set_keep_accessory_power_mode"),
     ],
 )
 async def test_press(hass: HomeAssistant, name: str, func: str) -> None:
@@ -210,3 +215,32 @@ async def test_insufficient_credits_available_then_insufficient(
     # the account really is out of credits and the repair must be created.
     assert error.value.translation_key == "insufficient_credits"
     assert issue_registry.async_get_issue(DOMAIN, issue_id)
+
+
+@pytest.mark.parametrize(
+    ("firmware", "expected"),
+    [
+        pytest.param("2025.32", False, id="below_threshold"),
+        pytest.param("2025.38", True, id="at_threshold"),
+    ],
+)
+async def test_keep_accessory_power_firmware_gate(
+    hass: HomeAssistant,
+    mock_metadata: AsyncMock,
+    firmware: str,
+    expected: bool,
+) -> None:
+    """Tests that keep accessory power buttons require firmware >= 2025.38."""
+
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VIN]["firmware"] = firmware
+    mock_metadata.return_value = metadata
+
+    await setup_platform(hass, [Platform.BUTTON])
+
+    assert (
+        hass.states.get("button.test_enable_keep_accessory_power") is not None
+    ) == expected
+    assert (
+        hass.states.get("button.test_disable_keep_accessory_power") is not None
+    ) == expected
