@@ -2704,4 +2704,3 @@ async def test_reconfigure_pairs_via_cloud_secondary_not_local_primary(
     assert result["step_id"] == "credentials"
     cloud_lookup.assert_awaited()
     local_lookup.assert_not_awaited()
-

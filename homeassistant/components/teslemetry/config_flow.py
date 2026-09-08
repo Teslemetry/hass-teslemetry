@@ -60,7 +60,6 @@ from homeassistant.helpers.selector import (
 
 from . import _BLE_KEY_ERRORS, TeslemetryConfigEntry
 from .const import (
-    CLIENT_ID,
     CONF_SITE_ID,
     CONF_VIN,
     DOMAIN,
@@ -485,7 +484,6 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             self._pair_task.cancel()
         if self._vehicle is not None:
             self.hass.async_create_task(self._async_disconnect())
-
 
 
 class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):

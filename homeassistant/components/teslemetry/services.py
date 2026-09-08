@@ -17,10 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import (
-    config_validation as cv,
-    device_registry as dr,
-)
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 
 from .const import DOMAIN
 from .helpers import handle_command, handle_vehicle_command
