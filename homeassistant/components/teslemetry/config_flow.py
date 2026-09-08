@@ -16,15 +16,12 @@ from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
     TeslaFleetError,
+    TeslemetryRegistrationError,
 )
 from tesla_fleet_api.teslemetry import Teslemetry
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, TeslemetryEnergySite
 import voluptuous as vol
 
-from homeassistant.components.application_credentials import (
-    ClientCredential,
-    async_import_client_credential,
-)
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
@@ -51,6 +48,7 @@ from .const import (
     SUBENTRY_TYPE_ENERGY_SITE,
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK
+from .oauth import async_ensure_client_credential
 
 
 class PowerwallLookupError(Exception):
@@ -102,11 +100,13 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle a flow start."""
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
+        try:
+            await async_ensure_client_credential(self.hass)
+        except TeslemetryRegistrationError:
+            return self.async_show_form(
+                step_id="user",
+                errors={"base": "cannot_connect"},
+            )
         return await super().async_step_user()
 
     @override

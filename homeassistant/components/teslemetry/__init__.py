@@ -15,6 +15,7 @@ from tesla_fleet_api.exceptions import (
     LoginRequired,
     SubscriptionRequired,
     TeslaFleetError,
+    TeslemetryRegistrationError,
 )
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry
@@ -73,6 +74,7 @@ from .helpers import (
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
+from .oauth import async_ensure_client_credential
 from .services import async_setup_services
 
 PLATFORMS: Final = [
@@ -111,11 +113,19 @@ STREAM_TOPICS: Final = (
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
-    await async_import_client_credential(
-        hass,
-        DOMAIN,
-        ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-    )
+    # A pending v1 entry migrates onto the legacy static client_id and keeps
+    # DOMAIN as its auth_implementation (async_migrate_entry), so a DCR client
+    # registered here under DCR_AUTH_DOMAIN would go unused; defer registration
+    # until no v1 entry remains.
+    if not any(
+        entry.version == 1 for entry in hass.config_entries.async_entries(DOMAIN)
+    ):
+        try:
+            await async_ensure_client_credential(hass)
+        except TeslemetryRegistrationError as err:
+            # Registration is retried when the user starts the config flow, so a
+            # transient failure here must not block integration setup.
+            LOGGER.debug("Deferring Teslemetry client registration: %s", err)
     async_setup_services(hass)
     return True
 
@@ -1032,6 +1042,14 @@ async def async_migrate_entry(
                 translation_domain=DOMAIN,
                 translation_key="auth_failed_migration",
             ) from e
+
+        # The migrate grant only accepts the legacy static client_id, so that
+        # client must back auth_implementation, not a dynamically registered
+        # one. Import it only after migration succeeds, otherwise a failed
+        # migration would leave a stale credential that permanently skips DCR.
+        await async_import_client_credential(
+            hass, DOMAIN, ClientCredential(CLIENT_ID, "", name="Teslemetry")
+        )
 
         # Add auth_implementation for OAuth2 flow compatibility
         data["auth_implementation"] = DOMAIN
