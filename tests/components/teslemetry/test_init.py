@@ -190,6 +190,27 @@ async def test_vehicle_refresh_error(
     assert entry.state is state
 
 
+async def test_vehicle_first_refresh_timeout(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Test a slow first vehicle refresh retries instead of blocking setup."""
+    never = asyncio.Event()
+
+    async def _hang(*args: object, **kwargs: object) -> dict[str, Any]:
+        await never.wait()
+        return VEHICLE_DATA_ALT
+
+    mock_vehicle_data.side_effect = _hang
+
+    with patch("homeassistant.components.teslemetry.VEHICLE_FIRST_REFRESH_TIMEOUT", 0):
+        entry = await setup_platform(hass)
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    never.set()
+
+
 # Test Energy Live Coordinator
 @pytest.mark.parametrize(("side_effect", "state"), ERRORS)
 async def test_energy_live_refresh_error(
