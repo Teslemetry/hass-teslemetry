@@ -158,7 +158,12 @@ async def test_reauth(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reauth_confirm"
 
-    flows = hass.config_entries.flow.async_progress()
+    # Bluetooth discovery also opens a flow on setup, so count only the reauth one.
+    flows = [
+        flow
+        for flow in hass.config_entries.flow.async_progress()
+        if flow["step_id"] == "reauth_confirm"
+    ]
     assert len(flows) == 1
 
     # Progress from reauth_confirm to external OAuth step
