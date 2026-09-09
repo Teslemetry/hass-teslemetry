@@ -1566,7 +1566,9 @@ async def test_energy_site_subentry_without_credentials_uses_cloud(
                 subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
                 unique_id=str(SITE_ID),
                 title="Energy Site",
-                data={CONF_SITE_ID: SITE_ID},
+                # Blank host/password keep this unpaired holder past the HACS
+                # empty-holder cleanup while still resolving to the cloud API.
+                data={CONF_SITE_ID: SITE_ID, CONF_HOST: "", CONF_PASSWORD: ""},
             )
         ],
     )
@@ -1773,7 +1775,9 @@ async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> 
     entry = mock_config_entry()
     entry.add_to_hass(hass)
     foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+        # A paired address keeps this vehicle holder past the HACS empty-holder
+        # cleanup, so the energy prune (under test) is what must leave it alone.
+        data=MappingProxyType({"vin": "VIN123", CONF_ADDRESS: "AA:BB:CC:DD:EE:FF"}),
         subentry_type="vehicle",
         title="A Vehicle",
         unique_id="VIN123",
