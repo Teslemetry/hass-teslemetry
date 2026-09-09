@@ -23,7 +23,6 @@ from tesla_fleet_api.exceptions import (
     PrivateKeyError,
     SubscriptionRequired,
     TeslaFleetError,
-    TeslemetryRegistrationError,
     WhitelistOperationAttemptingToAddExistingKey,
 )
 from tesla_fleet_api.tesla import EnergySiteRouter
@@ -32,6 +31,10 @@ from tesla_fleet_api.teslemetry import Teslemetry
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, TeslemetryEnergySite
 import voluptuous as vol
 
+from homeassistant.components.application_credentials import (
+    ClientCredential,
+    async_import_client_credential,
+)
 from homeassistant.components.bluetooth import (
     async_discovered_service_info,
     async_request_active_scan,
@@ -60,6 +63,7 @@ from homeassistant.helpers.selector import (
 
 from . import _BLE_KEY_ERRORS, TeslemetryConfigEntry
 from .const import (
+    CLIENT_ID,
     CONF_SITE_ID,
     CONF_VIN,
     DOMAIN,
@@ -71,7 +75,6 @@ from .const import (
 from .helpers import async_get_ble_parent
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK
 from .models import TeslemetryEnergyData
-from .oauth import async_ensure_client_credential
 
 
 class PowerwallUnreachableError(Exception):
@@ -160,13 +163,11 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle a flow start."""
-        try:
-            await async_ensure_client_credential(self.hass)
-        except TeslemetryRegistrationError:
-            return self.async_show_form(
-                step_id="user",
-                errors={"base": "cannot_connect"},
-            )
+        await async_import_client_credential(
+            self.hass,
+            DOMAIN,
+            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
+        )
         return await super().async_step_user()
 
     @override
