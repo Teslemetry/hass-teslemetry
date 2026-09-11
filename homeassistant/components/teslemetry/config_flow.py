@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast, override
 
 from aiohttp import ClientError
-from aiopowerwall import PowerwallAuthenticationError, PowerwallClient, PowerwallError
+from aiopowerwall import (
+    DEFAULT_GATEWAY_HOST,
+    PowerwallAuthenticationError,
+    PowerwallClient,
+    PowerwallError,
+)
 from bleak.exc import BleakError
 from tesla_fleet_api.const import (
     AuthorizedClientKeyType,
