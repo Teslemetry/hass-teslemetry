@@ -78,7 +78,13 @@ from .coordinator import (
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
-from .helpers import async_get_ble_parent, async_update_device_sw_version, flatten
+from .helpers import (
+    async_get_ble_parent,
+    async_handle_credits,
+    async_update_device_sw_version,
+    flatten,
+    insufficient_credits_issue_id,
+)
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_setup_services
@@ -939,6 +945,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 
     if stream:
         entry.async_on_unload(stream.close)
+        entry.async_on_unload(
+            stream.listen_Credits(partial(async_handle_credits, hass, entry))
+        )
         # The stream is the only freshness signal for the energy coordinators, so
         # a dropped connection must mark their entities unavailable rather than
         # leaving stale live/info/tariff data available indefinitely.
@@ -1083,8 +1092,6 @@ async def _async_setup_energy_site(
     return live_coordinator, info_coordinator, history_coordinator
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
-    """Unload Teslemetry Config."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.
@@ -1099,6 +1106,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
                         "Error disconnecting Bluetooth for %s: %s", vehicle.vin, err
                     )
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+    """Clean up the insufficient credits repair when the entry is removed.
+
+    The repair reflects the account's credit state, not this particular load of
+    the entry, so an ordinary unload or reload (for example the metadata- and
+    subentry-change reloads above) must leave it in place: setup does not
+    re-probe credits, and nothing else would recreate it if the account is
+    still short. It is only ever cleared early by a credits-stream event
+    reporting availability, or here, once the entry itself is gone for good.
+    """
+    ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
 
 
 async def async_migrate_entry(
