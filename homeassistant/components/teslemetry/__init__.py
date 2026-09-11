@@ -1267,6 +1267,8 @@ async def _async_setup_energy_site(
     return live_coordinator, info_coordinator, history_coordinator, raw_live_status
 
 
+async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
+    """Unload Teslemetry Config."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.

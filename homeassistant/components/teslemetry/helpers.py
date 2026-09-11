@@ -45,6 +45,7 @@ async def async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
         hass.data[BLE_PARENT_KEY] = parent
         return parent
 
+
 # A credits event clears the insufficient credits issue when the account has
 # quota credits still available, or a balance topup has been applied.
 # These thresholds mirror the Teslemetry service's own credit accounting and

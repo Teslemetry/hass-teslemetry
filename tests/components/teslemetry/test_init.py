@@ -3061,6 +3061,8 @@ async def test_user_subentry_persists_across_reload(hass: HomeAssistant) -> None
     assert len(subentries) == 1
     assert subentries[0].subentry_id == subentry_id
     assert subentries[0].data == {CONF_VIN: VIN, CONF_ADDRESS: ADDRESS}
+
+
 # A paired site's local live_status reading.
 _LOCAL_LIVE_STATUS = {
     "response": {
