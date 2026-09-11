@@ -32,7 +32,7 @@ from homeassistant.components.teslemetry.services import (
     SERVICE_SPEED_LIMIT,
     SERVICE_TIME_OF_USE,
     SERVICE_VALET_MODE,
-    async_get_device_for_service_call,
+    async_get_device_and_config_for_service_call,
 )
 from homeassistant.const import (
     ATTR_ID,
@@ -382,7 +382,7 @@ async def test_service_validation_errors(
             },
             blocking=True,
         )
-    assert exc_info.value.translation_key == "invalid_device"
+    assert exc_info.value.translation_key == "service_device_not_found"
 
     # Test set_scheduled_charging validation error (enable=True but no time)
     with pytest.raises(ServiceValidationError) as exc_info:
@@ -490,11 +490,12 @@ async def test_get_device_for_service_call(
         SERVICE_NAVIGATE_ATTR_GPS_REQUEST,
         {CONF_DEVICE_ID: vehicle_device},
     )
-    assert async_get_device_for_service_call(hass, call).id == vehicle_device
+    device, _config = async_get_device_and_config_for_service_call(hass, call)
+    assert device.id == vehicle_device
 
     bad_call = ServiceCall(
         hass, DOMAIN, SERVICE_NAVIGATE_ATTR_GPS_REQUEST, {CONF_DEVICE_ID: "nope"}
     )
     with pytest.raises(ServiceValidationError) as exc_info:
-        async_get_device_for_service_call(hass, bad_call)
+        async_get_device_and_config_for_service_call(hass, bad_call)
     assert exc_info.value.translation_key == "invalid_device"

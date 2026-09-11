@@ -64,10 +64,10 @@ SERVICE_ADD_PRECONDITION_SCHEDULE = "add_precondition_schedule"
 SERVICE_REMOVE_PRECONDITION_SCHEDULE = "remove_precondition_schedule"
 
 
-def async_get_device_for_service_call(
+def async_get_device_and_config_for_service_call(
     hass: HomeAssistant, call: ServiceCall
-) -> dr.DeviceEntry:
-    """Get the device entry related to a service call."""
+) -> tuple[dr.DeviceEntry, TeslemetryConfigEntry]:
+    """Get the device entry and config entry related to a service call."""
     device_id = call.data[CONF_DEVICE_ID]
     device_registry = dr.async_get(hass)
     # Teslemetry never parents devices (only via_device_id), so a targeted device is
@@ -80,18 +80,12 @@ def async_get_device_for_service_call(
             translation_key="invalid_device",
             translation_placeholders={"device_id": device_id},
         )
+    device_entry = cast(dr.DeviceEntry, device_entry)
 
-    return cast(dr.DeviceEntry, device_entry)
-
-
-def async_get_config_for_device(
-    hass: HomeAssistant, device_entry: dr.DeviceEntry
-) -> TeslemetryConfigEntry:
-    """Get the config entry related to a device entry."""
     for entry_id in device_entry.config_entries:
         if entry := hass.config_entries.async_get_entry(entry_id):
             if entry.domain == DOMAIN:
-                return entry
+                return device_entry, entry
     raise ServiceValidationError(
         translation_domain=DOMAIN,
         translation_key="no_config_entry_for_device",
@@ -135,8 +129,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def navigate_gps_request(call: ServiceCall) -> None:
         """Send lat,lon,order with a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         await handle_vehicle_command(
@@ -165,8 +158,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def set_scheduled_charging(call: ServiceCall) -> None:
         """Configure fleet telemetry."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         time: int
@@ -200,8 +192,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def set_scheduled_departure(call: ServiceCall) -> None:
         """Configure fleet telemetry."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         enable = call.data.get("enable", True)
@@ -273,8 +264,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def valet_mode(call: ServiceCall) -> None:
         """Configure fleet telemetry."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         await handle_vehicle_command(
@@ -296,8 +286,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def speed_limit(call: ServiceCall) -> None:
         """Configure fleet telemetry."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         enable = call.data["enable"]
@@ -325,8 +314,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def time_of_use(call: ServiceCall) -> None:
         """Configure time of use settings."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         site = async_get_energy_site_for_entry(hass, device, config)
 
         tou_settings = call.data[ATTR_TOU_SETTINGS]
@@ -359,8 +347,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def add_charge_schedule(call: ServiceCall) -> None:
         """Configure charging schedule for a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         # Extract parameters from the service call
@@ -433,8 +420,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def remove_charge_schedule(call: ServiceCall) -> None:
         """Remove a charging schedule for a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         # Extract parameters from the service call
@@ -460,8 +446,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def add_precondition_schedule(call: ServiceCall) -> None:
         """Add or modify a precondition schedule for a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         # Extract parameters from the service call
@@ -526,8 +511,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def remove_precondition_schedule(call: ServiceCall) -> None:
         """Remove a preconditioning schedule for a vehicle."""
-        device = async_get_device_for_service_call(hass, call)
-        config = async_get_config_for_device(hass, device)
+        device, config = async_get_device_and_config_for_service_call(hass, call)
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         # Extract parameters from the service call
