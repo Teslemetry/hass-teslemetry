@@ -24,8 +24,13 @@ from tesla_fleet_api.exceptions import (
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
+from tesla_fleet_api.tesla.vehicle.stream_glue import BleBroadcastStreamGlue, StreamSink
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry, Vehicle
-from teslemetry_stream import TeslemetryStream, TeslemetryStreamAuthenticationError
+from teslemetry_stream import (
+    TeslemetryStream,
+    TeslemetryStreamAuthenticationError,
+    TeslemetryStreamVehicle,
+)
 from teslemetry_stream.const import SseTopic
 
 from homeassistant.components.application_credentials import (
@@ -523,9 +528,19 @@ class _KeyRejectionWatcher:
         self._on_accepted = on_accepted
 
     def __getattr__(self, name: str) -> Any:
-        """Forward attribute access to the wrapped vehicle, watching calls."""
+        """Forward attribute access to the wrapped vehicle, watching calls.
+
+        Only commands (async methods that can raise NotOnWhitelistFault) are
+        watched. Sync methods, such as the listen_* broadcast registrations
+        BleBroadcastStreamGlue depends on, are passed through unwrapped - they
+        never touch the network, and wrapping them would turn their return
+        value into a coroutine instead of the Unsubscribe callable it must be.
+        disconnect() is also excluded: it runs during unload regardless of key
+        state, so treating its success as an accepted command would clear a
+        rejection issue the moment the entry tears down.
+        """
         attr = getattr(self._vehicle, name)
-        if not callable(attr):
+        if name == "disconnect" or not inspect.iscoroutinefunction(attr):
             return attr
 
         async def _watched(*args: Any, **kwargs: Any) -> Any:
@@ -786,6 +801,20 @@ async def _async_gather_first_refreshes(
             task.result()
 
 
+def _setup_ble_broadcast_glue(
+    entry: TeslemetryConfigEntry,
+    vehicle_api: Vehicle | VehicleRouter,
+    stream_vehicle: TeslemetryStreamVehicle,
+) -> None:
+    """Bridge a routed vehicle's Bluetooth broadcasts into its stream sink."""
+    if not isinstance(vehicle_api, VehicleRouter):
+        return
+    ble_broadcast_glue = BleBroadcastStreamGlue(
+        vehicle_api.primary, cast(StreamSink, stream_vehicle)
+    )
+    entry.async_on_unload(ble_broadcast_glue.stop)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -943,6 +972,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 product["display_name"] or vin,
                 vehicle,
             )
+
+            _setup_ble_broadcast_glue(entry, vehicle_api, stream_vehicle)
 
             vehicles.append(
                 TeslemetryVehicleData(

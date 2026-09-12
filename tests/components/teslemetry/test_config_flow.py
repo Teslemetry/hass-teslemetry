@@ -2469,7 +2469,6 @@ async def test_pairing_add_client_generic_error_recovers(
     assert result["errors"] == {"base": "cannot_connect"}
 
 
-
 @pytest.mark.usefixtures("mock_rsa_key")
 @pytest.mark.parametrize("error", POWERWALL_502_ERRORS)
 async def test_pair_step_powerwall_unreachable(
@@ -2498,7 +2497,6 @@ async def test_pair_step_powerwall_unreachable(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "pair"
     assert result["errors"] == {"base": "powerwall_unreachable"}
-
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
