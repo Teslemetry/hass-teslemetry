@@ -56,6 +56,7 @@ from homeassistant.components.teslemetry import (
     _async_gather_first_refreshes,
     _async_get_rsa_key_pem,
     _get_access_token,
+    _KeyRejectionWatcher,
 )
 from homeassistant.components.teslemetry.const import (
     CLIENT_ID,
@@ -3512,6 +3513,35 @@ async def test_unload_never_connected_bluetooth(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
 
     bluetooth_vehicle.disconnect.assert_awaited_once()
+
+
+async def test_key_rejection_watcher_passes_sync_listeners_through_unwrapped() -> None:
+    """A sync listen_* call through the watcher must return its real result, not a coroutine.
+
+    AsyncMock(spec=VehicleBluetooth) - matching both the real class and every
+    test fixture that builds a bluetooth_vehicle mock - makes each attribute
+    sync or async based on the real method, exactly like the watcher's own
+    inspect.iscoroutinefunction check. BleBroadcastStreamGlue calls listen_*
+    synchronously and stores the return value as an Unsubscribe callable;
+    wrapping it in the watcher's async _watched would hand back an un-awaited
+    coroutine instead, silently breaking every broadcast listener.
+    """
+    vehicle = AsyncMock(spec=VehicleBluetooth)
+    unsub = MagicMock()
+    vehicle.listen_vehicle_lock_state.return_value = unsub
+    watcher = _KeyRejectionWatcher(vehicle, MagicMock(), MagicMock())
+
+    result = watcher.listen_vehicle_lock_state(MagicMock())
+
+    assert not asyncio.iscoroutine(result)
+    assert result is unsub
+    vehicle.listen_vehicle_lock_state.assert_called_once()
+
+    # A real command (async on the real class) must still be watched.
+    watched_result = watcher.flash_lights()
+    assert asyncio.iscoroutine(watched_result)
+    await watched_result
+    vehicle.flash_lights.assert_awaited_once()
 
 
 async def test_ble_broadcast_updates_stream_backed_entity(

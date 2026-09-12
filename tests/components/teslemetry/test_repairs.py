@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 
 from homeassistant.components.repairs import ConfirmRepairFlow, FlowType
 from homeassistant.components.teslemetry.const import (
@@ -83,7 +84,9 @@ async def _setup_ble_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
         patch("homeassistant.components.teslemetry.PLATFORMS", []),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
-        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock(
+            spec=VehicleBluetooth
+        )
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     return entry

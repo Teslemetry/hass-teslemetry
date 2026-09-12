@@ -35,6 +35,7 @@ from tesla_fleet_api.exceptions import (
 )
 from tesla_fleet_api.tesla import EnergySiteRouter, VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, AuthorizedClients
 import voluptuous as vol
 from yarl import URL
@@ -796,7 +797,9 @@ async def _setup_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
         patch("homeassistant.components.teslemetry.PLATFORMS", []),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
-        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock(
+            spec=VehicleBluetooth
+        )
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     return entry
