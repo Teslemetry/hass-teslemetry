@@ -1290,6 +1290,9 @@
     "command_reason": {
       "message": "Command was rejected: {reason}"
     },
+    "invalid_device": {
+      "message": "Device ID {device_id} is not a valid device"
+    },
     "local_update_failed": {
       "message": "Error fetching data from the local Powerwall gateway: {message}"
     },
@@ -1298,6 +1301,9 @@
     },
     "no_cable": {
       "message": "Insert cable to lock, charge cable will lock automatically when connected"
+    },
+    "no_config_entry_for_device": {
+      "message": "No Teslemetry config entry for device ID: {device_id}"
     },
     "no_energy_site_data_for_device": {
       "message": "No energy site data for device ID: {device_id}"
