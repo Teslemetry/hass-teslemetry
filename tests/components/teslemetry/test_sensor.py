@@ -10,15 +10,18 @@ from teslemetry_stream import Signal
 
 from homeassistant.components.teslemetry.const import DOMAIN
 from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
+from homeassistant.components.teslemetry.sensor import _tpms_atm_to_bar
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     EntityCategory,
     Platform,
+    UnitOfPressure,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util.unit_conversion import PressureConverter
 
 from . import assert_entities, assert_entities_alt, setup_platform
 from .const import (
@@ -378,6 +381,18 @@ async def test_sensors_streaming_unit_conversion(
     state = hass.states.get(entity_id)
     assert state is not None
     assert float(state.state) == pytest.approx(expected_state)
+
+
+def test_tpms_atm_to_bar_matches_dev_pressure_converter() -> None:
+    """The stable-core ATM compat shim must be numerically identical to core's own PressureConverter(ATM, BAR).
+
+    This dev checkout has UnitOfPressure.ATM, so this only proves value
+    equality; release.sh's tpms_atm_gate proves the shim never references it.
+    """
+    for atm in (0.0, 1.0, 2.7, 3.14159):
+        assert _tpms_atm_to_bar(atm) == PressureConverter.convert(
+            atm, UnitOfPressure.ATM, UnitOfPressure.BAR
+        )
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
