@@ -508,6 +508,48 @@ A declared subentry type without translations renders as a bare unlabelled '+' b
   done <<<"$types"
 }
 
+# Hard gate: the services.py device-lookup shim (the include_child_devices
+# drop) raises ServiceValidationError with translation_key values whose
+# exceptions.<key>.message strings live only in strings.json / translations/en.json,
+# not in services.py itself. A core-dev sync can resolve services.py correctly
+# (keep the shim) while strings.json has no textual conflict and silently takes
+# upstream's deletion of those keys, orphaning the shim's error messages with a
+# green build. Happened twice (release-6.0.19, release-6.0.20) before landing on
+# main. See AGENTS.md. Assert against the composed tree that every
+# translation_key="..." raised in services.py has a non-empty
+# exceptions.<key>.message in both strings.json and the compiled translations/en.json.
+services_exceptions_gate() {
+  log "Gate: services.py exception keys carry translations"
+  local strings="$INTEGRATION/strings.json"
+  local compiled="$INTEGRATION/translations/en.json"
+  [ -f "$SERVICES_PY" ] || die "$SERVICES_PY missing"
+
+  local keys
+  keys=$(sed -n 's/.*translation_key="\([^"]*\)".*/\1/p' "$SERVICES_PY" | sort -u)
+  if [ -z "$keys" ]; then
+    info "no translation_key=\"...\" raised in services.py; nothing to check"
+    return 0
+  fi
+
+  [ -f "$strings" ]  || die "$strings missing but services.py raises translation_key values"
+  [ -f "$compiled" ] || die "$compiled missing but services.py raises translation_key values"
+
+  local key pair file kind
+  while read -r key; do
+    [ -n "$key" ] || continue
+    for pair in "$strings|strings.json" "$compiled|compiled translations/en.json"; do
+      file=${pair%%|*}
+      kind=${pair#*|}
+      jq -e --arg k "$key" \
+        '(.exceptions[$k].message) as $m | ($m | type == "string") and ($m | length > 0)' \
+        "$file" >/dev/null 2>&1 \
+        || die "translation_key '$key' is raised in services.py but has no non-empty exceptions.$key.message in $kind.
+A core-dev sync can resolve services.py correctly while silently dropping the matching strings.json exceptions entry (no textual conflict), orphaning the shim's error message with a green build. Restore exceptions.$key in strings.json and recompile translations; do not hand-edit en.json. See AGENTS.md."
+    done
+    info "translation_key '$key' labelled in source and compiled strings"
+  done <<<"$keys"
+}
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -591,6 +633,7 @@ main() {
   subentry_migration_gate
   aiopowerwall_pin_gate
   subentry_translations_gate
+  services_exceptions_gate
   build_gate
   approve_and_publish
 }
