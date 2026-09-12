@@ -1785,7 +1785,9 @@ async def test_energy_site_subentry_without_credentials_uses_cloud(
                 subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
                 unique_id=str(SITE_ID),
                 title="Energy Site",
-                data={CONF_SITE_ID: SITE_ID},
+                # A host with no password: incomplete pairing, not the fully-empty
+                # holder shape hacs_remove_empty_holder_subentries cleans up.
+                data={CONF_SITE_ID: SITE_ID, CONF_HOST: HOST},
             )
         ],
     )
@@ -1992,7 +1994,9 @@ async def test_stale_cleanup_preserves_foreign_subentry(hass: HomeAssistant) -> 
     entry = mock_config_entry()
     entry.add_to_hass(hass)
     foreign = ConfigSubentry(
-        data=MappingProxyType({"vin": "VIN123"}),
+        # A paired (not just identity-key) shape: hacs_remove_empty_holder_subentries
+        # only cleans up a holder carrying no pairing credentials.
+        data=MappingProxyType({"vin": "VIN123", "address": "AA:BB:CC:DD:EE:FF"}),
         subentry_type="vehicle",
         title="A Vehicle",
         unique_id="VIN123",
