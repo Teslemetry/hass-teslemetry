@@ -205,6 +205,19 @@ TURN_SIGNAL_STATES = {
     "Both": "both",
 }
 
+# 1 atm = 101325 Pa, the exact ratio HA core's own PressureConverter uses for
+# UnitOfPressure.ATM. That member is dev-only and absent on stable core; see
+# AGENTS.md. Routing through UnitOfPressure.PA (present on every core) keeps
+# the result numerically identical to PressureConverter.convert(x, ATM, BAR).
+_PASCALS_PER_ATM = 101325
+
+
+def _tpms_atm_to_bar(value: float) -> float:
+    """Convert a streamed TPMS pressure from atm to bar via the stable-core PA unit."""
+    return PressureConverter.convert(
+        value * _PASCALS_PER_ATM, UnitOfPressure.PA, UnitOfPressure.BAR
+    )
+
 
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryVehicleSensorEntityDescription(SensorEntityDescription):
@@ -412,13 +425,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_fl",
         polling=True,
         streaming_listener=lambda vehicle, callback: vehicle.listen_TpmsPressureFl(
-            lambda x: (
-                callback(None)
-                if x is None
-                else callback(
-                    PressureConverter.convert(x, UnitOfPressure.ATM, UnitOfPressure.BAR)
-                )
-            )
+            lambda x: callback(None) if x is None else callback(_tpms_atm_to_bar(x))
         ),
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
@@ -432,13 +439,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_fr",
         polling=True,
         streaming_listener=lambda vehicle, callback: vehicle.listen_TpmsPressureFr(
-            lambda x: (
-                callback(None)
-                if x is None
-                else callback(
-                    PressureConverter.convert(x, UnitOfPressure.ATM, UnitOfPressure.BAR)
-                )
-            )
+            lambda x: callback(None) if x is None else callback(_tpms_atm_to_bar(x))
         ),
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
@@ -452,13 +453,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_rl",
         polling=True,
         streaming_listener=lambda vehicle, callback: vehicle.listen_TpmsPressureRl(
-            lambda x: (
-                callback(None)
-                if x is None
-                else callback(
-                    PressureConverter.convert(x, UnitOfPressure.ATM, UnitOfPressure.BAR)
-                )
-            )
+            lambda x: callback(None) if x is None else callback(_tpms_atm_to_bar(x))
         ),
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
@@ -472,13 +467,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
         key="vehicle_state_tpms_pressure_rr",
         polling=True,
         streaming_listener=lambda vehicle, callback: vehicle.listen_TpmsPressureRr(
-            lambda x: (
-                callback(None)
-                if x is None
-                else callback(
-                    PressureConverter.convert(x, UnitOfPressure.ATM, UnitOfPressure.BAR)
-                )
-            )
+            lambda x: callback(None) if x is None else callback(_tpms_atm_to_bar(x))
         ),
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.BAR,
