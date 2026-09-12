@@ -27,6 +27,7 @@ FORK_REPO="Teslemetry/hass-teslemetry"      # origin: the HACS fork we release
 CORE_REPO="home-assistant/core"             # upstream: core, source of PRs/dev
 INTEGRATION="homeassistant/components/teslemetry"
 DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
+SENSOR_PY="$INTEGRATION/sensor.py"
 SERVICES_PY="$INTEGRATION/services.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
@@ -365,6 +366,27 @@ $hits"
   info "ATTR_LATITUDE/ATTR_LONGITUDE present, dev-only enum absent from code"
 }
 
+# Hard gate: the stable-core TPMS UnitOfPressure.ATM compat shim v6.0.20
+# shipped broken. Core PR #181508 ships four streamed tire-pressure sensors
+# using UnitOfPressure.ATM (PressureConverter), but that member is dev-only
+# (core PR #178708, first released 2026.10) and raises AttributeError on every
+# stable core HACS users run - the break is stable-core-only, so the dev-form
+# build gate passes green. This grep is the only thing that catches it. See
+# AGENTS.md.
+tpms_atm_gate() {
+  log "Gate: sensor.py stable-core UnitOfPressure.ATM TPMS compat"
+  [ -f "$SENSOR_PY" ] || die "$SENSOR_PY missing"
+  # Forbidden only in code: the enum member is 2026.10-dev-only and raises
+  # AttributeError on the stable cores HACS users run. Allowed inside comments.
+  local hits
+  hits=$(awk '{ code=$0; sub(/#.*/,"",code);
+               if (code ~ /UnitOfPressure\.ATM/) print NR": "$0 }' \
+             "$SENSOR_PY" || true)
+  [ -z "$hits" ] || die "$SENSOR_PY uses dev-only UnitOfPressure.ATM in code - the four streamed TPMS sensors will raise AttributeError on stable core:
+$hits"
+  info "UnitOfPressure.ATM absent from sensor.py code"
+}
+
 # Hard gate: services.py must not call async_get with the dev-only
 # include_child_devices kwarg. Core PR #178666 added it to teslemetry's own
 # service helper on dev; it is absent on every released core, so it raises
@@ -564,6 +586,7 @@ main() {
   apply_prs
   update_version
   device_tracker_gate
+  tpms_atm_gate
   services_child_devices_gate
   subentry_migration_gate
   aiopowerwall_pin_gate
