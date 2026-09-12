@@ -382,7 +382,7 @@ async def test_service_validation_errors(
             },
             blocking=True,
         )
-    assert exc_info.value.translation_key == "service_device_not_found"
+    assert exc_info.value.translation_key == "invalid_device"
 
     # Test set_scheduled_charging validation error (enable=True but no time)
     with pytest.raises(ServiceValidationError) as exc_info:
