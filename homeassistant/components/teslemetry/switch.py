@@ -509,6 +509,8 @@ class TeslemetryChargeOnSolarSwitchEntity(
 
         self.raise_for_scope(Scope.VEHICLE_CMDS)
         await async_set_charge_on_solar(
+            self.hass,
+            self.config_entry,
             self.api,
             enabled=enabled,
             lower_charge_limit=self.vehicle.charge_on_solar_lower_limit,

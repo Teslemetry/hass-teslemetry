@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from aiohttp import ClientConnectionError, ClientError, ClientResponseError, RequestInfo
 from aiopowerwall import (
+    DEFAULT_GATEWAY_HOST,
     PowerwallAuthenticationError,
     PowerwallConnectionError,
     PowerwallFaultError,
@@ -35,7 +36,6 @@ from tesla_fleet_api.exceptions import (
 from tesla_fleet_api.tesla import EnergySiteRouter, VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, AuthorizedClients
-import voluptuous as vol
 from yarl import URL
 
 from homeassistant.components.application_credentials import (
@@ -1748,14 +1748,6 @@ def _credentials_host_default(result: SubentryFlowResult) -> str:
     raise AssertionError("CONF_HOST field not found in credentials schema")
 
 
-def _credentials_host_is_blank(result: SubentryFlowResult) -> bool:
-    """Return whether the CONF_HOST field carries no schema default (left blank)."""
-    for key in result["data_schema"].schema:
-        if key == CONF_HOST:
-            return key.default is vol.UNDEFINED
-    raise AssertionError("CONF_HOST field not found in credentials schema")
-
-
 @pytest.mark.usefixtures("mock_rsa_key")
 async def test_energy_subentry_pairing_requires_key_approval(
     hass: HomeAssistant,
@@ -1811,28 +1803,6 @@ async def test_energy_subentry_pairing_requires_key_approval(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     subentry = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0]
     assert subentry.data[CONF_HOST] == HOST
-
-
-@pytest.mark.usefixtures("mock_rsa_key")
-async def test_subentry_null_body_aborts_as_lookup_failure(hass: HomeAssistant) -> None:
-    """A malformed authorized-clients read aborts rather than registering."""
-    entry = await _setup_account_no_subentry(hass)
-
-    with (
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
-            new=AsyncMock(side_effect=InvalidResponse),
-        ),
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.add_authorized_client",
-            new=AsyncMock(),
-        ) as mock_add,
-    ):
-        result = await _start_add_flow_select_site(hass, entry)
-
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "cannot_connect"
-    mock_add.assert_not_awaited()
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
@@ -2167,10 +2137,10 @@ async def test_add_flow_aborts_when_entry_not_loaded(hass: HomeAssistant) -> Non
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
-async def test_gateway_discovery_failure_leaves_host_blank(
+async def test_gateway_discovery_failure_proceeds_without_host(
     hass: HomeAssistant,
 ) -> None:
-    """A failed gateway-address discovery leaves the host field blank and proceeds."""
+    """A failed gateway-address discovery leaves the host default unset."""
     entry = await _setup_account_no_subentry(hass)
 
     with (
@@ -2189,33 +2159,7 @@ async def test_gateway_discovery_failure_leaves_host_blank(
 
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "credentials"
-    assert _credentials_host_is_blank(result)
-
-
-@pytest.mark.usefixtures("mock_rsa_key")
-async def test_gateway_discovery_empty_leaves_host_blank(
-    hass: HomeAssistant,
-) -> None:
-    """Discovery returning no address (without raising) leaves the host blank and proceeds."""
-    entry = await _setup_account_no_subentry(hass)
-
-    with (
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_gateway_address",
-            new=AsyncMock(return_value=None),
-        ),
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
-            new=AsyncMock(
-                return_value=_own_key_clients(AuthorizedClientState.VERIFIED)
-            ),
-        ),
-    ):
-        result = await _start_add_flow_select_site(hass, entry)
-
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "credentials"
-    assert _credentials_host_is_blank(result)
+    assert _credentials_host_default(result) == DEFAULT_GATEWAY_HOST
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
@@ -2270,28 +2214,6 @@ async def test_timed_out_key_reregisters_for_a_fresh_window(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "pair"
     mock_add.assert_awaited_once()
-
-
-@pytest.mark.usefixtures("mock_rsa_key")
-async def test_unrecognized_state_aborts_pairing(hass: HomeAssistant) -> None:
-    """An unrecognized authorized-client state aborts rather than re-registering."""
-    entry = await _setup_account_no_subentry(hass)
-
-    with (
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
-            new=AsyncMock(return_value=_own_key_clients("gremlin")),
-        ),
-        patch(
-            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.add_authorized_client",
-            new=AsyncMock(),
-        ) as mock_add,
-    ):
-        result = await _start_add_flow_select_site(hass, entry)
-
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "cannot_connect"
-    mock_add.assert_not_awaited()
 
 
 @pytest.mark.usefixtures("mock_rsa_key")

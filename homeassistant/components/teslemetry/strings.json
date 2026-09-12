@@ -1266,11 +1266,17 @@
     "invalid_cop_temp": {
       "message": "Cabin overheat protection does not support that temperature"
     },
+    "invalid_device": {
+      "message": "Device ID {device_id} is not a valid device"
+    },
     "missing_scope": {
       "message": "Missing required scope: {scope}"
     },
     "no_cable": {
       "message": "Insert cable to lock, charge cable will lock automatically when connected"
+    },
+    "no_config_entry_for_device": {
+      "message": "No Teslemetry config entry for device ID: {device_id}"
     },
     "no_energy_site_data_for_device": {
       "message": "No energy site data for device ID: {device_id}"
