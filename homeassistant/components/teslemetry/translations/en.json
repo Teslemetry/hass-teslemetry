@@ -51,17 +51,22 @@
                 "already_configured": "Device is already configured",
                 "cannot_connect": "Failed to connect",
                 "entry_not_loaded": "The Teslemetry account must be loaded before setting up local control. Try again once it has finished loading.",
-                "no_powerwall": "Local control requires a Powerwall, and no energy site with one is currently accessible on your Teslemetry account."
+                "no_powerwall": "Local control requires a Powerwall, and no energy site with one is currently accessible on your Teslemetry account.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later.",
+                "reconfigure_successful": "Reconfiguration was successful"
             },
             "entry_type": "Energy site",
             "error": {
                 "cannot_connect": "Failed to connect",
                 "invalid_password": "Invalid authentication",
+                "key_expired": "The approval window on your Powerwall closed before the key was approved. Submit to request a new window and try again.",
                 "key_not_approved": "Your Powerwall system rejected Home Assistant's key because it has not been approved. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
                 "key_not_registered": "Home Assistant's key is no longer registered on your Powerwall system. Restart setup to register it again.",
-                "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again."
+                "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later."
             },
             "initiate_flow": {
+                "reconfigure": "Reconfigure energy site",
                 "user": "Add local energy site"
             },
             "step": {
@@ -89,18 +94,19 @@
         "vehicle": {
             "abort": {
                 "already_configured": "Device is already configured",
+                "bluetooth_not_available": "At least one Bluetooth adapter or remote Bluetooth proxy must be configured to add a vehicle over Bluetooth.",
                 "entry_not_loaded": "The Teslemetry configuration entry is not loaded. Please ensure it is set up correctly before adding a vehicle.",
-                "no_vehicles": "Every vehicle in your Teslemetry account has already been added over Bluetooth."
+                "no_vehicles": "Every eligible vehicle in your Teslemetry account has already been added over Bluetooth."
             },
             "entry_type": "Bluetooth vehicle",
             "error": {
                 "cannot_connect": "Failed to connect",
-                "device_not_found": "No matching Tesla vehicle was found nearby over Bluetooth. Make sure the vehicle is awake and within range, then try again.",
+                "device_not_found": "No matching Tesla vehicle was found nearby over Bluetooth. Make sure the vehicle is within range, then try again.",
                 "pair_failed": "The vehicle rejected the key. Make sure it is not in valet mode and does not already have the maximum number of keys, then try again.",
                 "timeout": "Timed out waiting for the vehicle to accept the key. Try again after approving the key on the vehicle's touchscreen."
             },
             "initiate_flow": {
-                "user": "Add Bluetooth vehicle"
+                "user": "Add local vehicle"
             },
             "progress": {
                 "pair": "Approve Home Assistant's virtual key on the vehicle's touchscreen. Waiting for the vehicle to accept the key."
@@ -111,7 +117,7 @@
                     "title": "Approve the virtual key"
                 },
                 "scan": {
-                    "description": "Home Assistant will look for vehicle {vin} over Bluetooth to enable local command control. Make sure the vehicle is awake and within Bluetooth range of a Home Assistant Bluetooth adapter, then continue.",
+                    "description": "Home Assistant will look for vehicle {vin} over Bluetooth. Make sure the vehicle is within Bluetooth range of a Home Assistant Bluetooth adapter and has fewer than three phone keys in range, then continue.",
                     "title": "Set up Bluetooth control"
                 },
                 "user": {
@@ -121,8 +127,8 @@
                     "data_description": {
                         "vin": "The account vehicle to enable local Bluetooth control for."
                     },
-                    "description": "Select which of your Teslemetry account vehicles to add over Bluetooth for local command control.",
-                    "title": "Add Bluetooth vehicle"
+                    "description": "Select which of your eligible vehicles to configure the local Bluetooth connection.",
+                    "title": "Add local vehicle"
                 }
             }
         }
@@ -332,6 +338,12 @@
             "boombox": {
                 "name": "Play fart"
             },
+            "disable_keep_accessory_power_mode": {
+                "name": "Disable keep accessory power"
+            },
+            "enable_keep_accessory_power_mode": {
+                "name": "Enable keep accessory power"
+            },
             "enable_keyless_driving": {
                 "name": "Keyless driving"
             },
@@ -430,6 +442,9 @@
         "number": {
             "backup_reserve_percent": {
                 "name": "Backup reserve"
+            },
+            "charge_on_solar_lower_limit": {
+                "name": "Charge on solar lower limit"
             },
             "charge_state_charge_current_request": {
                 "name": "Charge current"
@@ -1175,6 +1190,9 @@
             }
         },
         "switch": {
+            "charge_on_solar": {
+                "name": "Charge on solar"
+            },
             "charge_state_charging_state": {
                 "name": "Charge"
             },
@@ -1243,6 +1261,9 @@
         "command_reason": {
             "message": "Command was rejected: {reason}"
         },
+        "insufficient_credits": {
+            "message": "Your Teslemetry account does not have enough command credits. Purchase more credits to continue controlling your vehicles."
+        },
         "invalid_cop_temp": {
             "message": "Cabin overheat protection does not support that temperature"
         },
@@ -1294,6 +1315,9 @@
         "update_failed_invalid_data": {
             "message": "Received invalid data from API"
         },
+        "vehicle_first_refresh_timeout": {
+            "message": "Timed out waiting for vehicle {vin} to respond"
+        },
         "wake_up_failed": {
             "message": "Failed to wake up vehicle: {message}"
         },
@@ -1302,6 +1326,36 @@
         }
     },
     "issues": {
+        "gateway_not_found": {
+            "fix_flow": {
+                "abort": {
+                    "cannot_connect": "Failed to connect",
+                    "entry_not_loaded": "The Teslemetry account must be loaded before setting up local control. Try again once it has finished loading."
+                },
+                "error": {
+                    "cannot_connect": "Failed to connect",
+                    "invalid_auth": "The Powerwall system at this address did not accept the saved password. Check that the address belongs to the Powerwall system for this energy site.",
+                    "key_not_approved": "Your Powerwall system rejected Home Assistant's key because it has not been approved. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again."
+                },
+                "step": {
+                    "host": {
+                        "data": {
+                            "host": "Host"
+                        },
+                        "data_description": {
+                            "host": "The address of your Powerwall system on your local network."
+                        },
+                        "description": "Home Assistant cannot reach the Powerwall system for {site} at its saved address on your local network, so local control is unavailable and commands are sent through the cloud. Enter its current local network address.",
+                        "title": "Local control unavailable for {site}"
+                    }
+                }
+            },
+            "title": "Local control unavailable for {site}"
+        },
+        "insufficient_credits": {
+            "description": "A command could not be sent because your Teslemetry account ({account}) does not have enough command credits.\n\nSending commands to your Tesla vehicles consumes credits. To continue controlling your vehicles, purchase more credits from the [Teslemetry console]({credits_url}).\n\nThis issue will be removed automatically once your account has enough credits available again.",
+            "title": "Insufficient Teslemetry credits"
+        },
         "key": {
             "fix_flow": {
                 "error": {
@@ -1341,6 +1395,14 @@
                     "ship_logs_to_clickstack": "Continuously send this integration's logs to Teslemetry so support can help diagnose issues without you needing to paste log files. Stays on across a Home Assistant restart."
                 }
             }
+        }
+    },
+    "preview_features": {
+        "charge_on_solar": {
+            "description": "Adds a vehicle switch to enable and disable Tesla's charge on solar mode, and a number entity to set its lower charge limit. The existing charge limit number entity is reused as the upper charge limit.\n\nThis feature does not currently expose a reliable state from the API, so the switch and lower limit use an assumed state.",
+            "disable_confirmation": "The charge-on-solar switch and lower limit will be removed from your Teslemetry vehicles.",
+            "enable_confirmation": "The charge-on-solar switch and lower limit will be added to your Teslemetry vehicles.",
+            "name": "Charge on solar"
         }
     },
     "selector": {
