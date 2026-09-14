@@ -1846,7 +1846,7 @@ async def test_energy_subentry_pairing_requires_key_approval(
             new=AsyncMock(),
         ) as mock_add,
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -1930,7 +1930,7 @@ async def test_subentry_lookup_failure_recovers(hass: HomeAssistant) -> None:
             new=AsyncMock(),
         ) as mock_add,
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2005,7 +2005,7 @@ async def test_subentry_credentials_errors(
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
     ):
@@ -2159,7 +2159,7 @@ async def test_add_flow_creates_subentry_bound_to_existing_device(
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2210,7 +2210,7 @@ async def test_subentry_credentials_password_truncated(hass: HomeAssistant) -> N
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ) as mock_client,
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2415,7 +2415,7 @@ async def test_unrecognized_state_recovers(hass: HomeAssistant) -> None:
             new=AsyncMock(),
         ) as mock_add,
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2493,7 +2493,7 @@ async def test_add_authorized_client_failure_recovers(hass: HomeAssistant) -> No
             new=AsyncMock(side_effect=[ClientError, None]),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2592,7 +2592,7 @@ async def test_pair_step_timeout_retry_reopens_window_and_succeeds(
             new=AsyncMock(),
         ) as mock_add,
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2666,7 +2666,7 @@ async def test_rsa_key_load_failure_recovers(
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload"),
@@ -2726,7 +2726,7 @@ async def test_reconfigure_updates_credentials_and_schedules_reload(
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
@@ -2766,7 +2766,7 @@ async def test_reconfigure_unchanged_credentials_still_schedules_reload(
             ),
         ),
         patch(
-            "homeassistant.components.teslemetry.config_flow.PowerwallClient",
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
             return_value=client,
         ),
         patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
