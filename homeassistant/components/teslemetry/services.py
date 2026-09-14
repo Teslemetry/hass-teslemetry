@@ -81,7 +81,12 @@ def async_get_device_and_config_for_service_call(
         )
     device_entry = cast(dr.DeviceEntry, device_entry)
 
-    for entry_id in device_entry.config_entries:
+    # config_entries is deprecated on dev core in favor of the single config_entry_id;
+    # reading it on dev triggers a deprecation frame report, so prefer config_entry_id
+    # when present and fall back to config_entries on the stable cores HACS supports.
+    primary_entry_id = getattr(device_entry, "config_entry_id", None)
+    entry_ids = {primary_entry_id} if primary_entry_id else device_entry.config_entries
+    for entry_id in entry_ids:
         if entry := hass.config_entries.async_get_entry(entry_id):
             if entry.domain == DOMAIN:
                 return device_entry, entry
