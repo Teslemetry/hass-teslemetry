@@ -21,8 +21,13 @@ from tesla_fleet_api.exceptions import (
 )
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
+from tesla_fleet_api.tesla.vehicle.stream_glue import BleBroadcastStreamGlue, StreamSink
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry, Vehicle
-from teslemetry_stream import TeslemetryStream, TeslemetryStreamAuthenticationError
+from teslemetry_stream import (
+    TeslemetryStream,
+    TeslemetryStreamAuthenticationError,
+    TeslemetryStreamVehicle,
+)
 from teslemetry_stream.const import SseTopic
 
 from homeassistant.components.application_credentials import (
@@ -713,6 +718,20 @@ async def _async_gather_first_refreshes(
             task.result()
 
 
+def _setup_ble_broadcast_glue(
+    entry: TeslemetryConfigEntry,
+    vehicle_api: Vehicle | VehicleRouter,
+    stream_vehicle: TeslemetryStreamVehicle,
+) -> None:
+    """Bridge a routed vehicle's Bluetooth broadcasts into its stream sink."""
+    if not isinstance(vehicle_api, VehicleRouter):
+        return
+    ble_broadcast_glue = BleBroadcastStreamGlue(
+        vehicle_api.primary, cast(StreamSink, stream_vehicle)
+    )
+    entry.async_on_unload(ble_broadcast_glue.stop)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -869,6 +888,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 vin,
                 vehicle,
             )
+
+            _setup_ble_broadcast_glue(entry, vehicle_api, stream_vehicle)
 
             vehicles.append(
                 TeslemetryVehicleData(
