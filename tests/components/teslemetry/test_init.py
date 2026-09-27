@@ -47,6 +47,7 @@ from homeassistant.components.homeassistant import (
     DOMAIN as HA_DOMAIN,
     SERVICE_UPDATE_ENTITY,
 )
+from homeassistant.components.labs import async_update_preview_feature
 from homeassistant.components.number import (
     ATTR_VALUE,
     DOMAIN as NUMBER_DOMAIN,
@@ -64,6 +65,7 @@ from homeassistant.components.teslemetry.const import (
     CONF_VIN,
     CREDITS_URL,
     DOMAIN,
+    LABS_CHARGE_ON_SOLAR_FEATURE,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
 )
@@ -4040,3 +4042,20 @@ async def test_user_subentry_persists_across_reload(hass: HomeAssistant) -> None
     assert len(subentries) == 1
     assert subentries[0].subentry_id == subentry_id
     assert subentries[0].data == {CONF_VIN: VIN, CONF_ADDRESS: ADDRESS}
+
+
+async def test_labs_charge_on_solar_toggle_triggers_reload(
+    hass: HomeAssistant,
+) -> None:
+    """Test labs charge-on-solar feature toggle schedules an integration reload."""
+    assert await async_setup_component(hass, "labs", {})
+    entry = await setup_platform(hass)
+    assert entry.state is ConfigEntryState.LOADED
+
+    with patch.object(hass.config_entries, "async_schedule_reload") as mock_reload:
+        await async_update_preview_feature(
+            hass, DOMAIN, LABS_CHARGE_ON_SOLAR_FEATURE, True
+        )
+        await hass.async_block_till_done()
+
+    mock_reload.assert_called_once_with(entry.entry_id)
