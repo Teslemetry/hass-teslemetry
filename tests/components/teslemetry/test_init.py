@@ -2555,8 +2555,6 @@ _LOCAL_LIVE_STATUS = {
 # Expected entity states once _LOCAL_LIVE_STATUS is merged over the cloud fixture.
 _LOCAL_LIVE_STATES = {
     "sensor.energy_site_solar_power": "2.0",
-    "sensor.energy_site_energy_left": "20.0",
-    "sensor.energy_site_total_pack_energy": "40.0",
     "sensor.energy_site_percentage_charged": "80.0",
     "sensor.energy_site_battery_power": "3.0",
     "sensor.energy_site_load_power": "4.0",
