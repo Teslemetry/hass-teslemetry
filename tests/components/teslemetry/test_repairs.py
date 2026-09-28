@@ -33,6 +33,7 @@ from tesla_fleet_api.exceptions import (
 )
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 
 from homeassistant.components.repairs import ConfirmRepairFlow, FlowType
 from homeassistant.components.teslemetry.const import (
@@ -314,7 +315,7 @@ async def _raise_ble_key_issue(hass: HomeAssistant) -> MockConfigEntry:
     assert await async_setup_component(hass, "repairs", {})
     entry = _entry_with_ble_vehicles()
     entry.add_to_hass(hass)
-    bluetooth_vehicle = AsyncMock()
+    bluetooth_vehicle = AsyncMock(spec=VehicleBluetooth)
     bluetooth_vehicle.set_device = MagicMock()
     bluetooth_vehicle.flash_lights.side_effect = NotOnWhitelistFault()
 
