@@ -1,7 +1,7 @@
 """Teslemetry integration."""
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -107,6 +107,7 @@ from .const import (
     VEHICLE_ISSUE_LEARN_MORE,
 )
 from .coordinator import (
+    VEHICLE_FIRST_REFRESH_TIMEOUT,
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
@@ -891,6 +892,48 @@ def _remove_stale_devices(
             device_registry.async_remove_device(device_entry.id)
 
 
+async def _async_vehicle_first_refresh(vehicle: TeslemetryVehicleData) -> None:
+    """Refresh a polling vehicle, bounding a sleeping car's slow response.
+
+    A sleeping vehicle can hold vehicle_data open for minutes; bound it so setup
+    retries instead of stalling HA's bootstrap. The stream stays unbounded.
+    """
+    try:
+        async with asyncio.timeout(VEHICLE_FIRST_REFRESH_TIMEOUT):
+            await vehicle.coordinator.async_config_entry_first_refresh()
+    except TimeoutError as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="vehicle_first_refresh_timeout",
+            translation_placeholders={"vin": vehicle.vin},
+        ) from err
+
+
+async def _async_gather_first_refreshes(
+    *coros: Coroutine[Any, Any, Any],
+) -> None:
+    """Run first-refresh coroutines concurrently, cancelling siblings on failure.
+
+    asyncio.gather without return_exceptions propagates the first exception but
+    leaves the other awaitables running. A timed-out vehicle refresh must not
+    leave a sleeping vehicle's stream get_config() or an energy site refresh
+    running in the background, so this cancels and awaits the rest before the
+    failure propagates. Unlike asyncio.wait(return_when=FIRST_EXCEPTION), which
+    ignores a cancelled task, asyncio.gather resolves as soon as any task is
+    cancelled or raises, so a cancelled sibling still triggers cleanup promptly.
+    """
+    tasks = [asyncio.ensure_future(coro) for coro in coros]
+    if not tasks:
+        return
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -1172,14 +1215,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             )
 
     # Run all first refreshes
-    await asyncio.gather(
+    await _async_gather_first_refreshes(
         *(
             async_setup_stream(hass, entry, vehicle)
             for vehicle in vehicles
             if not vehicle.poll
         ),
         *(
-            vehicle.coordinator.async_config_entry_first_refresh()
+            _async_vehicle_first_refresh(vehicle)
             for vehicle in vehicles
             if vehicle.poll
         ),
