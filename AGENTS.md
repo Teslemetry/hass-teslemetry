@@ -19,6 +19,15 @@ The pipeline runs every phase automatically and fail-stop. It **never** runs `gi
 - **The TEMPORARY `quality_scale.yaml` checkpoint** — the script excludes `quality_scale.yaml` from every per-PR patch (it conflicts repeatedly while quality-scale work is in flight) and pauses once for you to write the correct combined final state and `git add` it. Retire the checkpoint and the exclusion together once the quality scale PRs have merged.
 - **The approval pause** — reached only after the build gate passed in full. Type `publish`; anything else aborts with nothing published.
 
+### What a cut composes
+
+A release is core `dev` (the `upstream/dev` sync) plus, in `apply_prs`, one commit per PR in this order:
+
+1. Every open Bre77 PR on `home-assistant/core` labelled `integration: teslemetry`, ascending by number. Commit subject `#<N>: <title>`.
+2. Every open PR on the staging fork `Teslemetry/home-assistant` whose base is `dev` and that touches `homeassistant/components/teslemetry/` or `tests/components/teslemetry/`, draft or ready, ascending by number. Commit subject `fork#<N>: <title>`. These are staged changes still awaiting the captain's review, so their release-notes lines are marked `(staged, draft)` or `(staged, ready)`.
+
+Both lists use `gh pr list --limit 200` (`PR_LIST_LIMIT`) and the cut dies if a list fills the limit. gh's default of 30 truncates silently, which drops the oldest PRs from a cut. To see today's compose set without cutting, `source ./release.sh` and run `list_core_prs` / `list_fork_prs`. Sourcing the script does not start a cut.
+
 ### How the release line is selected
 
 Versions bump off the latest release **tag** (`git tag -l 'v*'`, version-sorted). Tags are the durable record even when a release object is deleted (a yanked build whose tag is kept), and are the same source `aiopowerwall_pin_gate` reads.
