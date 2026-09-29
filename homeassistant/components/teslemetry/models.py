@@ -7,6 +7,7 @@ from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
 
@@ -46,6 +47,10 @@ class TeslemetryVehicleData:
     vin: str
     firmware: str
     device: DeviceInfo
+    # Set exactly when the vehicle has a Bluetooth subentry; ble_api is
+    # additionally None when the private key could not be loaded.
+    ble_address: str | None
+    ble_api: VehicleBluetooth | None
     wakelock: asyncio.Lock = field(default_factory=asyncio.Lock)
     charge_on_solar_lower_limit: int = 20
     charge_on_solar_enabled: bool = False
