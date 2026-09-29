@@ -638,7 +638,7 @@ async def _async_resolve_vehicle_api(
 
     return (
         VehicleRouter(
-            bluetooth_vehicle, cloud_vehicle, health=_in_range, on_error=_on_result
+            bluetooth_vehicle, cloud_vehicle, health=_in_range, on_result=_on_result
         ),
         bluetooth_vehicle,
     )
