@@ -34,6 +34,7 @@ from tesla_fleet_api.exceptions import (
 )
 from tesla_fleet_api.tesla import VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, AuthorizedClients
 
 from homeassistant.components.application_credentials import (
@@ -791,10 +792,9 @@ async def _setup_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
         patch("homeassistant.components.teslemetry.PLATFORMS", []),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
-        ble_vehicle = AsyncMock()
-        # set_device is sync; an AsyncMock child would leak an un-awaited coroutine.
-        ble_vehicle.set_device = MagicMock()
-        mock_parent.return_value.vehicles.createBluetooth.return_value = ble_vehicle
+        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock(
+            spec=VehicleBluetooth
+        )
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     return entry
