@@ -52,6 +52,7 @@
                 "cannot_connect": "Failed to connect",
                 "entry_not_loaded": "The Teslemetry account must be loaded before setting up local control. Try again once it has finished loading.",
                 "no_powerwall": "Local control requires a Powerwall, and no energy site with one is currently accessible on your Teslemetry account.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later.",
                 "reconfigure_successful": "Reconfiguration was successful"
             },
             "entry_type": "Energy site",
@@ -61,7 +62,8 @@
                 "key_expired": "The approval window on your Powerwall closed before the key was approved. Submit to open a new window, flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
                 "key_not_approved": "Your Powerwall system rejected Home Assistant's key because it has not been approved. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
                 "key_not_registered": "Home Assistant's key is no longer registered on your Powerwall system. Restart setup to register it again.",
-                "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again."
+                "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
+                "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later."
             },
             "initiate_flow": {
                 "reconfigure": "Reconfigure energy site",
@@ -342,6 +344,12 @@
         "button": {
             "boombox": {
                 "name": "Play fart"
+            },
+            "disable_keep_accessory_power_mode": {
+                "name": "Disable keep accessory power"
+            },
+            "enable_keep_accessory_power_mode": {
+                "name": "Enable keep accessory power"
             },
             "enable_keyless_driving": {
                 "name": "Keyless driving"
@@ -1257,6 +1265,9 @@
         "command_reason": {
             "message": "Command was rejected: {reason}"
         },
+        "insufficient_credits": {
+            "message": "Your Teslemetry account does not have enough command credits. Purchase more credits to continue controlling your vehicles."
+        },
         "invalid_device": {
             "message": "Device ID {device_id} is not a valid device"
         },
@@ -1301,6 +1312,9 @@
         },
         "update_failed_insufficient_credits": {
             "message": "Teslemetry account has insufficient command credits, pausing updates until credits are added"
+        },
+        "vehicle_first_refresh_timeout": {
+            "message": "Timed out waiting for vehicle {vin} to respond"
         },
         "wake_up_failed": {
             "message": "Failed to wake up vehicle: {message}"
@@ -1355,6 +1369,10 @@
                 }
             },
             "title": "Local control unavailable for {site}"
+        },
+        "insufficient_credits": {
+            "description": "A command could not be sent because your Teslemetry account ({account}) does not have enough command credits.\n\nSending commands to your Tesla vehicles consumes credits. To continue controlling your vehicles, purchase more credits from the [Teslemetry console]({credits_url}).\n\nThis issue will be removed automatically once your account has enough credits available again.",
+            "title": "Insufficient Teslemetry credits"
         },
         "key": {
             "fix_flow": {
