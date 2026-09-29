@@ -884,3 +884,36 @@ async def test_energy_history_sensors_match_site_components(
         if entity_registry.async_get_entity_id(Platform.SENSOR, DOMAIN, f"123456-{key}")
     }
     assert created == {key for key in ENERGY_HISTORY_FIELDS if missing not in key}
+
+
+@pytest.mark.parametrize(
+    ("scopes", "expected"),
+    [
+        pytest.param(METADATA["scopes"], True, id="location_scope"),
+        pytest.param(
+            [scope for scope in METADATA["scopes"] if scope != "vehicle_location"],
+            False,
+            id="no_location_scope",
+        ),
+    ],
+)
+async def test_location_sensors_require_location_scope(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_metadata: AsyncMock,
+    scopes: list[str],
+    expected: bool,
+) -> None:
+    """Test location sensors are only created with the vehicle location scope."""
+
+    mock_metadata.return_value = {**METADATA, "scopes": scopes}
+
+    await setup_platform(hass, [Platform.SENSOR])
+
+    for key in ("gps_heading", "drive_state_active_route_destination"):
+        assert (
+            entity_registry.async_get_entity_id(
+                Platform.SENSOR, DOMAIN, f"{VEHICLE_VIN}-{key}"
+            )
+            is not None
+        ) is expected
