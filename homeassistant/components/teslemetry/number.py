@@ -3,7 +3,7 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any, override
+from typing import Any, cast, override
 
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
@@ -38,6 +38,7 @@ from .const import (
     DOMAIN,
     LABS_CHARGE_ON_SOLAR_FEATURE,
 )
+from .coordinator import TeslemetryEnergySiteInfoCoordinator
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryRootEntity,
@@ -357,6 +358,9 @@ class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberE
             self.hass, self.config_entry, self.entity_description.func(self.api, value)
         )
         self._attr_native_value = value
+        cast(
+            TeslemetryEnergySiteInfoCoordinator, self.coordinator
+        ).async_set_local_value(self.key, value)
         self.async_write_ha_state()
 
 
