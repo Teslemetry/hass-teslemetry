@@ -440,7 +440,9 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryRootEntity, ClimateEntit
             self.raise_for_scope(Scope.VEHICLE_CMDS)
 
             await handle_vehicle_command(
-                self.hass, self.config_entry, self.api.set_cop_temp(COP_TEMPERATURES[level])
+                self.hass,
+                self.config_entry,
+                self.api.set_cop_temp(COP_TEMPERATURES[level]),
             )
             self._attr_target_temperature = level
 
