@@ -597,6 +597,8 @@
           'binary_sensor.test_rear_passenger_window': 'polling',
           'binary_sensor.test_status': 'polling',
           'binary_sensor.test_user_present': 'polling',
+          'button.test_disable_keep_accessory_power': 'command',
+          'button.test_enable_keep_accessory_power': 'command',
           'button.test_flash_lights': 'command',
           'button.test_homelink': 'command',
           'button.test_honk_horn': 'command',
