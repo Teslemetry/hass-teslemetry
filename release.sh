@@ -8,6 +8,10 @@
 # section documents WHY each step exists and the gotchas behind each gate;
 # this file owns HOW. Keep the two in sync when either changes.
 #
+# A cut composes core dev + every open Bre77 teslemetry PR on core + every open
+# teslemetry PR on the staging fork Teslemetry/home-assistant (base dev), core
+# PRs first (see apply_prs).
+#
 # It runs the deterministic steps mechanically and hard-enforces the gates the
 # old prose runbook trusted an operator to remember (the device_tracker
 # ATTR_LATITUDE compat grep that v6.0.9 missed; the post-commit conflict-marker
@@ -25,6 +29,8 @@ set -euo pipefail
 # --- fork remotes / repo -----------------------------------------------------
 FORK_REPO="Teslemetry/hass-teslemetry"      # origin: the HACS fork we release
 CORE_REPO="home-assistant/core"             # upstream: core, source of PRs/dev
+STAGING_REPO="Teslemetry/home-assistant"    # staging fork: PRs awaiting review, layered on top
+PR_LIST_LIMIT=200                           # gh pr list page size; filling it dies (see list_open_prs)
 INTEGRATION="homeassistant/components/teslemetry"
 DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
 SENSOR_PY="$INTEGRATION/sensor.py"
@@ -268,51 +274,115 @@ strip_file_from_diff() {
   '
 }
 
-# Step 4: apply Bre77 open core PRs oldest-to-newest. JUDGMENT checkpoint:
-# clean applies auto-commit; any conflict STOPS for manual resolution. Per-PR
-# note lines are collected here and written to release_notes.txt in
-# update_version - never a tracked file, so `git add -A` can't stage it.
+# List open PRs on a repo as a JSON array. Extra args are passed to gh pr list.
+# gh defaults to 30 results and truncates silently - that dropped the 8 oldest
+# core PRs from one cut - so an explicit limit is set and a result that fills it
+# fails loudly instead of composing a partial release.
+list_open_prs() {
+  local repo="$1"; shift
+  local json count
+  json=$(gh pr list --repo "$repo" --state open --limit "$PR_LIST_LIMIT" \
+           --json number,title,isDraft,files "$@") \
+    || die "could not list open PRs on $repo"
+  count=$(jq 'length' <<<"$json")
+  [ "$count" -lt "$PR_LIST_LIMIT" ] \
+    || die "gh pr list on $repo returned $count PRs, the --limit - the list may be truncated. Raise PR_LIST_LIMIT and rerun."
+  printf '%s' "$json"
+}
+
+# Open Bre77 teslemetry PRs on core, ascending (oldest-to-newest proxy), as
+# "number<TAB>title<TAB>draft" lines.
+list_core_prs() {
+  list_open_prs "$CORE_REPO" --author Bre77 --label "integration: teslemetry" \
+    | jq -r 'sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)"'
+}
+
+# Open PRs on the staging fork against its dev that touch the integration or
+# its tests, draft or ready, ascending, in the same line format.
+list_fork_prs() {
+  list_open_prs "$STAGING_REPO" --base dev \
+    | jq -r '[.[] | select(any(.files[].path;
+               startswith("homeassistant/components/teslemetry/")
+               or startswith("tests/components/teslemetry/")))]
+             | sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)"'
+}
+
+# Apply one PR as one commit. $1 repo, $2 number, $3 title, $4 draft flag,
+# $5 ref prefix ("#" for core, "fork#" for the staging fork). The prefix marks
+# the commit subject, the approval summary and the release-notes line.
+apply_one_pr() {
+  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2"
+  log "  PR $ref: $title"
+  # The staging fork's dev can hold commits upstream/dev lacks. Fetch the PR
+  # head so the pre-image blobs exist locally and git apply -3 can fall back to
+  # a real three-way merge instead of failing outright.
+  if [ "$repo" != "$CORE_REPO" ]; then
+    git fetch --quiet "https://github.com/$repo" "pull/$num/head" \
+      || die "could not fetch $repo pull/$num/head"
+  fi
+  # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
+  # of every per-PR patch to avoid repeated conflicts; the combined final
+  # state is applied once at the end of apply_prs. Remove this filter and the
+  # end-of-loop checkpoint once the quality scale PRs have all merged.
+  if gh pr diff "$num" --patch --repo "$repo" \
+       | strip_file_from_diff "quality_scale.yaml" \
+       | git apply -3; then
+    info "applied cleanly"
+  else
+    CONFLICTED_PRS+=("$ref")
+    pause "PR $ref did not apply cleanly. Read its intent (gh pr diff $num --repo $repo), edit files to resolve, 'git add' each. Do NOT commit - this script commits."
+    assert_no_unmerged
+  fi
+  # -A (not -am): capture any new files the patch adds (e.g. a new calendar.py).
+  git add -A
+  git commit -m "$ref: $title" --no-verify >/dev/null
+  # Enforce the post-commit marker grep the runbook left to memory.
+  assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
+  local status=""
+  if [ "$repo" = "$STAGING_REPO" ]; then
+    # Fork PRs are staged changes awaiting review; say which state each is in.
+    if [ "$draft" = true ]; then status=" (staged, draft)"; else status=" (staged, ready)"; fi
+  fi
+  NOTE_LINES+=("[$ref](https://github.com/$repo/pull/$num): $title$status")
+  APPLIED_PRS+=("$ref $title$status")
+}
+
+# Step 4: compose the release on top of synced core dev - every open Bre77
+# teslemetry PR on core, then every open teslemetry PR on the staging fork, each
+# group oldest-to-newest. JUDGMENT checkpoint: clean applies auto-commit; any
+# conflict STOPS for manual resolution. Per-PR note lines are collected here and
+# written to release_notes.txt in update_version - never a tracked file, so
+# `git add -A` can't stage it.
 apply_prs() {
-  log "Step 4: apply core PR patches"
+  log "Step 4: apply core and staging-fork PR patches"
 
   APPLIED_PRS=()
   CONFLICTED_PRS=()
   NOTE_LINES=()
 
-  # Oldest-to-newest == ascending PR number (proxy the runbook already uses).
-  local prs
-  prs=$(gh pr list --repo "$CORE_REPO" --author Bre77 --state open \
-        --label "integration: teslemetry" --json number,title \
-        --jq 'sort_by(.number)[] | "\(.number)\t\(.title)"')
+  # Capture both lists before applying anything, so a truncated or failed
+  # listing dies before the first commit.
+  local core_prs fork_prs
+  core_prs=$(list_core_prs)
+  fork_prs=$(list_fork_prs)
 
-  if [ -z "$prs" ]; then
-    info "no open Bre77 teslemetry PRs to apply"
+  local num title draft
+  if [ -z "$core_prs" ]; then
+    info "no open Bre77 teslemetry PRs on $CORE_REPO to apply"
   else
-    local num title
-    while IFS=$'\t' read -r num title; do
+    while IFS=$'\t' read -r num title draft; do
       [ -n "$num" ] || continue
-      log "  PR #$num: $title"
-      # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
-      # of every per-PR patch to avoid repeated conflicts; the combined final
-      # state is applied once at the end below. Remove this filter and the
-      # end-of-loop checkpoint once the quality scale PRs have all merged.
-      if gh pr diff "$num" --patch --repo "$CORE_REPO" \
-           | strip_file_from_diff "quality_scale.yaml" \
-           | git apply -3; then
-        info "applied cleanly"
-      else
-        CONFLICTED_PRS+=("#$num")
-        pause "PR #$num did not apply cleanly. Read its intent (gh pr diff $num --repo $CORE_REPO), edit files to resolve, 'git add' each. Do NOT commit - this script commits."
-        assert_no_unmerged
-      fi
-      # -A (not -am): capture any new files the patch adds (e.g. a new calendar.py).
-      git add -A
-      git commit -m "#$num: $title" --no-verify >/dev/null
-      # Enforce the post-commit marker grep the runbook left to memory.
-      assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
-      NOTE_LINES+=("[#$num](https://github.com/$CORE_REPO/pull/$num): $title")
-      APPLIED_PRS+=("#$num $title")
-    done <<<"$prs"
+      apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#"
+    done <<<"$core_prs"
+  fi
+
+  if [ -z "$fork_prs" ]; then
+    info "no open teslemetry PRs on $STAGING_REPO (base dev) to apply"
+  else
+    while IFS=$'\t' read -r num title draft; do
+      [ -n "$num" ] || continue
+      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#"
+    done <<<"$fork_prs"
   fi
 
   # TEMPORARY: apply the combined final quality_scale.yaml once (judgment step).
@@ -638,4 +708,8 @@ main() {
   approve_and_publish
 }
 
-main "$@"
+# Run only when executed, so a harness can source the functions (e.g. to print
+# the compose set with list_core_prs / list_fork_prs) without starting a cut.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi
