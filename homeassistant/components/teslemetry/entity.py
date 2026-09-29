@@ -133,6 +133,9 @@ class TeslemetryVehiclePollingEntity(TeslemetryPollingEntity):
             self._attr_entity_registry_enabled_default = False
 
         super().__init__(data.coordinator, key)
+        # Carry the entity as its own listener context so diagnostics can name
+        # which enabled entities keep the vehicle coordinator polling.
+        self.coordinator_context = self
 
     @property
     @override
@@ -262,8 +265,8 @@ class TeslemetryWallConnectorEntity(TeslemetryPollingEntity):
         )
 
 
-class TeslemetryVehicleStreamEntity(TeslemetryRootEntity):
-    """Parent class for Teslemetry Vehicle Stream entities."""
+class TeslemetryVehicleEntity(TeslemetryRootEntity):
+    """Parent class for Teslemetry Vehicle entities without a coordinator."""
 
     api: Vehicle | VehicleRouter
 
@@ -273,10 +276,27 @@ class TeslemetryVehicleStreamEntity(TeslemetryRootEntity):
         self.config_entry = data.config_entry
 
         self.api = data.api
-        self.stream = data.stream
         self.vin = data.vin
-        self.add_field = data.stream.get_vehicle(self.vin).add_field
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
+
+
+class TeslemetryVehicleCommandEntity(TeslemetryVehicleEntity):
+    """Parent class for Teslemetry Vehicle entities that only send commands.
+
+    They hold no state of their own, so they subscribe to neither the vehicle
+    coordinator nor a telemetry stream field.
+    """
+
+
+class TeslemetryVehicleStreamEntity(TeslemetryVehicleEntity):
+    """Parent class for Teslemetry Vehicle Stream entities."""
+
+    def __init__(self, data: TeslemetryVehicleData, key: str) -> None:
+        """Initialize common aspects of a Teslemetry entity."""
+        super().__init__(data, key)
+
+        self.stream = data.stream
+        self.add_field = data.stream.get_vehicle(self.vin).add_field
