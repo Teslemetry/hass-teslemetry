@@ -280,6 +280,8 @@ async def handle_vehicle_command(
 
 
 async def async_set_charge_on_solar(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
     api: Vehicle,
     *,
     enabled: bool,
@@ -293,11 +295,13 @@ async def async_set_charge_on_solar(
     if charge_limit_soc is not None:
         lower_charge_limit = min(lower_charge_limit, charge_limit_soc)
     await handle_vehicle_command(
+        hass,
+        entry,
         api.charge_on_solar(
             enabled=enabled,
             lower_charge_limit=lower_charge_limit,
             upper_charge_limit=charge_limit_soc,
-        )
+        ),
     )
     return lower_charge_limit
 
