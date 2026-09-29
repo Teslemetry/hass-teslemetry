@@ -238,40 +238,41 @@ async def test_vehicle_first_refresh_timeout(
     never.set()
 
 
-async def test_vehicle_first_refresh_timeout_cancels_stream_setup(
+async def test_vehicle_first_refresh_timeout_cancels_sibling_refresh(
     hass: HomeAssistant,
     mock_vehicle_data: AsyncMock,
-    mock_stream_get_config: AsyncMock,
+    mock_site_info: AsyncMock,
     mock_legacy: AsyncMock,
 ) -> None:
-    """Test a timed-out vehicle refresh cancels the concurrent stream setup.
+    """Test a timed-out vehicle refresh cancels the concurrent energy site refresh.
 
     asyncio.gather without return_exceptions only propagates the first
     exception; it does not cancel the other awaitables. Assert that the
-    sibling stream setup is actually cancelled rather than left running.
+    sibling energy site refresh is actually cancelled rather than left running.
     """
     never = asyncio.Event()
-    stream_setup_cancelled = asyncio.Event()
+    sibling_cancelled = asyncio.Event()
 
     async def _hang_vehicle_data(*args: object, **kwargs: object) -> dict[str, Any]:
         await never.wait()
         return VEHICLE_DATA_ALT
 
-    async def _hang_get_config(*args: object, **kwargs: object) -> None:
+    async def _hang_site_info(*args: object, **kwargs: object) -> dict[str, Any]:
         try:
             await never.wait()
         except asyncio.CancelledError:
-            stream_setup_cancelled.set()
+            sibling_cancelled.set()
             raise
+        return SITE_INFO
 
     mock_vehicle_data.side_effect = _hang_vehicle_data
-    mock_stream_get_config.side_effect = _hang_get_config
+    mock_site_info.side_effect = _hang_site_info
 
     with patch("homeassistant.components.teslemetry.VEHICLE_FIRST_REFRESH_TIMEOUT", 0):
         entry = await setup_platform(hass)
 
     assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert stream_setup_cancelled.is_set()
+    assert sibling_cancelled.is_set()
     never.set()
 
 
@@ -4042,16 +4043,19 @@ async def test_unload_stops_ble_broadcast_glue(hass: HomeAssistant) -> None:
 
 
 async def test_setup_failure_after_glue_construction_stops_it(
-    hass: HomeAssistant, mock_stream_get_config: AsyncMock
+    hass: HomeAssistant,
 ) -> None:
     """A setup failure after the BLE glue is built still unsubscribes it."""
     entry = mock_ble_config_entry()
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock(spec=VehicleBluetooth)
-    # async_unload_entry is never called on a failed setup, only async_on_unload callbacks.
-    mock_stream_get_config.side_effect = ConfigEntryNotReady("boom")
 
+    # async_unload_entry is never called on a failed setup, only async_on_unload callbacks.
     with (
+        patch(
+            "homeassistant.components.teslemetry.async_setup_stream",
+            side_effect=ConfigEntryNotReady("boom"),
+        ),
         patch(
             "homeassistant.components.teslemetry.async_ble_device_from_address",
             return_value=MagicMock(),
