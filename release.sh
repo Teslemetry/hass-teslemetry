@@ -123,7 +123,7 @@ preflight() {
   git remote get-url origin   >/dev/null 2>&1 || die "no 'origin' remote (expected $FORK_REPO)"
   git remote get-url upstream >/dev/null 2>&1 || die "no 'upstream' remote (expected $CORE_REPO)"
 
-  for tool in gh yq jq git; do
+  for tool in gh yq jq git curl uv; do
     command -v "$tool" >/dev/null 2>&1 || die "required tool not found: $tool"
   done
   if [ "$PUBLISH" = 1 ]; then
@@ -620,6 +620,87 @@ A core-dev sync can resolve services.py correctly while silently dropping the ma
   done <<<"$keys"
 }
 
+# Hard gate: the composed requirements must be INSTALLABLE on the current stable
+# Home Assistant. Core installs an integration's requirements under its own
+# homeassistant/package_constraints.txt, and the build gate runs against dev,
+# whose constraints run ahead of stable - so a pin that only resolves on dev
+# passes green and then cannot install on any stable core, and the integration
+# never starts. v6.0.24 shipped exactly this: tesla-fleet-api==1.17.0 needs
+# protobuf>=6.33.5 while stable pinned protobuf==6.32.0. This resolution is the
+# only thing that catches it. See AGENTS.md.
+#
+# Stable is read from PyPI, not the core repo's "latest" GitHub release: PyPI is
+# the index the resolution already talks to (no extra host, no gh auth), its
+# info.version is version-ordered and skips pre-releases and yanked builds
+# (GitHub's "latest" is date-ordered, so a late patch on an older line would
+# win), and the same document carries that release's requires_python. Core tags
+# each release with the bare version, so the constraints are fetched at that tag.
+#
+# Resolution only (uv pip compile): nothing is installed and the build venv is
+# untouched. Takes an optional manifest path, so a manifest can be checked
+# without cutting - `source ./release.sh`, then e.g.
+#   stable_constraints_gate <(git show v6.0.24:$INTEGRATION/manifest.json)
+# Two distinct failures: "NOT INSTALLABLE" is the resolver's verdict on the
+# manifest; "UNVERIFIED" is a network or tooling failure that says nothing about
+# the manifest. Both stop the cut. The body is a subshell so the EXIT trap
+# removes the temp dir on every die.
+stable_constraints_gate() (
+  log "Gate: requirements installable on stable Home Assistant"
+  local manifest="${1:-$INTEGRATION/manifest.json}"
+  local unverified="stable constraints UNVERIFIED (network or tooling failure, not a dependency conflict)"
+  local tool
+  for tool in curl jq uv; do
+    command -v "$tool" >/dev/null 2>&1 || die "$unverified: required tool not found: $tool"
+  done
+
+  local reqs
+  reqs=$(jq -r '.requirements[]?' "$manifest") || die "$unverified: cannot read requirements from $manifest"
+  if [ -z "$reqs" ]; then info "no requirements in $manifest; nothing to resolve"; return 0; fi
+
+  # Latest stable release and the Python it requires, never dev and never a
+  # hard-coded version. The regex refuses a pre-release rather than trust PyPI.
+  local pypi stable requires py
+  pypi=$(curl -fsSL --retry 2 --max-time 60 https://pypi.org/pypi/homeassistant/json) \
+    || die "$unverified: could not read the latest homeassistant release from PyPI"
+  stable=$(jq -r '.info.version // empty' <<<"$pypi" 2>/dev/null || true)
+  requires=$(jq -r '.info.requires_python // empty' <<<"$pypi" 2>/dev/null || true)
+  [[ "$stable" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+    || die "$unverified: PyPI's latest homeassistant version is not a stable release: '$stable'"
+  py=$(sed -n 's/.*>= *\([0-9][0-9.]*\).*/\1/p' <<<"$requires")
+  [ -n "$py" ] || die "$unverified: no minimum Python in homeassistant==$stable requires_python '$requires'"
+
+  # Not local: the EXIT trap runs after the function's locals are gone.
+  tmp=$(mktemp -d) || die "$unverified: mktemp failed"
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL --retry 2 --max-time 60 -o "$tmp/constraints.txt" \
+    "https://raw.githubusercontent.com/$CORE_REPO/$stable/homeassistant/package_constraints.txt" \
+    || die "$unverified: could not fetch homeassistant/package_constraints.txt from $CORE_REPO at tag $stable"
+  printf '%s\n' "$reqs" > "$tmp/requirements.in"
+
+  # --no-config: core's [tool.uv] overrides are dev-tree settings and must not
+  # bend this resolution. --python-platform linux: what stable core runs on,
+  # whatever the operator's machine is.
+  local out rc=0
+  out=$(uv pip compile --no-config --quiet --python-version "$py" --python-platform linux \
+          -c "$tmp/constraints.txt" -o "$tmp/resolved.txt" "$tmp/requirements.in" 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    grep -q 'No solution found' <<<"$out" \
+      || die "$unverified: uv pip compile exited $rc without a resolver verdict:
+$out"
+    # uv folds a constraint into whichever requirement it narrows, so its
+    # explanation can name a stable pin as if a dependency declared it. List the
+    # stable pins on every package it mentions so the real conflict is readable.
+    local names pins
+    names=$(grep -oE '[A-Za-z0-9][A-Za-z0-9._-]*(==|>=|<=|~=|!=|<|>)' <<<"$out" \
+              | sed -E 's/[=<>~!]+$//' | sort -u | paste -sd'|' -)
+    pins=$(grep -iE "^($names)==" "$tmp/constraints.txt" | paste -sd' ' - || true)
+    die "requirements in $manifest are NOT INSTALLABLE on stable Home Assistant $stable (python >=$py) - the integration would fail to start on every stable core. Fix the pin (or its library's dependency floor) and recompose; the dev-form build gate cannot see this.
+$out
+homeassistant==$stable constrains: ${pins:-(none of the packages named above)}"
+  fi
+  info "$(paste -sd' ' - <<<"$reqs") resolve under homeassistant==$stable constraints (python >=$py)"
+)
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -704,6 +785,7 @@ main() {
   aiopowerwall_pin_gate
   subentry_translations_gate
   services_exceptions_gate
+  stable_constraints_gate
   build_gate
   approve_and_publish
 }
