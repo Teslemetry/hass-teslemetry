@@ -32,6 +32,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetMessageFaultUnknownKeyId,
 )
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
 from homeassistant.components.repairs import ConfirmRepairFlow, FlowType
@@ -330,7 +331,7 @@ async def _setup_ble_vehicles(
     bluetooth_vehicles: dict[str, AsyncMock] = {}
 
     def _create_bluetooth(vin: str, **kwargs: object) -> AsyncMock:
-        bluetooth_vehicle = bluetooth_vehicles[vin] = AsyncMock()
+        bluetooth_vehicle = bluetooth_vehicles[vin] = AsyncMock(spec=VehicleBluetooth)
         bluetooth_vehicle.set_device = MagicMock()
         return bluetooth_vehicle
 
