@@ -772,12 +772,9 @@ PY
   info "composed $pin, core $floor_tag ships $core_pin" >&2
 
   if [ "$ahead" = 1 ]; then
-    cat <<'NOTE'
-> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**
->
-> This beta pins a newer `tesla-fleet-api` than the latest released Home Assistant Core version ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so this beta is incompatible with them whenever its pinned `tesla-fleet-api` is ahead of the version in the latest core release — which is almost always. Do not run this beta alongside the built-in Tessie or Tesla Fleet integrations.
-
-NOTE
+    # shellcheck disable=SC2016  # backticks are Markdown, not command substitution
+    printf '> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**\n>\n> This beta uses `tesla-fleet-api` %s, newer than the %s that Home Assistant %s ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so they may break when this beta runs on Home Assistant versions that ship the older library. Do not run this beta alongside them on those versions.\n\n' \
+      "${pin#*==}" "${core_pin#*==}" "$floor_tag"
   fi
   if [[ "$floor_tag" =~ ^([0-9]+\.[0-9]+)\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
     printf '> ⚠️ **Requires the Home Assistant %s beta**\n>\n> This beta requires Home Assistant %s or newer. HACS will not install it on an older Home Assistant version.\n\n' \
