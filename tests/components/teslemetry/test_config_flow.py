@@ -57,7 +57,13 @@ from homeassistant.config_entries import (
     ConfigSubentryData,
     SubentryFlowResult,
 )
-from homeassistant.const import ATTR_ENTITY_ID, CONF_ADDRESS, CONF_HOST, CONF_PASSWORD
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    CONF_ADDRESS,
+    CONF_HOST,
+    CONF_PASSWORD,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import (
@@ -775,7 +781,9 @@ async def _setup_account_entry(hass: HomeAssistant) -> MockConfigEntry:
     return entry
 
 
-async def _setup_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
+async def _setup_paired_entry(
+    hass: HomeAssistant, platforms: list[Platform] | None = None
+) -> MockConfigEntry:
     """Set up an entry whose only account vehicle is already BLE-paired."""
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
@@ -787,10 +795,13 @@ async def _setup_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
         patch(
             "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
         ) as mock_parent,
-        patch("homeassistant.components.teslemetry.PLATFORMS", []),
+        patch("homeassistant.components.teslemetry.PLATFORMS", platforms or []),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
-        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock()
+        ble_vehicle = AsyncMock()
+        # set_device is sync; an AsyncMock child would leak an un-awaited coroutine.
+        ble_vehicle.set_device = MagicMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = ble_vehicle
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     return entry
@@ -1577,6 +1588,54 @@ async def test_subentry_reconfigure_reloads_onto_new_address(
 
     # The reloaded router looks for the new address, not the one it was set up with.
     assert mock_ble_device.call_args.args[1] == NEW_ADDRESS
+
+
+@pytest.mark.usefixtures("enable_bluetooth")
+async def test_subentry_reconfigure_requires_key_approval(hass: HomeAssistant) -> None:
+    """Reconfigure walks through key approval when the vehicle rejects the key."""
+    entry = await _setup_paired_entry(hass)
+    subentry = next(iter(entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)))
+    vehicle = _mock_vehicle(on_whitelist=False)
+    release = asyncio.Event()
+    vehicle.pair = AsyncMock(side_effect=release.wait)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=_mock_ble_parent(vehicle),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
+    ):
+        result = await entry.start_subentry_reconfigure_flow(hass, subentry.subentry_id)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "instructions"
+
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        assert result["progress_action"] == "pair"
+
+        release.set()
+        await hass.async_block_till_done()
+        result = await hass.config_entries.subentries.async_configure(result["flow_id"])
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.subentries[subentry.subentry_id].data == {
+        CONF_VIN: VIN,
+        CONF_ADDRESS: ADDRESS,
+    }
+    vehicle.pair.assert_awaited_once()
+    mock_reload.assert_called_once_with(entry.entry_id)
 
 
 async def test_subentry_reconfigure_no_bluetooth(hass: HomeAssistant) -> None:
