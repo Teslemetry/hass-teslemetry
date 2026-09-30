@@ -1,6 +1,8 @@
 """Update platform for Teslemetry integration."""
 
-from typing import Any, override
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Self, override
 
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
@@ -12,9 +14,11 @@ from homeassistant.components.update import (
     UpdateEntityFeature,
     UpdateEntityStateAttribute,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
+from homeassistant.util import dt as dt_util
 
 from . import TeslemetryConfigEntry
 from .entity import (
@@ -32,6 +36,50 @@ WIFI_WAIT = "downloading_wifi_wait"
 SCHEDULED = "scheduled"
 
 PARALLEL_UPDATES = 0
+
+ATTR_SCHEDULED_AT = "scheduled_at"
+ATTR_DOWNLOAD_PERCENTAGE = "download_percentage"
+ATTR_INSTALL_PERCENTAGE = "install_percentage"
+
+# A schedule this old missed its clearing push, so stop latching "installing".
+SCHEDULED_STALE_AFTER = timedelta(days=2)
+
+
+@dataclass
+class TeslemetryUpdateExtraStoredData(ExtraStoredData):
+    """Extra stored data for the streaming update entity."""
+
+    scheduled_at: datetime | None = None
+    download_percentage: int | None = None
+    install_percentage: int | None = None
+
+    @override
+    def as_dict(self) -> dict[str, Any]:
+        """Return a dict representation of the extra data."""
+        return {
+            ATTR_SCHEDULED_AT: self.scheduled_at.isoformat()
+            if self.scheduled_at is not None
+            else None,
+            ATTR_DOWNLOAD_PERCENTAGE: self.download_percentage,
+            ATTR_INSTALL_PERCENTAGE: self.install_percentage,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self | None:
+        """Initialize the extra data from a dict."""
+        try:
+            scheduled_at = data[ATTR_SCHEDULED_AT]
+            download_percentage = data[ATTR_DOWNLOAD_PERCENTAGE]
+            install_percentage = data[ATTR_INSTALL_PERCENTAGE]
+        except KeyError:
+            return None
+        return cls(
+            scheduled_at=dt_util.parse_datetime(scheduled_at)
+            if scheduled_at is not None
+            else None,
+            download_percentage=download_percentage,
+            install_percentage=install_percentage,
+        )
 
 
 async def async_setup_entry(
@@ -142,9 +190,11 @@ class TeslemetryStreamingUpdateEntity(
 ):
     """Teslemetry Updates entity."""
 
-    _download_percentage: int = 0
-    _install_percentage: int = 0
+    _download_percentage: int | None = None
+    _install_percentage: int | None = None
     _scheduled: bool = False
+    _scheduled_at: datetime | None = None
+    _cancel_scheduled_expiry: CALLBACK_TYPE | None = None
 
     def __init__(
         self,
@@ -162,6 +212,11 @@ class TeslemetryStreamingUpdateEntity(
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
         await super().async_added_to_hass()
+        extra: TeslemetryUpdateExtraStoredData | None = None
+        if (extra_data := await self.async_get_last_extra_data()) is not None:
+            extra = TeslemetryUpdateExtraStoredData.from_dict(extra_data.as_dict())
+        if extra is not None:
+            self._scheduled_at = extra.scheduled_at
         if (state := await self.async_get_last_state()) is not None:
             self._attr_installed_version = state.attributes.get(
                 UpdateEntityStateAttribute.INSTALLED_VERSION
@@ -184,8 +239,25 @@ class TeslemetryStreamingUpdateEntity(
                     UpdateEntityStateAttribute.UPDATE_PERCENTAGE
                 )
                 self._scheduled = self._attr_in_progress
+                # Percentages left over from a finished update would re-latch
+                # "installing" on the next stream event, so only restore them here.
+                if extra is not None:
+                    self._download_percentage = extra.download_percentage
+                    self._install_percentage = extra.install_percentage
+                # A restored in-progress flag caused only by the scheduled latch
+                # (no real download/install percentage) is unverifiable once its
+                # schedule has gone stale.
+                if (
+                    self._scheduled
+                    and self._attr_update_percentage is None
+                    and self._scheduled_stale
+                ):
+                    self._attr_in_progress = False
+                    self._scheduled = False
+                self._async_arm_scheduled_expiry()
             self.async_write_ha_state()
 
+        self.async_on_remove(self._async_cancel_scheduled_expiry)
         self.async_on_remove(
             self.vehicle.stream_vehicle.listen_SoftwareUpdateDownloadPercentComplete(
                 self._async_handle_software_update_download_percent_complete
@@ -240,6 +312,36 @@ class TeslemetryStreamingUpdateEntity(
         """Handle software update scheduled start time."""
 
         self._scheduled = value is not None
+        # Arrival time, not the value: Tesla reports these timestamps skewed.
+        self._scheduled_at = dt_util.utcnow() if value is not None else None
+        self._async_arm_scheduled_expiry()
+        self._async_update_progress()
+        self.async_write_ha_state()
+
+    @callback
+    def _async_cancel_scheduled_expiry(self) -> None:
+        """Cancel any pending scheduled-expiry timer."""
+        if self._cancel_scheduled_expiry is not None:
+            self._cancel_scheduled_expiry()
+            self._cancel_scheduled_expiry = None
+
+    @callback
+    def _async_arm_scheduled_expiry(self) -> None:
+        """(Re)start the timer that clears the scheduled flag once it is stale."""
+        self._async_cancel_scheduled_expiry()
+        if self._scheduled_at is not None and not self._scheduled_stale:
+            self._cancel_scheduled_expiry = async_track_point_in_utc_time(
+                self.hass,
+                self._async_handle_scheduled_expiry,
+                self._scheduled_at + SCHEDULED_STALE_AFTER,
+            )
+
+    @callback
+    def _async_handle_scheduled_expiry(self, _now: datetime) -> None:
+        """Clear an expired scheduled flag and refresh progress."""
+        self._cancel_scheduled_expiry = None
+        self._scheduled = False
+        self._scheduled_at = None
         self._async_update_progress()
         self.async_write_ha_state()
 
@@ -255,7 +357,13 @@ class TeslemetryStreamingUpdateEntity(
         """Handle version."""
 
         if value is not None:
-            self._attr_installed_version = value.split(" ")[0]
+            installed_version = value.split(" ")[0]
+            # A changed installed version means the tracked update finished,
+            # even if its final percentage push was missed while offline.
+            if self._attr_installed_version not in (None, installed_version):
+                self._download_percentage = 0
+                self._install_percentage = 0
+            self._attr_installed_version = installed_version
             # A new installed version can be the only signal that an offline
             # install finished, so re-evaluate any lingering scheduled flag.
             self._async_update_progress()
@@ -269,16 +377,44 @@ class TeslemetryStreamingUpdateEntity(
             and self._attr_installed_version == self._attr_latest_version
         )
 
+    @property
+    def _scheduled_stale(self) -> bool:
+        """Return True when the scheduled flag has outlived its staleness bound."""
+        return (
+            self._scheduled_at is None
+            or dt_util.utcnow() - self._scheduled_at > SCHEDULED_STALE_AFTER
+        )
+
+    @property
+    @override
+    def extra_restore_state_data(self) -> TeslemetryUpdateExtraStoredData:
+        """Return entity specific state data to be restored."""
+        return TeslemetryUpdateExtraStoredData(
+            scheduled_at=self._scheduled_at,
+            download_percentage=self._download_percentage,
+            install_percentage=self._install_percentage,
+        )
+
     def _async_update_progress(self) -> None:
         """Update the progress of the update."""
 
-        if 0 < self._download_percentage < 100:
+        download = self._download_percentage
+        install = self._install_percentage
+        # Until a percentage is restored or streamed, a restored progress value
+        # is the only progress known, so a version or schedule push keeps it.
+        if (
+            download is None
+            and install is None
+            and self._attr_update_percentage is not None
+        ):
+            return
+        if download is not None and 0 < download < 100:
             self._attr_in_progress = True
-            self._attr_update_percentage = self._download_percentage
-        elif 10 < self._install_percentage < 100:
+            self._attr_update_percentage = download
+        elif install is not None and 10 < install < 100:
             self._attr_in_progress = True
-            self._attr_update_percentage = self._install_percentage
-        elif self._scheduled and not self._up_to_date:
+            self._attr_update_percentage = install
+        elif self._scheduled and not self._up_to_date and not self._scheduled_stale:
             self._attr_in_progress = True
             self._attr_update_percentage = None
         else:
