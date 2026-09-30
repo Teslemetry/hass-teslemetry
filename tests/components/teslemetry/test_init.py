@@ -8,7 +8,6 @@ from datetime import timedelta
 import logging
 import time
 from types import MappingProxyType
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import ClientConnectionError, ClientError, ClientResponseError
@@ -212,6 +211,55 @@ async def test_vehicle_refresh_error(
     mock_vehicle_data.side_effect = side_effect
     entry = await setup_platform(hass)
     assert entry.state is state
+
+
+async def test_vehicle_first_refresh_timeout(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Test a slow first vehicle refresh retries instead of blocking setup."""
+    never = asyncio.Event()
+
+    async def _hang(*args: object, **kwargs: object) -> None:
+        await never.wait()
+
+    mock_vehicle_data.side_effect = _hang
+
+    with patch("homeassistant.components.teslemetry.VEHICLE_FIRST_REFRESH_TIMEOUT", 0):
+        entry = await setup_platform(hass)
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_vehicle_first_refresh_timeout_cancels_energy_site_refresh(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_site_info: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Test a timed-out vehicle refresh cancels the concurrent energy site refresh."""
+    never = asyncio.Event()
+    site_refresh_cancelled = asyncio.Event()
+
+    async def _hang_vehicle_data(*args: object, **kwargs: object) -> None:
+        await never.wait()
+
+    async def _hang_site_info(*args: object, **kwargs: object) -> None:
+        try:
+            await never.wait()
+        except asyncio.CancelledError:
+            site_refresh_cancelled.set()
+            raise
+
+    mock_vehicle_data.side_effect = _hang_vehicle_data
+    mock_site_info.side_effect = _hang_site_info
+
+    with patch("homeassistant.components.teslemetry.VEHICLE_FIRST_REFRESH_TIMEOUT", 0):
+        entry = await setup_platform(hass)
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert site_refresh_cancelled.is_set()
 
 
 # Test Energy Live Coordinator
