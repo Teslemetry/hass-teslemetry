@@ -123,11 +123,14 @@ preflight() {
   git remote get-url origin   >/dev/null 2>&1 || die "no 'origin' remote (expected $FORK_REPO)"
   git remote get-url upstream >/dev/null 2>&1 || die "no 'upstream' remote (expected $CORE_REPO)"
 
-  for tool in gh yq jq git; do
+  for tool in gh yq jq git curl uv; do
     command -v "$tool" >/dev/null 2>&1 || die "required tool not found: $tool"
   done
   if [ "$PUBLISH" = 1 ]; then
     command -v zip >/dev/null 2>&1 || die "'zip' required for --publish"
+    # A preview resolution has no place in a real cut. It cannot change the
+    # gate's verdict anyway (see preview_core_ref); this keeps it out entirely.
+    [ -z "${CORE_CONSTRAINTS_PREVIEW_REF:-}" ] || die "CORE_CONSTRAINTS_PREVIEW_REF is set - unset it; a preview cannot be part of a --publish cut"
   fi
   info "branch=$branch publish=$PUBLISH"
 }
@@ -620,6 +623,188 @@ A core-dev sync can resolve services.py correctly while silently dropping the ma
   done <<<"$keys"
 }
 
+# Lowest Python a requires-python specifier admits (">=3.14.2" -> 3.14.2).
+min_python() { sed -n 's/.*>= *\([0-9][0-9.]*\).*/\1/p' <<<"$1"; }
+
+# Fetch file $2 of core ref $1 into $3. On failure prints why on stdout and
+# returns 1, telling a ref that does not exist (404) from a network failure.
+fetch_core_file() {
+  local ref="$1" path="$2" dest="$3" code
+  code=$(curl -sSL --retry 2 --max-time 60 -o "$dest" -w '%{http_code}' \
+           "https://raw.githubusercontent.com/$CORE_REPO/$ref/$path") \
+    || { printf 'could not fetch %s from %s at %s (network failure)' "$path" "$CORE_REPO" "$ref"; return 1; }
+  case "$code" in
+    200) return 0 ;;
+    404) printf '%s has no tag or ref %s (HTTP 404 for %s there)' "$CORE_REPO" "$ref" "$path"; return 1 ;;
+    *)   printf 'HTTP %s fetching %s from %s at %s' "$code" "$path" "$CORE_REPO" "$ref"; return 1 ;;
+  esac
+}
+
+# Resolve requirements file $1 under constraints file $2 for Python $3, as a
+# resolution only: nothing is installed and the build venv is untouched.
+# Returns 0 when it resolves; otherwise prints uv's output and returns 1 for the
+# resolver's own verdict ("No solution found") or 2 when uv could not run.
+resolve_under_constraints() {
+  # --no-config: core's [tool.uv] overrides are dev-tree settings and must not
+  # bend this resolution. --python-platform linux: what core runs on, whatever
+  # the operator's machine is.
+  local out rc=0
+  out=$(uv pip compile --no-config --quiet --python-version "$3" --python-platform linux \
+          -c "$2" -o "$2.resolved" "$1" 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] && return 0
+  printf '%s\n' "$out"
+  grep -q 'No solution found' <<<"$out" || return 2
+  # uv folds a constraint into whichever requirement it narrows, so its
+  # explanation can name a core pin as if a dependency declared it. List the
+  # core pins on every package it mentions so the real conflict is readable.
+  local names pins
+  names=$(grep -oE '[A-Za-z0-9][A-Za-z0-9._-]*(==|>=|<=|~=|!=|<|>)' <<<"$out" \
+            | sed -E 's/[=<>~!]+$//' | sort -u | paste -sd'|' -)
+  pins=$(grep -iE "^($names)==" "$2" | paste -sd' ' - || true)
+  printf 'core constrains: %s\n' "${pins:-(none of the packages named above)}"
+  return 1
+}
+
+# Preview only: resolve under an arbitrary core ref (e.g. dev) before the
+# floor's release exists. It prints its result and always returns 0 - the gate
+# reads no status from it and runs the real checks regardless, so a preview can
+# never turn a failing or unverified gate into a pass.
+preview_core_ref() {
+  local reqs="$1" ref="$2" dir="$3" why py detail rc=0
+  printf '\n\033[1;33m>>> PREVIEW ONLY (CORE_CONSTRAINTS_PREVIEW_REF=%s): not a release verdict. The gate result below comes only from released core tags.\033[0m\n' "$ref"
+  if ! why=$(fetch_core_file "$ref" homeassistant/package_constraints.txt "$dir/preview-constraints.txt"); then
+    info "PREVIEW could not run: $why"; return 0
+  fi
+  if ! why=$(fetch_core_file "$ref" pyproject.toml "$dir/preview-pyproject.toml"); then
+    info "PREVIEW could not run: $why"; return 0
+  fi
+  py=$(min_python "$(sed -n 's/^requires-python *= *"\(.*\)"/\1/p' "$dir/preview-pyproject.toml")")
+  if [ -z "$py" ]; then info "PREVIEW could not run: no requires-python in pyproject.toml at $ref"; return 0; fi
+  detail=$(resolve_under_constraints "$reqs" "$dir/preview-constraints.txt" "$py") || rc=$?
+  case "$rc" in
+    0) info "PREVIEW core $ref (python >=$py): resolves" ;;
+    1) info "PREVIEW core $ref (python >=$py): NOT INSTALLABLE"; printf '%s\n' "$detail" ;;
+    *) info "PREVIEW core $ref (python >=$py) could not run:"; printf '%s\n' "$detail" ;;
+  esac
+  return 0
+}
+
+# Hard gate: the composed requirements must be INSTALLABLE on the core releases
+# the build CLAIMS to support. Core installs an integration's requirements under
+# its own homeassistant/package_constraints.txt, and the build gate runs against
+# dev, whose constraints run ahead of every release - so a pin that only
+# resolves on dev passes green and then cannot install, and the integration
+# never starts. v6.0.24 shipped exactly this: tesla-fleet-api==1.17.0 needs
+# protobuf>=6.33.5 while released core pinned protobuf==6.32.0. This resolution
+# is the only thing that catches it. See AGENTS.md.
+#
+# The claim is the composed hacs.json "homeassistant" floor - the value HACS
+# compares the running core against before offering the build - never a
+# hard-coded version. Two releases are checked, each under its own tag's
+# constraints and its own Python requirement:
+#   (a) the floor release itself: the core tag equal to the floor value;
+#   (b) the newest released core version at or above the floor, pre-releases
+#       counted only while no stable release at or above the floor exists.
+# When (a) and (b) are the same tag that is one resolution.
+#
+# HACS compares with AwesomeVersion (hacs/integration
+# custom_components/hacs/utils/version.py and repositories/base.py can_download),
+# which parses more forms than core ever tags. The gate accepts the forms that
+# name a core release - X.Y or X.Y.Z, an optional leading v, an optional
+# aN/bN/rcN pre-release - and orders them as AwesomeVersion does. Anything else
+# HACS can parse (.devN, beta0, -beta.0) names no core tag and stops UNVERIFIED.
+#
+# The release list and each release's requires_python come from PyPI, the index
+# the resolution already talks to; core tags each release with the bare version.
+#
+# Two distinct failures, both stop the cut: "NOT INSTALLABLE" is the resolver's
+# verdict on the manifest; "UNVERIFIED" means no verdict could be reached - a
+# network or tooling failure, or a floor whose release does not exist yet. A
+# missing floor tag never passes and never falls back to stable or dev.
+#
+# Usable without cutting after `source ./release.sh`:
+#   core_constraints_gate [manifest.json] [hacs.json]
+# CORE_CONSTRAINTS_PREVIEW_REF=<core ref> adds a preview resolution (see
+# preview_core_ref); it is refused outright with --publish (see preflight).
+# The body is a subshell so the EXIT trap removes the temp dir on every die.
+core_constraints_gate() (
+  log "Gate: requirements installable on the core releases hacs.json claims"
+  local manifest="${1:-$INTEGRATION/manifest.json}" hacs_json="${2:-hacs.json}"
+  local unverified="core constraints UNVERIFIED (no verdict reached - not a dependency conflict)"
+  local tool
+  for tool in curl jq uv; do
+    command -v "$tool" >/dev/null 2>&1 || die "$unverified: required tool not found: $tool"
+  done
+
+  local reqs floor
+  reqs=$(jq -r '.requirements[]?' "$manifest") || die "$unverified: cannot read requirements from $manifest"
+  if [ -z "$reqs" ]; then info "no requirements in $manifest; nothing to resolve"; return 0; fi
+  floor=$(jq -r '.homeassistant // empty' "$hacs_json") || die "$unverified: cannot read $hacs_json"
+  [ -n "$floor" ] \
+    || die "$unverified: $hacs_json declares no 'homeassistant' floor, so the build claims every core release and there is nothing to verify it against"
+
+  # Not local: the EXIT trap runs after the function's locals are gone.
+  tmp=$(mktemp -d) || die "$unverified: mktemp failed"
+  trap 'rm -rf "$tmp"' EXIT
+  printf '%s\n' "$reqs" > "$tmp/requirements.in"
+  curl -fsSL --retry 2 --max-time 60 -o "$tmp/pypi.json" https://pypi.org/pypi/homeassistant/json \
+    || die "$unverified: could not read the homeassistant release list from PyPI"
+
+  # key: [year, month, patch, stage, n] with stage a=0 b=1 rc=2 final=3, which
+  # sorts as AwesomeVersion does for these forms. Emits
+  # floor-tag|newest|floor requires_python|newest requires_python; an empty
+  # floor-tag means the floor does not name a core release.
+  local plan floor_tag newest floor_py newest_py
+  plan=$(jq -r --arg floor "$floor" '
+    def parse: [capture("^v?(?<y>[0-9]+)\\.(?<m>[0-9]+)(\\.(?<p>[0-9]+))?((?<s>a|b|rc)(?<n>[0-9]+))?$")][0];
+    def key: parse | if . == null then null else
+      [(.y | tonumber), (.m | tonumber), ((.p // "0") | tonumber),
+       ({a: 0, b: 1, rc: 2}[.s // ""] // 3), ((.n // "0") | tonumber)] end;
+    def tag: parse | "\(.y | tonumber).\(.m | tonumber).\((.p // "0") | tonumber)\(.s // "")\(.n // "")";
+    def py($v): (.[$v] // []) | map(.requires_python // empty) | .[0] // "";
+    ($floor | key) as $fk
+    | if $fk == null then "" else
+        ($floor | tag) as $ft
+        | [.releases | to_entries[]
+            | select(.value | any(.[]; .yanked | not))
+            | {v: .key, k: (.key | key)}
+            | select(.k != null and .k >= $fk)] as $at
+        | ((($at | map(select(.k[3] == 3))) | if length > 0 then . else $at end)
+            | max_by(.k) | .v // "") as $new
+        | [$ft, $new, (.releases | py($ft)), (.releases | py($new))] | join("|")
+      end' "$tmp/pypi.json") || die "$unverified: cannot read PyPI's homeassistant release list"
+  IFS='|' read -r floor_tag newest floor_py newest_py <<<"$plan"
+  [ -n "$floor_tag" ] \
+    || die "$unverified: $hacs_json floor '$floor' does not name a core release - expected X.Y or X.Y.Z with an optional aN/bN/rcN pre-release (e.g. 2026.10.0b0). HACS parses other forms too, but none of them has a core tag to verify against."
+  info "hacs.json floor $floor: floor release $floor_tag, newest release at or above it ${newest:-(none yet)}"
+
+  if [ -n "${CORE_CONSTRAINTS_PREVIEW_REF:-}" ]; then
+    preview_core_ref "$tmp/requirements.in" "$CORE_CONSTRAINTS_PREVIEW_REF" "$tmp"
+  fi
+
+  local refs=("$floor_tag") pys=("$floor_py")
+  if [ -n "$newest" ] && [ "$newest" != "$floor_tag" ]; then refs+=("$newest"); pys+=("$newest_py"); fi
+  local i ref py why detail rc failed=() report=""
+  for i in "${!refs[@]}"; do
+    ref=${refs[$i]}
+    why=$(fetch_core_file "$ref" homeassistant/package_constraints.txt "$tmp/constraints-$ref.txt") \
+      || die "$unverified: $why. $hacs_json claims core $floor and up, so release $ref must exist before this build can be verified - the gate never falls back to stable or dev."
+    py=$(min_python "${pys[$i]}")
+    [ -n "$py" ] || die "$unverified: PyPI lists no Python requirement for homeassistant==$ref"
+    rc=0
+    detail=$(resolve_under_constraints "$tmp/requirements.in" "$tmp/constraints-$ref.txt" "$py") || rc=$?
+    case "$rc" in
+      0) info "homeassistant==$ref (python >=$py): resolves" ;;
+      1) failed+=("$ref"); report+=$'\n'"--- homeassistant==$ref (python >=$py)"$'\n'"$detail" ;;
+      *) die "$unverified: uv pip compile reached no resolver verdict under homeassistant==$ref:
+$detail" ;;
+    esac
+  done
+  [ "${#failed[@]}" -eq 0 ] \
+    || die "requirements in $manifest are NOT INSTALLABLE on core ${failed[*]}, which $hacs_json (floor $floor) claims to support - the integration would fail to start there. Fix the pin (or its library's dependency floor) or raise the floor, and recompose; the dev-form build gate cannot see this.$report"
+  info "$(paste -sd' ' - <<<"$reqs") resolve on every checked release"
+)
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -704,6 +889,7 @@ main() {
   aiopowerwall_pin_gate
   subentry_translations_gate
   services_exceptions_gate
+  core_constraints_gate
   build_gate
   approve_and_publish
 }
