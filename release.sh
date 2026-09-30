@@ -402,12 +402,11 @@ apply_prs() {
 update_version() {
   log "Step 5: update version and manifests"
 
-  # Standing compatibility note, verbatim, before any per-PR lines.
-  cat > release_notes.txt <<'NOTE'
-> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**
->
-> This beta pins a newer `tesla-fleet-api` than the latest released Home Assistant Core version ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so this beta is incompatible with them whenever its pinned `tesla-fleet-api` is ahead of the version in the latest core release — which is almost always. Do not run this beta alongside the built-in Tessie or Tesla Fleet integrations.
-
+  # Compatibility notes (only those the composed build needs), then the
+  # standing polling note, before any per-PR lines.
+  release_compat_note > release_notes.txt \
+    || die "release notes not written: see the compatibility note failure above"
+  cat >> release_notes.txt <<'NOTE'
 Builds older than v3.0.0 request vehicle data every 30 seconds; v3.0.0 lowered that to every 15 minutes, and v4.0.0 changed it to every 60 seconds (v4.0.1 added the gate). Current builds do not poll modern streaming vehicles at all, and fall back to 60-second polling only for vehicles that cannot use signed commands. Upgrading stops the excess polling.
 NOTE
   local line
@@ -689,6 +688,103 @@ preview_core_ref() {
   return 0
 }
 
+# Plan the core releases hacs.json floor $1 claims, from PyPI's homeassistant
+# release list (saved into dir $2). Prints
+# floor-tag|newest|floor requires_python|newest requires_python, where
+# floor-tag is the core tag the floor names. On failure prints why and returns 1.
+#
+# key: [year, month, patch, stage, n] with stage a=0 b=1 rc=2 final=3, which
+# sorts as AwesomeVersion does for these forms.
+core_release_plan() {
+  local floor="$1" dir="$2" plan
+  curl -fsSL --retry 2 --max-time 60 -o "$dir/pypi.json" https://pypi.org/pypi/homeassistant/json \
+    || { printf 'could not read the homeassistant release list from PyPI'; return 1; }
+  plan=$(jq -r --arg floor "$floor" '
+    def parse: [capture("^v?(?<y>[0-9]+)\\.(?<m>[0-9]+)(\\.(?<p>[0-9]+))?((?<s>a|b|rc)(?<n>[0-9]+))?$")][0];
+    def key: parse | if . == null then null else
+      [(.y | tonumber), (.m | tonumber), ((.p // "0") | tonumber),
+       ({a: 0, b: 1, rc: 2}[.s // ""] // 3), ((.n // "0") | tonumber)] end;
+    def tag: parse | "\(.y | tonumber).\(.m | tonumber).\((.p // "0") | tonumber)\(.s // "")\(.n // "")";
+    def py($v): (.[$v] // []) | map(.requires_python // empty) | .[0] // "";
+    ($floor | key) as $fk
+    | if $fk == null then "" else
+        ($floor | tag) as $ft
+        | [.releases | to_entries[]
+            | select(.value | any(.[]; .yanked | not))
+            | {v: .key, k: (.key | key)}
+            | select(.k != null and .k >= $fk)] as $at
+        | ((($at | map(select(.k[3] == 3))) | if length > 0 then . else $at end)
+            | max_by(.k) | .v // "") as $new
+        | [$ft, $new, (.releases | py($ft)), (.releases | py($new))] | join("|")
+      end' "$dir/pypi.json") || { printf "cannot read PyPI's homeassistant release list"; return 1; }
+  [ -n "$plan" ] \
+    || { printf "hacs.json floor '%s' does not name a core release - expected X.Y or X.Y.Z with an optional aN/bN/rcN pre-release (e.g. 2026.10.0b0). HACS parses other forms too, but none of them has a core tag to verify against." "$floor"; return 1; }
+  printf '%s\n' "$plan"
+}
+
+# Print the release-notes compatibility notes the composed build needs, on
+# stdout, from its manifest $1 and hacs.json $2:
+#   - the Tessie/Tesla Fleet library note, only when the composed tesla-fleet-api
+#     pin is ahead of the one the hacs.json floor release ships. The floor is
+#     the oldest core HACS will install this build on, so an equal pin there
+#     shares the library with the built-in integrations and the note is untrue.
+#   - the beta note, only when the floor names a core pre-release.
+# The floor's pin is read from that tag's tesla_fleet/manifest.json: it is the
+# requirement core installs for Tesla Fleet, while requirements_all.txt is only
+# generated from the manifests (script.gen_requirements_all).
+# Any unreadable input stops the cut - the note is never written or dropped on
+# a guess. Usable without cutting after `source ./release.sh`:
+#   release_compat_note [manifest.json] [hacs.json]
+# The body is a subshell so the EXIT trap removes the temp dir on every die.
+release_compat_note() (
+  local manifest="${1:-$INTEGRATION/manifest.json}" hacs_json="${2:-hacs.json}"
+  local fail="cannot decide the release-notes compatibility note"
+  local tool
+  for tool in curl jq python3; do
+    command -v "$tool" >/dev/null 2>&1 || die "$fail: required tool not found: $tool"
+  done
+
+  local pin floor
+  pin=$(jq -r '.requirements[]? | select(test("^tesla-fleet-api=="))' "$manifest") \
+    || die "$fail: cannot read requirements from $manifest"
+  [ -n "$pin" ] || die "$fail: $manifest has no tesla-fleet-api==<version> requirement"
+  floor=$(jq -r '.homeassistant // empty' "$hacs_json") || die "$fail: cannot read $hacs_json"
+  [ -n "$floor" ] || die "$fail: $hacs_json declares no 'homeassistant' floor"
+
+  # Not local: the EXIT trap runs after the function's locals are gone.
+  tmp=$(mktemp -d) || die "$fail: mktemp failed"
+  trap 'rm -rf "$tmp"' EXIT
+  local plan floor_tag why core_pin ahead
+  plan=$(core_release_plan "$floor" "$tmp") || die "$fail: $plan"
+  floor_tag=${plan%%|*}
+  why=$(fetch_core_file "$floor_tag" homeassistant/components/tesla_fleet/manifest.json "$tmp/tesla_fleet.json") \
+    || die "$fail: $why. $hacs_json floor $floor names core $floor_tag, whose tesla-fleet-api pin decides the note."
+  core_pin=$(jq -r '.requirements[]? | select(test("^tesla-fleet-api=="))' "$tmp/tesla_fleet.json") \
+    || die "$fail: cannot read requirements from tesla_fleet/manifest.json at core $floor_tag"
+  [ -n "$core_pin" ] || die "$fail: tesla_fleet/manifest.json at core $floor_tag has no tesla-fleet-api==<version> requirement"
+
+  ahead=$(python3 - "${pin#*==}" "${core_pin#*==}" <<'PY'
+import sys
+from packaging.version import Version
+print(int(Version(sys.argv[1]) > Version(sys.argv[2])))
+PY
+) || die "$fail: cannot compare tesla-fleet-api ${pin#*==} with ${core_pin#*==} (python3 needs the packaging module)"
+  info "composed $pin, core $floor_tag ships $core_pin" >&2
+
+  if [ "$ahead" = 1 ]; then
+    cat <<'NOTE'
+> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**
+>
+> This beta pins a newer `tesla-fleet-api` than the latest released Home Assistant Core version ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so this beta is incompatible with them whenever its pinned `tesla-fleet-api` is ahead of the version in the latest core release — which is almost always. Do not run this beta alongside the built-in Tessie or Tesla Fleet integrations.
+
+NOTE
+  fi
+  if [[ "$floor_tag" =~ ^([0-9]+\.[0-9]+)\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+    printf '> ⚠️ **Requires the Home Assistant %s beta**\n>\n> This beta requires Home Assistant %s or newer. HACS will not install it on an older Home Assistant version.\n\n' \
+      "${BASH_REMATCH[1]}" "$floor_tag"
+  fi
+)
+
 # Hard gate: the composed requirements must be INSTALLABLE on the core releases
 # the build CLAIMS to support. Core installs an integration's requirements under
 # its own homeassistant/package_constraints.txt, and the build gate runs against
@@ -747,35 +843,10 @@ core_constraints_gate() (
   tmp=$(mktemp -d) || die "$unverified: mktemp failed"
   trap 'rm -rf "$tmp"' EXIT
   printf '%s\n' "$reqs" > "$tmp/requirements.in"
-  curl -fsSL --retry 2 --max-time 60 -o "$tmp/pypi.json" https://pypi.org/pypi/homeassistant/json \
-    || die "$unverified: could not read the homeassistant release list from PyPI"
 
-  # key: [year, month, patch, stage, n] with stage a=0 b=1 rc=2 final=3, which
-  # sorts as AwesomeVersion does for these forms. Emits
-  # floor-tag|newest|floor requires_python|newest requires_python; an empty
-  # floor-tag means the floor does not name a core release.
   local plan floor_tag newest floor_py newest_py
-  plan=$(jq -r --arg floor "$floor" '
-    def parse: [capture("^v?(?<y>[0-9]+)\\.(?<m>[0-9]+)(\\.(?<p>[0-9]+))?((?<s>a|b|rc)(?<n>[0-9]+))?$")][0];
-    def key: parse | if . == null then null else
-      [(.y | tonumber), (.m | tonumber), ((.p // "0") | tonumber),
-       ({a: 0, b: 1, rc: 2}[.s // ""] // 3), ((.n // "0") | tonumber)] end;
-    def tag: parse | "\(.y | tonumber).\(.m | tonumber).\((.p // "0") | tonumber)\(.s // "")\(.n // "")";
-    def py($v): (.[$v] // []) | map(.requires_python // empty) | .[0] // "";
-    ($floor | key) as $fk
-    | if $fk == null then "" else
-        ($floor | tag) as $ft
-        | [.releases | to_entries[]
-            | select(.value | any(.[]; .yanked | not))
-            | {v: .key, k: (.key | key)}
-            | select(.k != null and .k >= $fk)] as $at
-        | ((($at | map(select(.k[3] == 3))) | if length > 0 then . else $at end)
-            | max_by(.k) | .v // "") as $new
-        | [$ft, $new, (.releases | py($ft)), (.releases | py($new))] | join("|")
-      end' "$tmp/pypi.json") || die "$unverified: cannot read PyPI's homeassistant release list"
+  plan=$(core_release_plan "$floor" "$tmp") || die "$unverified: $plan"
   IFS='|' read -r floor_tag newest floor_py newest_py <<<"$plan"
-  [ -n "$floor_tag" ] \
-    || die "$unverified: $hacs_json floor '$floor' does not name a core release - expected X.Y or X.Y.Z with an optional aN/bN/rcN pre-release (e.g. 2026.10.0b0). HACS parses other forms too, but none of them has a core tag to verify against."
   info "hacs.json floor $floor: floor release $floor_tag, newest release at or above it ${newest:-(none yet)}"
 
   if [ -n "${CORE_CONSTRAINTS_PREVIEW_REF:-}" ]; then
