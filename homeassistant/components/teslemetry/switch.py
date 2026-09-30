@@ -364,6 +364,7 @@ class TeslemetryChargeFromGridSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEnt
             ),
         )
         self._attr_is_on = True
+        self.coordinator.async_set_command_value(self.key, False)
         self.async_write_ha_state()
 
     @override
@@ -378,6 +379,7 @@ class TeslemetryChargeFromGridSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEnt
             ),
         )
         self._attr_is_on = False
+        self.coordinator.async_set_command_value(self.key, True)
         self.async_write_ha_state()
 
 
@@ -409,6 +411,7 @@ class TeslemetryStormModeSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity):
             self.hass, self.config_entry, self.api.storm_mode(enabled=True)
         )
         self._attr_is_on = True
+        self.coordinator.async_set_command_value(self.key, True)
         self.async_write_ha_state()
 
     @override
@@ -419,6 +422,7 @@ class TeslemetryStormModeSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity):
             self.hass, self.config_entry, self.api.storm_mode(enabled=False)
         )
         self._attr_is_on = False
+        self.coordinator.async_set_command_value(self.key, False)
         self.async_write_ha_state()
 
 
