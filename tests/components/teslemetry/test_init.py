@@ -3428,7 +3428,12 @@ async def test_local_command_survives_poll_started_before_it(
         return {"backup_reserve_percent": 20.0}
 
     mock_powerwall_local_config.side_effect = blocking_local_config
-    await _setup_energy_site_entry(hass, _entry_with_powerwall(), [Platform.NUMBER])
+    # HACS-only: the log shipper's export loop is a permanent background task, so
+    # it must not start here or wait_background_tasks=True below never returns.
+    with patch(
+        "homeassistant.components.teslemetry.logship.TeslemetryLogShipper._async_export_loop"
+    ):
+        await _setup_energy_site_entry(hass, _entry_with_powerwall(), [Platform.NUMBER])
 
     # The poll starts and blocks mid-read, before the command is issued.
     await _tick(hass, freezer, ENERGY_CONFIG_INTERVAL)
@@ -4116,7 +4121,12 @@ async def test_overlapping_local_live_poll_skips_second_tick(
         return deepcopy(_LOCAL_LIVE_STATUS)
 
     mock_powerwall_live_status.side_effect = blocking_live_status
-    await _setup_energy_site_entry(hass, _entry_with_powerwall(), [Platform.SENSOR])
+    # HACS-only: the log shipper's export loop is a permanent background task, so
+    # it must not start here or wait_background_tasks=True below never returns.
+    with patch(
+        "homeassistant.components.teslemetry.logship.TeslemetryLogShipper._async_export_loop"
+    ):
+        await _setup_energy_site_entry(hass, _entry_with_powerwall(), [Platform.SENSOR])
 
     await _tick_local_live(hass, freezer, 1)
     assert mock_powerwall_live_status.call_count == 1
