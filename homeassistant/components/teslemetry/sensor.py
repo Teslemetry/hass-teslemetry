@@ -213,6 +213,52 @@ def _tpms_atm_to_bar(value: float) -> float:
     )
 
 
+def _listen_charger_power(
+    vehicle: TeslemetryStreamVehicle, callback: Callable[[StateType], None]
+) -> Callable[[], None]:
+    """Listen for charger power, which arrives as AC or DC power."""
+    power: dict[str, float | None] = {"ac": None, "dc": None}
+    charging = True
+    seen: set[str] = set()
+
+    def _update(key: str, value: float | None) -> None:
+        # Power is not reliably reset when a charging session ends
+        power[key] = value if charging or value is None else 0
+        seen.add(key)
+        ac, dc = power["ac"], power["dc"]
+        # No power from one source says nothing about a restored power from the other
+        if len(seen) < 2 and not (ac or dc):
+            return
+        seen.update(power)
+        callback(dc or (ac if ac is not None else dc))
+
+    def _update_charging(state: str | None) -> None:
+        nonlocal charging
+        was_charging = charging
+        # Any other state, or none, says nothing about charging
+        if state in {"Starting", "Charging"}:
+            charging = True
+        elif state in {"Disconnected", "NoPower", "Complete", "Stopped"}:
+            charging = False
+        # The entity may hold a restored power that was never streamed here
+        if was_charging and not charging:
+            power["ac"] = power["dc"] = 0
+            callback(0)
+
+    # Listeners run in registration order, so the charge state is registered
+    # first to gate power sent in the same message
+    unsub_state = vehicle.listen_DetailedChargeState(_update_charging)
+    unsub_ac = vehicle.listen_ACChargingPower(lambda value: _update("ac", value))
+    unsub_dc = vehicle.listen_DCChargingPower(lambda value: _update("dc", value))
+
+    def _unsubscribe() -> None:
+        unsub_ac()
+        unsub_dc()
+        unsub_state()
+
+    return _unsubscribe
+
+
 @dataclass(frozen=True, kw_only=True)
 class TeslemetryVehicleSensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
@@ -267,7 +313,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
     TeslemetryVehicleSensorEntityDescription(
         key="charge_state_charge_energy_added",
         polling=True,
-        streaming_listener=lambda vehicle, callback: vehicle.listen_ACChargingEnergyIn(
+        # Measured at the battery for AC and DC sessions; ACChargingEnergyIn is AC only
+        streaming_listener=lambda vehicle, callback: vehicle.listen_DCChargingEnergyIn(
             callback
         ),
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -278,9 +325,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
     TeslemetryVehicleSensorEntityDescription(
         key="charge_state_charger_power",
         polling=True,
-        streaming_listener=lambda vehicle, callback: vehicle.listen_ACChargingPower(
-            callback
-        ),
+        streaming_listener=_listen_charger_power,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
