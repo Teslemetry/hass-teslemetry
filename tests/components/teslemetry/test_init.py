@@ -8,6 +8,7 @@ from datetime import timedelta
 import logging
 import time
 from types import MappingProxyType
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import ClientConnectionError, ClientError, ClientResponseError
@@ -2803,7 +2804,7 @@ async def test_ble_broadcast_updates_stream_backed_entity(
     hass: HomeAssistant, mock_add_listener: MagicMock
 ) -> None:
     """A paired vehicle's Bluetooth broadcast reaches its stream-backed lock entity."""
-    entry = _entry_with_ble()
+    entry = mock_ble_config_entry()
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock(spec=VehicleBluetooth)
     lock_callbacks: list[Callable[[int], None]] = []
@@ -2843,7 +2844,7 @@ async def test_ble_broadcast_updates_stream_backed_entity(
 
 async def test_unload_stops_ble_broadcast_glue(hass: HomeAssistant) -> None:
     """Unloading a routed entry stops its BLE broadcast glue."""
-    entry = _entry_with_ble()
+    entry = mock_ble_config_entry()
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock(spec=VehicleBluetooth)
 
@@ -2875,7 +2876,7 @@ async def test_setup_failure_after_glue_construction_stops_it(
     hass: HomeAssistant,
 ) -> None:
     """A setup failure after the BLE glue is built still unsubscribes it."""
-    entry = _entry_with_ble()
+    entry = mock_ble_config_entry()
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock(spec=VehicleBluetooth)
 
