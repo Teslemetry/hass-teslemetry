@@ -804,6 +804,22 @@ async def _async_rediscover_gateway(
     return stale_client
 
 
+def _remove_stale_devices(
+    device_registry: dr.DeviceRegistry,
+    entry: TeslemetryConfigEntry,
+    current_devices: set[tuple[str, str]],
+) -> None:
+    """Remove devices that are no longer present."""
+    for device_entry in dr.async_entries_for_config_entry(
+        device_registry, entry.entry_id
+    ):
+        if not any(
+            identifier in current_devices for identifier in device_entry.identifiers
+        ):
+            LOGGER.debug("Removing stale device %s", device_entry.id)
+            device_registry.async_remove_device(device_entry.id)
+
+
 async def _async_vehicle_first_refresh(vehicle: TeslemetryVehicleData) -> None:
     """Refresh a polling vehicle, bounding a sleeping car's slow response."""
     try:
@@ -1116,15 +1132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     for energysite in energysites:
         async_setup_energy_device(hass, entry, energysite, device_registry)
 
-    # Remove devices that are no longer present
-    for device_entry in dr.async_entries_for_config_entry(
-        device_registry, entry.entry_id
-    ):
-        if not any(
-            identifier in current_devices for identifier in device_entry.identifiers
-        ):
-            LOGGER.debug("Removing stale device %s", device_entry.id)
-            device_registry.async_remove_device(device_entry.id)
+    _remove_stale_devices(device_registry, entry, current_devices)
 
     _prune_energy_subentries(hass, entry, scopes, products)
 
