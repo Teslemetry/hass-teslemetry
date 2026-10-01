@@ -18,7 +18,7 @@ from homeassistant.helpers import instance_id
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_integration
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 
 OTLP_ENDPOINT = "https://clickstack.teslemetry.com/v1/logs"
 
@@ -30,10 +30,10 @@ CONF_SHIP_LOGS_TO_CLICKSTACK = "ship_logs_to_clickstack"
 # string equality only, so reusing it needs no server-side change.
 INGEST_KEY = "8f40841f-391a-4bfd-970a-b33f5fe0c2e1"
 
-# Privacy hard line: only these three loggers are ever attached to. Never
-# root, never other integrations, never HA system logs.
-SHIPPED_LOGGERS = (
-    "homeassistant.components.teslemetry",
+# Privacy hard line: only the integration's own logger and these two library
+# loggers are ever attached to. Never root, never other integrations, never HA
+# system logs.
+SHIPPED_LIBRARY_LOGGERS = (
     "tesla_fleet_api",
     "teslemetry_stream",
 )
@@ -159,6 +159,7 @@ class TeslemetryLogShipper:
         self._handler = _OTLPLogHandler(self._buffer, self)
         self._resource_attrs: dict[str, Any] = {}
         self._task: asyncio.Task | None = None
+        self._logger_names: tuple[str, ...] = ()
 
     def is_shipping_authorized(self) -> bool:
         """Return whether the durable opt-in currently permits shipping."""
@@ -180,7 +181,10 @@ class TeslemetryLogShipper:
                     "ClickStack log shipping failed to start, will retry on next setup"
                 )
                 raise
-            for name in SHIPPED_LOGGERS:
+            # The integration logs through its package name, which is
+            # custom_components.teslemetry in the HACS build.
+            self._logger_names = (LOGGER.name, *SHIPPED_LIBRARY_LOGGERS)
+            for name in self._logger_names:
                 logging.getLogger(name).addHandler(self._handler)
             self._task = self.hass.async_create_background_task(
                 self._async_export_loop(), "teslemetry_logship"
@@ -198,7 +202,7 @@ class TeslemetryLogShipper:
             self._force_count -= 1
         if self._refcount > 0:
             return
-        for name in SHIPPED_LOGGERS:
+        for name in self._logger_names:
             logging.getLogger(name).removeHandler(self._handler)
         if self._task is not None:
             self._task.cancel()
