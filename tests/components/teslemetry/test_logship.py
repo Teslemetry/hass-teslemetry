@@ -406,3 +406,31 @@ async def test_setup_entry_shares_singleton_across_entries(
     await hass.async_block_till_done()
     assert get_logship(hass) is None
     assert log_shipper._handler not in logging.getLogger(LIBRARY_LOGGER).handlers
+
+
+@pytest.mark.parametrize(
+    ("force", "shipped"),
+    [(True, 1), (False, 0)],
+)
+async def test_integration_logger_name_follows_package(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    force: bool,
+    shipped: int,
+) -> None:
+    """Records from the integration's own LOGGER ship under any package name.
+
+    The HACS build logs through ``custom_components.teslemetry``, not the
+    core-shaped ``homeassistant.components.teslemetry``.
+    """
+    hacs_logger = logging.getLogger("custom_components.teslemetry")
+    caplog.set_level(logging.DEBUG, logger=hacs_logger.name)
+    with patch("homeassistant.components.teslemetry.logship.LOGGER", hacs_logger):
+        log_shipper = TeslemetryLogShipper(hass, UNIQUE_ID)
+        await log_shipper.async_acquire(force=force)
+    try:
+        hacs_logger.debug("integration message")
+        assert len(log_shipper._buffer) == shipped
+    finally:
+        log_shipper.async_release(force=force)
+    assert log_shipper._handler not in hacs_logger.handlers
