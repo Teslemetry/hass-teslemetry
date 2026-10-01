@@ -1,3 +1,5 @@
+**Teslemetry 6.2 requires Home Assistant 2026.10 or newer. If you are on Home Assistant 2026.9, stay on version 6.0.23, or re-download 6.0.23 from HACS 2.0.3 or newer (update HACS first if older).**
+
 # Teslemetry
 
 [![GitHub Release][releases-shield]][releases]
