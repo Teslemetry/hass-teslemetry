@@ -7,17 +7,18 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 ```bash
 ./release.sh <major|minor|patch> [--line <major.minor>]            # dry run, stops before publish
 ./release.sh <major|minor|patch> [--line <major.minor>] --publish  # arms the real tag + GitHub release
+./release.sh daily [--publish]                                     # headless daily pre-release v<UTC Y.M.D>
 ```
 
 `release.sh` (repo root) **is** the release process and owns the HOW — read its header comment for the step list. This file owns the WHY and the gotchas. Do not re-add hand-run step lists here; they drift from the script.
 
 `release.sh` is a **fork-only tracked file at the repo root**, like `.github/workflows/teslemetry-test.yml` and `release.yml`. Core `dev` has no `release.sh` and the CI-strip only touches `.github/workflows/`, so the core-`dev` sync never clobbers it. Do not move it under `script/` — that tree is core-synced and the name could collide upstream.
 
-The pipeline runs every phase automatically and fail-stop. It **never** runs `git checkout main`, rebases, or force-pushes, so it is safe from an isolated worktree. It hands control to you at exactly three points:
+The pipeline runs every phase automatically and fail-stop. It **never** runs `git checkout main`, rebases, or force-pushes, so it is safe from an isolated worktree. It hands control to you at exactly three points (in `daily` mode each one is a headless stop instead: the run prints why and exits 3 with nothing published):
 
 - **Any conflict rerere cannot replay** — an `upstream/dev` merge conflict, a PR net diff that doesn't apply cleanly, or the concurrent-push re-merge. With `RELEASE_RERERE_CACHE` set to a persistent directory, `git rerere` replays every resolution recorded there by an earlier cut, and only a conflict it has not seen stops; unset, every conflict stops. Edit files directly (no `git mergetool`) and `git add` each resolved file **without committing**; the script finishes the commit and re-runs the conflict-marker grep.
-- **The TEMPORARY `quality_scale.yaml` checkpoint** — the script excludes `quality_scale.yaml` from every per-PR diff (it conflicts repeatedly while quality-scale work is in flight) and pauses once for you to write the correct combined final state and `git add` it. Retire the checkpoint and the exclusion together once the quality scale PRs have merged.
-- **The approval pause** — reached only after the build gate passed in full. Type `publish`; anything else aborts with nothing published.
+- **The TEMPORARY `quality_scale.yaml` checkpoint** — the script excludes `quality_scale.yaml` from every per-PR diff (it conflicts repeatedly while quality-scale work is in flight) and, when an applied PR changed it, pauses once for you to write the correct combined final state and `git add` it. Retire the checkpoint and the exclusion together once the quality scale PRs have merged.
+- **The approval pause** — reached only after the build gate passed in full. Type `publish`; anything else aborts with nothing published. `daily` mode has no approval pause; see "Publish safety".
 
 ### What a cut composes
 
@@ -57,7 +58,7 @@ A cut based on a release **tag** inherits that tag's frozen copy of `release.sh`
 
 ### Publish safety
 
-Two independent gates guard the real release: the interactive `publish` confirmation **and** the `--publish` flag. Without `--publish`, even an approved run stops at a dry run, so validating the pipeline never risks a real tag or release. With both, the script tags `v$VERSION`, zips the integration, runs `gh release create ... --prerelease` + upload, then **guarantees** the prerelease flag with a typed API PATCH (`gh api --method PATCH .../releases/$id -F prerelease=true`; never `gh release edit`, which resets it), and pushes `release-$VERSION`.
+Two independent gates guard a bump cut's real release: the interactive `publish` confirmation **and** the `--publish` flag. Without `--publish`, even an approved run stops at a dry run, so validating the pipeline never risks a real tag or release. With both, the script tags `v$VERSION`, zips the integration, runs `gh release create ... --prerelease` + upload, then **guarantees** the prerelease flag with a typed API PATCH (`gh api --method PATCH .../releases/$id -F prerelease=true`; never `gh release edit`, which resets it), and pushes `release-$VERSION`. A `daily --publish` run takes the same publish steps, titled `Pre-release v…`, once every gate passes, with no confirmation; a `daily` run without `--publish` pushes nothing, `main` included.
 
 ## Conflict resolution guidelines
 
