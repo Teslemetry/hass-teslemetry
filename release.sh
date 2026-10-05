@@ -18,6 +18,8 @@
 # ATTR_LATITUDE compat grep that v6.0.9 missed; the post-commit conflict-marker
 # grep; the full local build gate). It STOPS for a human at exactly two kinds
 # of checkpoint: an unresolved conflict, and the pre-publish approval pause.
+# With RELEASE_RERERE_CACHE set, git rerere replays conflict resolutions
+# recorded by earlier cuts, so only a conflict it has not seen before stops.
 # It never auto-publishes: the real tag/release only runs with --publish AND an
 # explicit human "publish" at the approval pause.
 #
@@ -87,6 +89,48 @@ assert_no_unmerged() {
     git diff --name-only --diff-filter=U | sed 's/^/    unmerged: /'
     die "unmerged paths remain - 'git add' every resolved file, then rerun this step"
   fi
+}
+
+# Point git rerere at the persistent cache named by RELEASE_RERERE_CACHE, so a
+# resolution recorded in one cut replays in the next. Unset: rerere stays as
+# the repo and user config leave it, as before. git has no setting for the
+# rr-cache location, so the repo's rr-cache becomes a symlink to the cache. The
+# config is passed through the environment, never written to the shared repo.
+setup_rerere() {
+  RERERE=0
+  [ -n "${RELEASE_RERERE_CACHE:-}" ] || { info "rerere: off (RELEASE_RERERE_CACHE unset)"; return 0; }
+  mkdir -p "$RELEASE_RERERE_CACHE" || die "cannot create RELEASE_RERERE_CACHE: $RELEASE_RERERE_CACHE"
+  local cache link
+  cache=$(cd "$RELEASE_RERERE_CACHE" && pwd -P)
+  link="$(git rev-parse --git-common-dir)/rr-cache"
+  if [ -L "$link" ]; then
+    [ "$(readlink -f "$link")" = "$cache" ] \
+      || die "$link points at $(readlink -f "$link"), not RELEASE_RERERE_CACHE ($cache)"
+  elif [ -e "$link" ]; then
+    die "$link is a real directory - move its contents into $cache and delete it, so rerere uses one cache"
+  else
+    ln -s "$cache" "$link"
+  fi
+  export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=rerere.enabled GIT_CONFIG_VALUE_0=true
+  RERERE=1
+  info "rerere: on, cache $cache"
+}
+
+# After a failed merge or `git apply -3`, return 0 only if rerere replayed a
+# recorded resolution for every conflicted path, and stage those paths. Both
+# commands run rerere themselves. Not rerere.autoUpdate: inside `git apply -3`
+# it fails on apply's own index lock. A failure that left no unmerged path
+# (a patch that did not apply at all) and any path rerere cannot resolve
+# (modify/delete, or a conflict it has not seen) return 1, so the caller stops.
+rerere_resolved() {
+  [ "$RERERE" = 1 ] || return 1
+  local unmerged
+  unmerged=$(git diff --name-only --diff-filter=U)
+  [ -n "$unmerged" ] || return 1
+  [ -z "$(git rerere remaining)" ] || return 1
+  git diff -z --name-only --diff-filter=U | xargs -0 git add --
+  local path
+  while IFS= read -r path; do info "rerere replayed: $path"; done <<<"$unmerged"
 }
 
 # --- steps -------------------------------------------------------------------
@@ -235,8 +279,10 @@ sync_dev() {
   git checkout -b sync-dev origin/main
 
   if ! git merge --no-edit upstream/dev; then
-    pause "Merge conflicts from upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit - this script finishes the merge."
-    assert_no_unmerged
+    if ! rerere_resolved; then
+      pause "Merge conflicts from upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit - this script finishes the merge."
+      assert_no_unmerged
+    fi
     git commit --no-edit --no-verify
   fi
   strip_core_ci
@@ -251,8 +297,10 @@ sync_dev() {
     log "push rejected (main moved) - re-merging origin/main (attempt $tries)"
     git fetch origin main
     if ! git merge --no-edit origin/main; then
-      pause "Conflicts merging the newer origin/main. Resolve and 'git add'; do NOT commit."
-      assert_no_unmerged
+      if ! rerere_resolved; then
+        pause "Conflicts merging the newer origin/main. Resolve and 'git add'; do NOT commit."
+        assert_no_unmerged
+      fi
       git commit --no-edit --no-verify
     fi
     strip_core_ci
@@ -268,14 +316,10 @@ create_release_branch() {
   info "on release-$VERSION"
 }
 
-# Remove one file's section from a unified diff read on stdin. Used to hold
-# quality_scale.yaml out of per-PR patches (TEMPORARY, see apply_prs).
-strip_file_from_diff() {
-  local drop="$1"
-  awk -v drop="$drop" '
-    /^diff --git / { keep = ($0 !~ drop) }
-    keep { print }
-  '
+# Fetch one ref from a GitHub repo and print its commit.
+fetch_ref() {
+  git fetch --quiet "https://github.com/$1" "$2" || die "could not fetch $1 $2"
+  git rev-parse FETCH_HEAD
 }
 
 # List open PRs on a repo as a JSON array. Extra args are passed to gh pr list.
@@ -346,26 +390,32 @@ list_fork_prs() {
 }
 
 # Apply one PR as one commit. $1 repo, $2 number, $3 title, $4 draft flag,
-# $5 ref prefix ("#" for core, "fork#" for the staging fork). The prefix marks
-# the commit subject, the approval summary and the release-notes line.
+# $5 ref prefix ("#" for core, "fork#" for the staging fork), $6 the commit of
+# the PR's base branch. The prefix marks the commit subject, the approval
+# summary and the release-notes line.
+#
+# Applies the PR's NET diff (merge-base to head, what GitHub shows as the PR's
+# changes) with a three-way merge, not one patch per PR commit: on a
+# multi-commit PR the intermediate patches conflict with each other even when
+# the net change merges cleanly. The fetched head and base give git apply -3
+# every pre-image blob, so it falls back to a real three-way merge.
 apply_one_pr() {
-  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2"
+  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6"
   log "  PR $ref: $title"
-  # The staging fork's dev can hold commits upstream/dev lacks. Fetch the PR
-  # head so the pre-image blobs exist locally and git apply -3 can fall back to
-  # a real three-way merge instead of failing outright.
-  if [ "$repo" != "$CORE_REPO" ]; then
-    git fetch --quiet "https://github.com/$repo" "pull/$num/head" \
-      || die "could not fetch $repo pull/$num/head"
-  fi
+  local head mb
+  head=$(fetch_ref "$repo" "pull/$num/head")
+  mb=$(git merge-base "$base" "$head") || die "no merge-base for $repo pull/$num and its base"
   # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
-  # of every per-PR patch to avoid repeated conflicts; the combined final
-  # state is applied once at the end of apply_prs. Remove this filter and the
+  # of every per-PR diff to avoid repeated conflicts; the combined final
+  # state is applied once at the end of apply_prs. Remove this exclusion and the
   # end-of-loop checkpoint once the quality scale PRs have all merged.
-  if gh pr diff "$num" --patch --repo "$repo" \
-       | strip_file_from_diff "quality_scale.yaml" \
-       | git apply -3; then
+  local pathspec=(. ':(exclude)*quality_scale.yaml')
+  if git diff --quiet "$mb" "$head" -- "${pathspec[@]}"; then
+    info "no changes outside quality_scale.yaml"
+  elif git diff --full-index --binary "$mb" "$head" -- "${pathspec[@]}" | git apply -3; then
     info "applied cleanly"
+  elif rerere_resolved; then
+    CONFLICTED_PRS+=("$ref (rerere)")
   else
     CONFLICTED_PRS+=("$ref")
     pause "PR $ref did not apply cleanly. Read its intent (gh pr diff $num --repo $repo), edit files to resolve, 'git add' each. Do NOT commit - this script commits."
@@ -373,7 +423,7 @@ apply_one_pr() {
   fi
   # -A (not -am): capture any new files the patch adds (e.g. a new calendar.py).
   git add -A
-  git commit -m "$ref: $title" --no-verify >/dev/null
+  git commit -m "$ref: $title" --allow-empty --no-verify >/dev/null
   # Enforce the post-commit marker grep the runbook left to memory.
   assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
   local status=""
@@ -387,12 +437,13 @@ apply_one_pr() {
 
 # Step 4: compose the release on top of synced core dev - every open Bre77
 # teslemetry PR on core, then every open teslemetry PR on the staging fork (only
-# the queued ones with PROMOTE_QUEUE set), each group oldest-to-newest. JUDGMENT checkpoint: clean applies auto-commit; any
+# the queued ones with PROMOTE_QUEUE set), each group oldest-to-newest. JUDGMENT
+# checkpoint: clean applies and conflicts rerere replays auto-commit; any other
 # conflict STOPS for manual resolution. Per-PR note lines are collected here and
 # written to release_notes.txt in update_version - never a tracked file, so
 # `git add -A` can't stage it.
 apply_prs() {
-  log "Step 4: apply core and staging-fork PR patches"
+  log "Step 4: apply core and staging-fork PR net diffs"
 
   APPLIED_PRS=()
   CONFLICTED_PRS=()
@@ -404,22 +455,24 @@ apply_prs() {
   core_prs=$(list_core_prs)
   fork_prs=$(list_fork_prs)
 
-  local num title draft
+  local num title draft core_base fork_base
   if [ -z "$core_prs" ]; then
     info "no open Bre77 teslemetry PRs on $CORE_REPO to apply"
   else
+    core_base=$(fetch_ref "$CORE_REPO" dev)
     while IFS=$'\t' read -r num title draft; do
       [ -n "$num" ] || continue
-      apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#"
+      apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#" "$core_base"
     done <<<"$core_prs"
   fi
 
   if [ -z "$fork_prs" ]; then
     info "no open teslemetry PRs on $STAGING_REPO (base dev) to apply"
   else
+    fork_base=$(fetch_ref "$STAGING_REPO" dev)
     while IFS=$'\t' read -r num title draft; do
       [ -n "$num" ] || continue
-      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#"
+      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base"
     done <<<"$fork_prs"
   fi
 
@@ -980,6 +1033,7 @@ approve_and_publish() {
 main() {
   parse_args "$@"
   preflight
+  setup_rerere
   determine_version
   sync_dev
   create_release_branch
