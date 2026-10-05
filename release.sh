@@ -10,7 +10,8 @@
 #
 # A cut composes core dev + every open Bre77 teslemetry PR on core + every open
 # teslemetry PR on the staging fork Teslemetry/home-assistant (base dev), core
-# PRs first (see apply_prs).
+# PRs first (see apply_prs). With PROMOTE_QUEUE=<ha-promoter queue file> set,
+# only the fork PRs queued there are taken (see list_fork_prs).
 #
 # It runs the deterministic steps mechanically and hard-enforces the gates the
 # old prose runbook trusted an operator to remember (the device_tracker
@@ -300,14 +301,48 @@ list_core_prs() {
     | jq -r 'sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)"'
 }
 
+# Fork PR numbers in the ha-promoter queue file $1, one per line, in file
+# order. A queue line is `123`, `#123` or the fork PR URL, optionally followed
+# by a docs branch name (ignored here); blank lines are skipped. Any other line
+# dies, so a malformed queue never silently drops an approved PR.
+read_promote_queue() {
+  local file="$1" entry
+  [ -r "$file" ] || die "PROMOTE_QUEUE=$file is not a readable file"
+  while read -r entry _ || [ -n "$entry" ]; do
+    entry="${entry%$'\r'}"
+    [ -n "$entry" ] || continue
+    [[ "$entry" =~ ^(#|https://github\.com/$STAGING_REPO/pull/)?([0-9]+)$ ]] \
+      || die "PROMOTE_QUEUE=$file: bad queue entry: $entry"
+    printf '%s\n' "${BASH_REMATCH[2]}"
+  done < "$file"
+}
+
 # Open PRs on the staging fork against its dev that touch the integration or
 # its tests, draft or ready, ascending, in the same line format.
+# With PROMOTE_QUEUE set to the ha-promoter queue file, only the PRs queued
+# there are taken. A queued PR that is not in that open set is skipped with a
+# note on stderr: ha-promoter closes a fork PR when it opens it upstream, and
+# that change then returns through list_core_prs.
 list_fork_prs() {
-  list_open_prs "$STAGING_REPO" --base dev \
-    | jq -r '[.[] | select(any(.files[].path;
-               startswith("homeassistant/components/teslemetry/")
-               or startswith("tests/components/teslemetry/")))]
-             | sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)"'
+  local queued="null" num
+  if [ -n "${PROMOTE_QUEUE:-}" ]; then
+    # Bash clears errexit in command substitutions: propagate failures by hand.
+    queued=$(read_promote_queue "$PROMOTE_QUEUE" | jq -s 'unique') || exit 1
+  fi
+  local json
+  json=$(list_open_prs "$STAGING_REPO" --base dev \
+    | jq --argjson queued "$queued" \
+         '[.[] | select(any(.files[].path;
+             startswith("homeassistant/components/teslemetry/")
+             or startswith("tests/components/teslemetry/")))
+           | select($queued == null or (.number | IN($queued[])))]
+         | sort_by(.number)') || exit 1
+  if [ "$queued" != null ]; then
+    for num in $(jq -r --argjson open "$json" '. - [$open[].number] | .[]' <<<"$queued"); do
+      info "fork#$num is queued but not an open teslemetry PR on $STAGING_REPO (base dev); skipped" >&2
+    done
+  fi
+  jq -r '.[] | "\(.number)\t\(.title)\t\(.isDraft)"' <<<"$json"
 }
 
 # Apply one PR as one commit. $1 repo, $2 number, $3 title, $4 draft flag,
@@ -351,8 +386,8 @@ apply_one_pr() {
 }
 
 # Step 4: compose the release on top of synced core dev - every open Bre77
-# teslemetry PR on core, then every open teslemetry PR on the staging fork, each
-# group oldest-to-newest. JUDGMENT checkpoint: clean applies auto-commit; any
+# teslemetry PR on core, then every open teslemetry PR on the staging fork (only
+# the queued ones with PROMOTE_QUEUE set), each group oldest-to-newest. JUDGMENT checkpoint: clean applies auto-commit; any
 # conflict STOPS for manual resolution. Per-PR note lines are collected here and
 # written to release_notes.txt in update_version - never a tracked file, so
 # `git add -A` can't stage it.
