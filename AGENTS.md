@@ -15,13 +15,13 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 
 The pipeline runs every phase automatically and fail-stop. It **never** runs `git checkout main`, rebases, or force-pushes, so it is safe from an isolated worktree. It hands control to you at exactly three points:
 
-- **Any conflict** — an `upstream/dev` merge conflict, a PR patch that doesn't apply cleanly, or the concurrent-push re-merge. Edit files directly (no `git mergetool`) and `git add` each resolved file **without committing**; the script finishes the commit and re-runs the conflict-marker grep.
-- **The TEMPORARY `quality_scale.yaml` checkpoint** — the script excludes `quality_scale.yaml` from every per-PR patch (it conflicts repeatedly while quality-scale work is in flight) and pauses once for you to write the correct combined final state and `git add` it. Retire the checkpoint and the exclusion together once the quality scale PRs have merged.
+- **Any conflict rerere cannot replay** — an `upstream/dev` merge conflict, a PR net diff that doesn't apply cleanly, or the concurrent-push re-merge. With `RELEASE_RERERE_CACHE` set to a persistent directory, `git rerere` replays every resolution recorded there by an earlier cut, and only a conflict it has not seen stops; unset, every conflict stops. Edit files directly (no `git mergetool`) and `git add` each resolved file **without committing**; the script finishes the commit and re-runs the conflict-marker grep.
+- **The TEMPORARY `quality_scale.yaml` checkpoint** — the script excludes `quality_scale.yaml` from every per-PR diff (it conflicts repeatedly while quality-scale work is in flight) and pauses once for you to write the correct combined final state and `git add` it. Retire the checkpoint and the exclusion together once the quality scale PRs have merged.
 - **The approval pause** — reached only after the build gate passed in full. Type `publish`; anything else aborts with nothing published.
 
 ### What a cut composes
 
-A release is core `dev` (the `upstream/dev` sync) plus, in `apply_prs`, one commit per PR in this order:
+A release is core `dev` (the `upstream/dev` sync) plus, in `apply_prs`, one commit per PR in this order, each the PR's net diff (merge-base to head) applied with a three-way merge:
 
 1. Every open Bre77 PR on `home-assistant/core` labelled `integration: teslemetry`, ascending by number. Commit subject `#<N>: <title>`.
 2. Every open PR on the staging fork `Teslemetry/home-assistant` whose base is `dev` and that touches `homeassistant/components/teslemetry/` or `tests/components/teslemetry/`, draft or ready, ascending by number. Commit subject `fork#<N>: <title>`. These are staged changes still awaiting the captain's review, so their release-notes lines are marked `(staged, draft)` or `(staged, ready)`.
