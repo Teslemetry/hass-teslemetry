@@ -3,6 +3,7 @@
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
 # Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--publish]
+#         ./release.sh daily [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -20,12 +21,44 @@
 # of checkpoint: an unresolved conflict, and the pre-publish approval pause.
 # With RELEASE_RERERE_CACHE set, git rerere replays conflict resolutions
 # recorded by earlier cuts, so only a conflict it has not seen before stops.
-# It never auto-publishes: the real tag/release only runs with --publish AND an
-# explicit human "publish" at the approval pause.
+# A bump cut never auto-publishes: the real tag/release only runs with --publish
+# AND an explicit human "publish" at the approval pause. Daily mode (below) has
+# no human, so it stops at every checkpoint and publishes on --publish alone.
 #
 # Safe to run from an isolated worktree: it never checks out main, never
 # rebases, and never force-pushes. Every update to main goes through the
 # temporary sync-dev branch delivered with a plain non-force push.
+#
+# Daily mode (`daily`) is the headless pre-release build a timer runs at 00:00
+# UTC. It differs from a bump cut in these ways:
+#   - Version v$(date -u +%Y.%-m.%-d); a further build on the same UTC day takes
+#     .1, .2, ... (the first free tag). No bump argument, no --line.
+#   - Change detection, two steps, no local state. Before composing it compares
+#     an input fingerprint with the one in the newest pre-release tag's
+#     annotation; after composing it compares the composed integration tree
+#     (manifest "version" ignored) with that tag's. Either match exits 0 with
+#     nothing published.
+#   - Every human checkpoint becomes a headless stop: the run prints why and
+#     exits 3 without reading /dev/tty. A gate failure exits 1, as in a bump cut.
+#   - With --publish it publishes automatically once every gate has passed, as a
+#     GitHub pre-release titled "Pre-release v<version>". It refuses to publish
+#     when 25 or more releases are newer than the current latest release.
+#   - Without --publish it is a dry run that pushes nothing, main included.
+#
+# Daily pre-release tag annotation (the durable record of each build; a later
+# latest build dates every change from these, so keep the format stable):
+#   Pre-release <version>
+#   <blank line>
+#   release-kind: prerelease
+#   fingerprint: <sha256 hex of the fingerprint input below>
+#   dev: <upstream/dev commit SHA merged into the build>
+#   main: <fork main commit SHA after the dev sync>
+#   pr: <owner/repo> <number> <head SHA>       (one line per composed PR, in
+#                                               apply order)
+# The fingerprint input is these lines, newline-terminated, PR lines sorted:
+#   dev-tree <tree hash of homeassistant/components/teslemetry at upstream/dev>
+#   main-tree <tree hash of the same path on fork main after the dev sync>
+#   pr <owner/repo> <number> <head SHA>
 
 set -euo pipefail
 
@@ -63,9 +96,17 @@ log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
 die()  { printf '\n\033[1;31mFAIL: %s\033[0m\n' "$*" >&2; exit 1; }
 
+# Exit status of a daily run that needs a human (see pause).
+HEADLESS_STOP_EXIT=3
+
 # Human checkpoint. Blocks until the operator confirms they have handled what
-# the message describes. Reads from the terminal even inside a pipeline.
+# the message describes. Reads from the terminal even inside a pipeline. A daily
+# run has no operator, so it stops instead and leaves the work for a human.
 pause() {
+  if [ "${DAILY:-0}" = 1 ]; then
+    printf '\n\033[1;31mHEADLESS STOP (needs a human, nothing published): %s\033[0m\n' "$*" >&2
+    exit "$HEADLESS_STOP_EXIT"
+  fi
   printf '\n\033[1;33m>>> %s\033[0m\n' "$*"
   read -r -p "    Press Enter to continue, or Ctrl-C to abort: " _ < /dev/tty
 }
@@ -138,18 +179,24 @@ rerere_resolved() {
 parse_args() {
   BUMP=""
   PUBLISH=0
+  DAILY=0
   LINE=""   # optional <major.minor> series selector; empty = derive from tags
   while [ "$#" -gt 0 ]; do
     case "$1" in
       major|minor|patch) BUMP="$1" ;;
+      daily)             DAILY=1 ;;
       --publish)         PUBLISH=1 ;;
       --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
       --line=*)          LINE="${1#--line=}" ;;
-      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish])" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish] | daily [--publish])" ;;
     esac
     shift
   done
-  [ -n "$BUMP" ] || die "specify one of: major | minor | patch"
+  if [ "$DAILY" = 1 ]; then
+    [ -z "$BUMP" ] && [ -z "$LINE" ] || die "daily takes no bump and no --line: its version is the UTC date"
+    return 0
+  fi
+  [ -n "$BUMP" ] || die "specify one of: major | minor | patch | daily"
   if [ -n "$LINE" ]; then
     [[ "$LINE" =~ ^[0-9]+\.[0-9]+$ ]] || die "--line must be <major.minor> (e.g. 6.0), got: $LINE"
   fi
@@ -177,7 +224,7 @@ preflight() {
     # gate's verdict anyway (see preview_core_ref); this keeps it out entirely.
     [ -z "${CORE_CONSTRAINTS_PREVIEW_REF:-}" ] || die "CORE_CONSTRAINTS_PREVIEW_REF is set - unset it; a preview cannot be part of a --publish cut"
   fi
-  info "branch=$branch publish=$PUBLISH"
+  info "branch=$branch publish=$PUBLISH daily=$DAILY"
 }
 
 # Memory-independent guard for the no-line path. With --line omitted we bump off
@@ -259,6 +306,141 @@ determine_version() {
   info "new version: $VERSION ($BUMP bump)"
 }
 
+# --- daily mode ----------------------------------------------------------------
+
+# Print the first free daily version for a UTC date given as Y.M.D with no
+# zero-padding: the date itself, then date.1, date.2, ... Reads local tags, so
+# fetch tags first. AwesomeVersion orders 2026.10.5 < 2026.10.5.1 < 2026.10.6
+# and every one of them above 6.x; a bN suffix would not order (see AGENTS.md).
+daily_version() {
+  local base="$1" v="$1" n=0
+  while git rev-parse -q --verify "refs/tags/v$v" >/dev/null; do
+    n=$((n + 1))
+    v="$base.$n"
+  done
+  printf '%s\n' "$v"
+}
+
+# Step 1 (daily): the version from today's UTC date.
+determine_daily_version() {
+  log "Step 1: determine daily version"
+  git fetch --tags origin || die "could not fetch tags from origin - refusing to compute a version off a stale local tag list"
+  VERSION=$(daily_version "$(date -u +%Y.%-m.%-d)")
+  info "new version: $VERSION (daily pre-release)"
+}
+
+# Print the newest daily pre-release tag (by version), or nothing. Only tags
+# whose annotation says "release-kind: prerelease" count, so a later latest
+# build's date tags never become the change-detection baseline.
+last_prerelease_tag() {
+  local tag
+  for tag in $(git tag -l 'v[0-9][0-9][0-9][0-9].*' | sort -rV); do
+    if git tag -l --format='%(contents)' "$tag" | grep -qx 'release-kind: prerelease'; then
+      printf '%s\n' "$tag"
+      return 0
+    fi
+  done
+}
+
+# Print one field ("fingerprint", "dev", ...) of a daily tag's annotation.
+tag_field() {
+  git tag -l --format='%(contents)' "$1" | sed -n "s/^$2: //p" | head -1
+}
+
+# Print the fingerprint of a compose's inputs. $1 dev tree hash, $2 main tree
+# hash; PR lines "<owner/repo> <number> <head SHA>" on stdin. The input format
+# is documented in the header; changing it rebuilds once on the next run.
+input_fingerprint() {
+  {
+    printf 'dev-tree %s\nmain-tree %s\n' "$1" "$2"
+    sed '/^$/d; s/^/pr /' | LC_ALL=C sort
+  } | sha256sum | cut -d' ' -f1
+}
+
+# The compose set as "<owner/repo> <number> <head SHA>" lines, in apply order.
+compose_set_lines() {
+  local num title draft sha
+  while IFS=$'\t' read -r num title draft sha; do
+    [ -n "$num" ] && printf '%s %s %s\n' "$CORE_REPO" "$num" "$sha"
+  done <<<"$CORE_PRS"
+  while IFS=$'\t' read -r num title draft sha; do
+    [ -n "$num" ] && printf '%s %s %s\n' "$STAGING_REPO" "$num" "$sha"
+  done <<<"$FORK_PRS"
+  return 0
+}
+
+# Change detection, step 1 (before composing): exit 0 when today's inputs equal
+# the ones the last pre-release recorded. The main tree here is fork main before
+# today's sync; the recorded one is main after the last build's sync, which is
+# what main holds the next day when nothing changed.
+skip_if_inputs_unchanged() {
+  log "Change detection: compose inputs"
+  git fetch origin main
+  git fetch upstream dev
+  collect_prs
+  BASE_TAG=$(last_prerelease_tag)
+  if [ -z "$BASE_TAG" ]; then info "no daily pre-release tag yet; building"; return 0; fi
+  local fp recorded
+  fp=$(compose_set_lines | input_fingerprint \
+         "$(git rev-parse "upstream/dev:$INTEGRATION")" "$(git rev-parse "origin/main:$INTEGRATION")")
+  recorded=$(tag_field "$BASE_TAG" fingerprint)
+  if [ "$fp" = "$recorded" ]; then
+    log "Nothing changed since $BASE_TAG (input fingerprint $fp) - nothing published"
+    exit 0
+  fi
+  info "inputs changed since $BASE_TAG; building"
+}
+
+# Change detection, step 2 (after composing): exit 0 when the composed
+# integration, which is all the release zip ships, equals the last pre-release's
+# with the manifest version ignored. Runs before the gates, whose verdict cannot
+# change a skip.
+skip_if_integration_unchanged() {
+  log "Change detection: composed integration"
+  [ -n "$BASE_TAG" ] || { info "no daily pre-release tag yet; building"; return 0; }
+  local manifest="$INTEGRATION/manifest.json"
+  if git diff --quiet "$BASE_TAG" HEAD -- "$INTEGRATION" ":(exclude)$manifest" \
+     && cmp -s <(git show "$BASE_TAG:$manifest" | jq -S 'del(.version)') <(jq -S 'del(.version)' "$manifest"); then
+    log "Composed integration is identical to $BASE_TAG - nothing published"
+    exit 0
+  fi
+  info "composed integration differs from $BASE_TAG; building"
+}
+
+# The daily tag annotation (format in the header). Run after the dev sync: the
+# dev and main values must be what this build composed.
+daily_tag_message() {
+  local dev_sha main_sha fp
+  dev_sha=$(git rev-parse upstream/dev)
+  main_sha=$(git rev-parse sync-dev)
+  fp=$(compose_set_lines | input_fingerprint \
+         "$(git rev-parse "$dev_sha:$INTEGRATION")" "$(git rev-parse "$main_sha:$INTEGRATION")")
+  printf 'Pre-release %s\n\nrelease-kind: prerelease\nfingerprint: %s\ndev: %s\nmain: %s\n' \
+    "$VERSION" "$fp" "$dev_sha" "$main_sha"
+  compose_set_lines | sed 's/^/pr: /'
+}
+
+# Print how many published releases GitHub lists above the current latest
+# release, from the release list JSON (newest first) on stdin. $1 is latest's
+# tag; a latest missing from the list counts the whole list.
+count_newer_than_latest() {
+  jq --arg t "$1" '[.[] | select(.draft | not) | .tag_name] | (index($t) // length)'
+}
+
+# HACS and Home Assistant read only the 30 newest releases. If latest falls out
+# of that window, users are no longer offered it, so refuse at 25 newer.
+release_window_guard() {
+  log "Gate: latest release stays inside the 30-release window"
+  local latest newer
+  latest=$(gh api "repos/$FORK_REPO/releases/latest" --jq '.tag_name') \
+    || die "could not read the latest release on $FORK_REPO"
+  newer=$(gh api "repos/$FORK_REPO/releases?per_page=100" | count_newer_than_latest "$latest") \
+    || die "could not list releases on $FORK_REPO"
+  [ "$newer" -lt 25 ] \
+    || die "$newer releases are newer than latest $latest - one more pre-release pushes latest toward the 30-release window HACS reads. Publish a new latest first."
+  info "$newer releases newer than latest $latest"
+}
+
 # Re-delete the core CI/CD workflows and commit if anything was staged.
 # --ignore-unmatch makes it a no-op when upstream didn't touch these paths.
 strip_core_ci() {
@@ -287,6 +469,11 @@ sync_dev() {
   fi
   strip_core_ci
   assert_no_conflict_markers
+
+  if [ "$DAILY" = 1 ] && [ "$PUBLISH" != 1 ]; then
+    info "daily dry run: main not pushed"
+    return 0
+  fi
 
   # Non-force push with concurrent-push retry: if main moved under us, fold in
   # the new origin/main and retry. Never --force / --force-with-lease.
@@ -330,7 +517,7 @@ list_open_prs() {
   local repo="$1"; shift
   local json count
   json=$(gh pr list --repo "$repo" --state open --limit "$PR_LIST_LIMIT" \
-           --json number,title,isDraft,files "$@") \
+           --json number,title,isDraft,headRefOid,files "$@") \
     || die "could not list open PRs on $repo"
   count=$(jq 'length' <<<"$json")
   [ "$count" -lt "$PR_LIST_LIMIT" ] \
@@ -339,10 +526,10 @@ list_open_prs() {
 }
 
 # Open Bre77 teslemetry PRs on core, ascending (oldest-to-newest proxy), as
-# "number<TAB>title<TAB>draft" lines.
+# "number<TAB>title<TAB>draft<TAB>head SHA" lines.
 list_core_prs() {
   list_open_prs "$CORE_REPO" --author Bre77 --label "integration: teslemetry" \
-    | jq -r 'sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)"'
+    | jq -r 'sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)\t\(.headRefOid)"'
 }
 
 # Fork PR numbers in the ha-promoter queue file $1, one per line, in file
@@ -386,13 +573,25 @@ list_fork_prs() {
       info "fork#$num is queued but not an open teslemetry PR on $STAGING_REPO (base dev); skipped" >&2
     done
   fi
-  jq -r '.[] | "\(.number)\t\(.title)\t\(.isDraft)"' <<<"$json"
+  jq -r '.[] | "\(.number)\t\(.title)\t\(.isDraft)\t\(.headRefOid)"' <<<"$json"
+}
+
+# Capture both lists once, before applying anything, so a truncated or failed
+# listing dies before the first commit. A daily run collects them early for its
+# input fingerprint; apply_prs then composes exactly that set.
+collect_prs() {
+  [ -z "${PRS_COLLECTED:-}" ] || return 0
+  CORE_PRS=$(list_core_prs)
+  FORK_PRS=$(list_fork_prs)
+  PRS_COLLECTED=1
 }
 
 # Apply one PR as one commit. $1 repo, $2 number, $3 title, $4 draft flag,
 # $5 ref prefix ("#" for core, "fork#" for the staging fork), $6 the commit of
-# the PR's base branch. The prefix marks the commit subject, the approval
-# summary and the release-notes line.
+# the PR's base branch, $7 the head SHA the PR listing returned. The prefix
+# marks the commit subject, the approval summary and the release-notes line.
+# The listed head is what gets applied, so a push to the PR during the run
+# cannot make the build differ from the head SHAs a daily tag records.
 #
 # Applies the PR's NET diff (merge-base to head, what GitHub shows as the PR's
 # changes) with a three-way merge, not one patch per PR commit: on a
@@ -400,15 +599,21 @@ list_fork_prs() {
 # the net change merges cleanly. The fetched head and base give git apply -3
 # every pre-image blob, so it falls back to a real three-way merge.
 apply_one_pr() {
-  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6"
+  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6" listed="$7"
   log "  PR $ref: $title"
   local head mb
   head=$(fetch_ref "$repo" "pull/$num/head")
+  if [ "$head" != "$listed" ]; then
+    info "head moved to $head since listing; applying the listed $listed"
+    head=$(fetch_ref "$repo" "$listed")
+  fi
   mb=$(git merge-base "$base" "$head") || die "no merge-base for $repo pull/$num and its base"
   # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
   # of every per-PR diff to avoid repeated conflicts; the combined final
-  # state is applied once at the end of apply_prs. Remove this exclusion and the
-  # end-of-loop checkpoint once the quality scale PRs have all merged.
+  # state is applied once at the end of apply_prs, only if a PR touched it.
+  # Remove this exclusion and the end-of-loop checkpoint once the quality scale
+  # PRs have all merged.
+  if ! git diff --quiet "$mb" "$head" -- '*quality_scale.yaml'; then QUALITY_SCALE_PRS+=("$ref"); fi
   local pathspec=(. ':(exclude)*quality_scale.yaml')
   if git diff --quiet "$mb" "$head" -- "${pathspec[@]}"; then
     info "no changes outside quality_scale.yaml"
@@ -448,39 +653,41 @@ apply_prs() {
   APPLIED_PRS=()
   CONFLICTED_PRS=()
   NOTE_LINES=()
+  QUALITY_SCALE_PRS=()
 
-  # Capture both lists before applying anything, so a truncated or failed
-  # listing dies before the first commit.
-  local core_prs fork_prs
-  core_prs=$(list_core_prs)
-  fork_prs=$(list_fork_prs)
+  collect_prs
 
-  local num title draft core_base fork_base
-  if [ -z "$core_prs" ]; then
+  local num title draft sha core_base fork_base
+  if [ -z "$CORE_PRS" ]; then
     info "no open Bre77 teslemetry PRs on $CORE_REPO to apply"
   else
     core_base=$(fetch_ref "$CORE_REPO" dev)
-    while IFS=$'\t' read -r num title draft; do
+    while IFS=$'\t' read -r num title draft sha; do
       [ -n "$num" ] || continue
-      apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#" "$core_base"
-    done <<<"$core_prs"
+      apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#" "$core_base" "$sha"
+    done <<<"$CORE_PRS"
   fi
 
-  if [ -z "$fork_prs" ]; then
+  if [ -z "$FORK_PRS" ]; then
     info "no open teslemetry PRs on $STAGING_REPO (base dev) to apply"
   else
     fork_base=$(fetch_ref "$STAGING_REPO" dev)
-    while IFS=$'\t' read -r num title draft; do
+    while IFS=$'\t' read -r num title draft sha; do
       [ -n "$num" ] || continue
-      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base"
-    done <<<"$fork_prs"
+      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base" "$sha"
+    done <<<"$FORK_PRS"
   fi
 
-  # TEMPORARY: apply the combined final quality_scale.yaml once (judgment step).
-  pause "quality_scale.yaml was excluded from every patch above. If it changed in any PR, apply the correct combined final state now (read the PRs' final quality_scale.yaml and write it), 'git add' it. Leave it untouched if no PR changed it."
-  if ! git diff --cached --quiet; then
-    git commit -m "Apply combined quality_scale.yaml" --no-verify >/dev/null
-    info "committed combined quality_scale.yaml"
+  # TEMPORARY: apply the combined final quality_scale.yaml once (judgment step),
+  # only when an applied PR changed it.
+  if [ "${#QUALITY_SCALE_PRS[@]}" -gt 0 ]; then
+    pause "quality_scale.yaml was excluded from every patch above and ${QUALITY_SCALE_PRS[*]} changed it. Apply the correct combined final state now (read those PRs' final quality_scale.yaml and write it), 'git add' it."
+    if ! git diff --cached --quiet; then
+      git commit -m "Apply combined quality_scale.yaml" --no-verify >/dev/null
+      info "committed combined quality_scale.yaml"
+    fi
+  else
+    info "no applied PR changed quality_scale.yaml"
   fi
   assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
 }
@@ -984,8 +1191,23 @@ build_gate() {
   info "build gate green"
 }
 
-# Steps 7 & 8: approval pause, then publish. Never auto-publishes.
+# Steps 7 & 8: approval pause, then publish. A bump cut never auto-publishes; a
+# daily run with --publish publishes once every gate has passed (it gets here
+# only then) and the release window allows it.
 approve_and_publish() {
+  if [ "$DAILY" = 1 ]; then
+    release_window_guard
+    if [ "$PUBLISH" != 1 ]; then
+      log "DRY RUN (no --publish flag)"
+      info "Every gate passed. With --publish this run would tag v$VERSION with this annotation:"
+      daily_tag_message | sed 's/^/      /'
+      info "and publish it as the prerelease \"Pre-release v$VERSION\" on $FORK_REPO."
+      exit 0
+    fi
+    publish_release "Pre-release" "$(daily_tag_message)"
+    return 0
+  fi
+
   log "Step 7: approval"
   echo
   info "Version:  v$VERSION"
@@ -1011,12 +1233,19 @@ approve_and_publish() {
     exit 0
   fi
 
+  publish_release "Beta" "Release $VERSION"
+}
+
+# Step 8: tag, release as a prerelease, push the release branch. $1 is the
+# release title prefix, $2 the tag annotation.
+publish_release() {
+  local title="$1" tag_message="$2"
   log "Step 8: publish"
-  git tag -a "v$VERSION" -m "Release $VERSION"
+  git tag -a "v$VERSION" -m "$tag_message"
   git push origin "v$VERSION"
 
   ( cd "$INTEGRATION" && rm -rf __pycache__ && rm -f ./*.orig && zip -r ../../../teslemetry.zip ./* >/dev/null )
-  gh release create "v$VERSION" -F release_notes.txt --repo "$FORK_REPO" -t "Beta v$VERSION" --prerelease
+  gh release create "v$VERSION" -F release_notes.txt --repo "$FORK_REPO" -t "$title v$VERSION" --prerelease
   gh release upload "v$VERSION" teslemetry.zip --repo "$FORK_REPO"
   rm -f teslemetry.zip
 
@@ -1034,10 +1263,16 @@ main() {
   parse_args "$@"
   preflight
   setup_rerere
-  determine_version
+  if [ "$DAILY" = 1 ]; then
+    determine_daily_version
+    skip_if_inputs_unchanged
+  else
+    determine_version
+  fi
   sync_dev
   create_release_branch
   apply_prs
+  if [ "$DAILY" = 1 ]; then skip_if_integration_unchanged; fi
   update_version
   device_tracker_gate
   tpms_atm_gate
