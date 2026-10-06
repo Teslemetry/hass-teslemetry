@@ -7,7 +7,8 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 ```bash
 ./release.sh <major|minor|patch> [--line <major.minor>]            # dry run, stops before publish
 ./release.sh <major|minor|patch> [--line <major.minor>] --publish  # arms the real tag + GitHub release
-./release.sh daily [--publish]                                     # headless daily pre-release v<UTC Y.M.D>
+./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish]
+                                                                   # headless daily pre-release v<UTC Y.M.D>, plus a soaked latest when its rules pass
 ```
 
 `release.sh` (repo root) **is** the release process and owns the HOW — read its header comment for the step list. This file owns the WHY and the gotchas. Do not re-add hand-run step lists here; they drift from the script.
@@ -58,7 +59,7 @@ A cut based on a release **tag** inherits that tag's frozen copy of `release.sh`
 
 ### Publish safety
 
-Two independent gates guard a bump cut's real release: the interactive `publish` confirmation **and** the `--publish` flag. Without `--publish`, even an approved run stops at a dry run, so validating the pipeline never risks a real tag or release. With both, the script tags `v$VERSION`, zips the integration, runs `gh release create ... --prerelease` + upload, then **guarantees** the prerelease flag with a typed API PATCH (`gh api --method PATCH .../releases/$id -F prerelease=true`; never `gh release edit`, which resets it), and pushes `release-$VERSION`. A `daily --publish` run takes the same publish steps, titled `Pre-release v…`, once every gate passes, with no confirmation; a `daily` run without `--publish` pushes nothing, `main` included.
+Two independent gates guard a bump cut's real release: the interactive `publish` confirmation **and** the `--publish` flag. Without `--publish`, even an approved run stops at a dry run, so validating the pipeline never risks a real tag or release. With both, the script tags `v$VERSION`, zips the integration, runs `gh release create ... --prerelease` + upload, then **guarantees** the prerelease flag with a typed API PATCH (`gh api --method PATCH .../releases/$id -F prerelease=true`; never `gh release edit`, which resets it), and pushes `release-$VERSION`. A `daily --publish` run takes the same publish steps, titled `Pre-release v…`, once every gate passes, with no confirmation, and pushes the dev sync to `main` only then; if `main` moved during the run it stops with nothing published. When the run also builds latest (rules in `release.sh`'s header), it tags latest before the pre-release, publishes the pre-release first, and creates latest last with `gh release create ... --latest` and no `--prerelease`. A `daily` run without `--publish` pushes nothing, `main` included.
 
 ## Conflict resolution guidelines
 

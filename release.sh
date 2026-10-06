@@ -3,7 +3,7 @@
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
 # Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--publish]
-#         ./release.sh daily [--publish]
+#         ./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -43,7 +43,52 @@
 #   - With --publish it publishes automatically once every gate has passed, as a
 #     GitHub pre-release titled "Pre-release v<version>". It refuses to publish
 #     when 25 or more releases are newer than the current latest release.
+#   - It pushes the dev sync to main only after every gate has passed, and stops
+#     with nothing published if main moved during the run.
 #   - Without --publish it is a dry run that pushes nothing, main included.
+#   - It also builds a new latest (stable) release when the rules below pass.
+#
+# Latest (`daily` decides it first, every run): latest is BUILT from the changes
+# that met their own lead time, never promoted in place. "Breakfix goes fast,
+# everything else goes safe."
+#   - A change is one PR: an open core PR, a composed fork PR, or a core PR
+#     merged into dev (the "(#N)" in its commit subject). Its type is the core
+#     PR's type label, or the checked "Type of change" box of a fork PR's body;
+#     a missing or ambiguous type counts as new-feature.
+#   - Two clocks, in whole UTC days, from the pre-release tag annotations: the
+#     change's age (first pre-release with the PR, or with its dev commit) must
+#     reach its lead time, and its current head's age (first pre-release with
+#     that head SHA, or with its dev commit) must reach 2 days. Lead times:
+#     bugfix and code-quality 2 days; everything else 7 days; any change to the
+#     hacs.json floor or manifest requirements 7 days.
+#   - Base: the newest pre-release (its recorded dev and main) whose every
+#     teslemetry dev commit since latest's own dev base has soaked; else
+#     latest's own base. On it, every soaked change the base lacks, core then
+#     fork, each ascending, at its current head; a change already in latest
+#     that has not soaked again stays at latest's head. A change whose diff
+#     cannot apply at all (it needs a younger change) waits, named in the
+#     notes; a conflict rerere cannot replay stops the run as in a pre-release.
+#   - When: weekly (7 days since latest) takes every soaked change. On other
+#     days a soaked bugfix missing from latest builds latest's own change set
+#     plus the soaked bugfixes. An open issue labelled blocks-latest that links
+#     a culprit PR keeps that PR out. Nothing is built when the set equals
+#     latest's.
+#   - A floor or requirements difference from latest holds latest for the
+#     captain's word: rerun with --approve-requirements <digest the run
+#     printed>. --waive <#N|fork#N> is the captain's urgent waiver of one PR's
+#     lead time; the run builds latest with it, then the pre-release.
+#   - On a latest run neither change-detection skip applies. Latest is tagged
+#     first and the pre-release a second later; the pre-release is published
+#     first and latest last. Any gate failure publishes neither. A held latest
+#     exits 4 after the pre-release step.
+#
+# Latest tag annotation:
+#   Release <version>
+#   <blank line>
+#   release-kind: latest
+#   dev: <dev commit SHA of the base>
+#   main: <fork main commit SHA of the base>
+#   pr: <owner/repo> <number> <head SHA>       (one line per applied PR)
 #
 # Daily pre-release tag annotation (the durable record of each build; a later
 # latest build dates every change from these, so keep the format stable):
@@ -73,6 +118,9 @@ SENSOR_PY="$INTEGRATION/sensor.py"
 SERVICES_PY="$INTEGRATION/services.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
+LEAD_SHORT=2                    # days: bugfix, code-quality, and every PR's current head
+LEAD_LONG=7                     # days: every other type, and floor/requirements changes
+BLOCKS_LATEST_LABEL="blocks-latest"
 
 # Core CI/CD workflows this fork deliberately excludes. The core-dev sync would
 # otherwise resurrect them; stripped every cut. Keep in sync with the identical
@@ -101,6 +149,8 @@ die()  { printf '\n\033[1;31mFAIL: %s\033[0m\n' "$*" >&2; exit 1; }
 
 # Exit status of a daily run that needs a human (see pause).
 HEADLESS_STOP_EXIT=3
+# Exit status of a daily run whose latest waits for the captain (see finish).
+LATEST_HELD_EXIT=4
 
 # Human checkpoint. Blocks until the operator confirms they have handled what
 # the message describes. Reads from the terminal even inside a pipeline. A daily
@@ -184,6 +234,11 @@ parse_args() {
   PUBLISH=0
   DAILY=0
   LINE=""   # optional <major.minor> series selector; empty = derive from tags
+  WAIVE=""  # daily: the one PR whose lead time the captain waived
+  WAIVE_REF=""
+  APPROVE_REQUIREMENTS=""
+  LATEST_BUILT=0
+  LATEST_HELD=""
   while [ "$#" -gt 0 ]; do
     case "$1" in
       major|minor|patch) BUMP="$1" ;;
@@ -191,14 +246,22 @@ parse_args() {
       --publish)         PUBLISH=1 ;;
       --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
       --line=*)          LINE="${1#--line=}" ;;
-      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish] | daily [--publish])" ;;
+      --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE="$1" ;;
+      --approve-requirements)
+                         shift; [ "$#" -gt 0 ] || die "--approve-requirements requires the digest a run printed"; APPROVE_REQUIREMENTS="$1" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish] | daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish])" ;;
     esac
     shift
   done
   if [ "$DAILY" = 1 ]; then
     [ -z "$BUMP" ] && [ -z "$LINE" ] || die "daily takes no bump and no --line: its version is the UTC date"
+    if [ -n "$WAIVE" ]; then
+      [[ "$WAIVE" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--waive takes #N (core) or fork#N, got: $WAIVE"
+      if [ "${BASH_REMATCH[1]}" = "fork#" ]; then WAIVE_REF="$STAGING_REPO#${BASH_REMATCH[2]}"; else WAIVE_REF="$CORE_REPO#${BASH_REMATCH[2]}"; fi
+    fi
     return 0
   fi
+  [ -z "$WAIVE" ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive and --approve-requirements apply to daily only"
   [ -n "$BUMP" ] || die "specify one of: major | minor | patch | daily"
   if [ -n "$LINE" ]; then
     [[ "$LINE" =~ ^[0-9]+\.[0-9]+$ ]] || die "--line must be <major.minor> (e.g. 6.0), got: $LINE"
@@ -315,9 +378,10 @@ determine_version() {
 # zero-padding: the date itself, then date.1, date.2, ... Reads local tags, so
 # fetch tags first. AwesomeVersion orders 2026.10.5 < 2026.10.5.1 < 2026.10.6
 # and every one of them above 6.x; a bN suffix would not order (see AGENTS.md).
+# $2, when given, is a version this run already claimed but has not tagged yet.
 daily_version() {
-  local base="$1" v="$1" n=0
-  while git rev-parse -q --verify "refs/tags/v$v" >/dev/null; do
+  local base="$1" taken="${2:-}" v="$1" n=0
+  while git rev-parse -q --verify "refs/tags/v$v" >/dev/null || [ "$v" = "$taken" ]; do
     n=$((n + 1))
     v="$base.$n"
   done
@@ -347,7 +411,23 @@ last_prerelease_tag() {
 
 # Print one field ("fingerprint", "dev", ...) of a daily tag's annotation.
 tag_field() {
-  git tag -l --format='%(contents)' "$1" | sed -n "s/^$2: //p" | head -1
+  tag_lines "$1" "$2" | head -1
+}
+
+# Print every value of a repeated annotation field ("pr"), one per line.
+tag_lines() {
+  git tag -l --format='%(contents)' "$1" | sed -n "s/^$2: //p"
+}
+
+# End a daily run that reached no failure. A latest held for the captain's word
+# exits LATEST_HELD_EXIT, so the timer sees it even when the pre-release step
+# published or found nothing to publish.
+finish() {
+  if [ -n "$LATEST_HELD" ]; then
+    printf '\n\033[1;31mLATEST HELD (needs the captain, latest not published): %s\033[0m\n' "$LATEST_HELD" >&2
+    exit "$LATEST_HELD_EXIT"
+  fi
+  exit 0
 }
 
 # Print the fingerprint of a compose's inputs. $1 dev tree hash, $2 main tree
@@ -389,7 +469,7 @@ skip_if_inputs_unchanged() {
   recorded=$(tag_field "$BASE_TAG" fingerprint)
   if [ "$fp" = "$recorded" ]; then
     log "Nothing changed since $BASE_TAG (input fingerprint $fp) - nothing published"
-    exit 0
+    finish
   fi
   info "inputs changed since $BASE_TAG; building"
 }
@@ -405,7 +485,7 @@ skip_if_integration_unchanged() {
   if git diff --quiet "$BASE_TAG" HEAD -- "$INTEGRATION" ":(exclude)$manifest" \
      && cmp -s <(git show "$BASE_TAG:$manifest" | jq -S 'del(.version)') <(jq -S 'del(.version)' "$manifest"); then
     log "Composed integration is identical to $BASE_TAG - nothing published"
-    exit 0
+    finish
   fi
   info "composed integration differs from $BASE_TAG; building"
 }
@@ -444,6 +524,369 @@ release_window_guard() {
   info "$newer releases newer than latest $latest"
 }
 
+# --- latest (rules in the header) ----------------------------------------------
+
+declare -A PR_INFO=()
+
+today_day() { echo $(( $(date -u +%s) / 86400 )); }
+
+# Every daily pre-release, oldest first, as "<UTC day> <tag> dev <SHA>" and
+# "<UTC day> <tag> pr <owner/repo> <number> <head SHA>" lines. A UTC day is
+# whole days since the epoch. Only these annotations date a change.
+prerelease_index() {
+  local tag unix day
+  git for-each-ref --sort=taggerdate --format='%(refname:short) %(taggerdate:unix)' \
+      'refs/tags/v[0-9][0-9][0-9][0-9].*' \
+    | while read -r tag unix; do
+        git tag -l --format='%(contents)' "$tag" | grep -qx 'release-kind: prerelease' || continue
+        day=$((unix / 86400))
+        printf '%s %s dev %s\n' "$day" "$tag" "$(tag_field "$tag" dev)"
+        tag_lines "$tag" pr | sed "s/^/$day $tag pr /"
+      done
+}
+
+# First UTC day a pre-release contained PR $2 of repo $1 (at head $3 if given).
+first_day_pr() {
+  awk -v r="$1" -v n="$2" -v s="${3:-}" \
+    '$3 == "pr" && $4 == r && $5 == n && (s == "" || $6 == s) { print $1; exit }' <<<"$PRE_INDEX"
+}
+
+# First UTC day a pre-release's dev contained commit $1.
+first_day_commit() {
+  local day tag kind sha
+  while read -r day tag kind sha; do
+    [ "$kind" = dev ] || continue
+    if git merge-base --is-ancestor "$1" "$sha" 2>/dev/null; then echo "$day"; return 0; fi
+  done <<<"$PRE_INDEX"
+}
+
+# The earlier of two UTC days, either of which may be empty.
+min_day() {
+  if [ -z "$1" ]; then echo "$2"; elif [ -z "$2" ] || [ "$1" -le "$2" ]; then echo "$1"; else echo "$2"; fi
+}
+
+# The hacs.json floor and the sorted manifest requirements at commit $1.
+requirements_text() {
+  git show "$1:hacs.json" 2>/dev/null | jq -r '.homeassistant // ""' || true
+  git show "$1:$INTEGRATION/manifest.json" 2>/dev/null | jq -r '(.requirements // []) | sort[]' || true
+}
+
+requirements_differ() { [ "$(requirements_text "$1")" != "$(requirements_text "$2")" ]; }
+
+# Cache PR $2 of repo $1 (title, draft, head, labels, body) in PR_INFO. Not in
+# a command substitution, so the cache survives.
+load_pr_info() {
+  [ -z "${PR_INFO[$1#$2]:-}" ] || return 0
+  PR_INFO[$1#$2]=$(gh api "repos/$1/pulls/$2" \
+    --jq '{title, draft, head: .head.sha, labels: [.labels[].name], body: (.body // "")}') \
+    || die "could not read $1 pull $2"
+}
+
+# The type of a cached PR: a core PR's one type label, or a fork PR's one
+# checked "Type of change" box (the core PR template). Missing or ambiguous is
+# new-feature.
+pr_type() {
+  local info="${PR_INFO[$1#$2]}"
+  if [ "$1" = "$STAGING_REPO" ]; then
+    jq -r .body <<<"$info" | tr -d '\r' | awk '
+      /^#+[[:space:]]*Type of change/ { s = 1; next }
+      s && /^#+[[:space:]]/ { s = 0 }
+      s && /^[[:space:]]*[-*][[:space:]]+\[[xX]\]/ {
+        t = "new-feature"
+        if ($0 ~ /\][[:space:]]*Dependency upgrade/) t = "dependency"
+        else if ($0 ~ /\][[:space:]]*Bugfix/) t = "bugfix"
+        else if ($0 ~ /\][[:space:]]*Deprecation/) t = "deprecation"
+        else if ($0 ~ /\][[:space:]]*Breaking change/) t = "breaking-change"
+        else if ($0 ~ /\][[:space:]]*Code quality/) t = "code-quality"
+        seen[t] = 1
+      }
+      END { n = 0; for (k in seen) { n++; one = k }; print (n == 1 ? one : "new-feature") }'
+  else
+    jq -r '[.labels[] | select(IN("bugfix", "code-quality", "new-feature", "dependency", "breaking-change", "deprecation"))]
+           | unique | if length == 1 then .[0] else "new-feature" end' <<<"$info"
+  fi
+}
+
+# Print "soaked" or why not; return 0 only when soaked. $1 type, $2 first day
+# the change shipped, $3 first day its current head shipped, $4 1 when it
+# changes the floor or requirements, $5 1 when the captain waived it.
+soak_verdict() {
+  local lead=$LEAD_LONG today
+  if [ "$5" = 1 ]; then echo "soaked (lead time waived by the captain)"; return 0; fi
+  case "$1" in bugfix|code-quality) lead=$LEAD_SHORT ;; esac
+  [ "$4" != 1 ] || lead=$LEAD_LONG
+  today=$(today_day)
+  [ -n "$2" ] || { echo "never shipped in a pre-release"; return 1; }
+  [ $((today - $2)) -ge "$lead" ] || { echo "change age $((today - $2))d < ${lead}d"; return 1; }
+  [ -n "$3" ] || { echo "current head never shipped in a pre-release"; return 1; }
+  [ $((today - $3)) -ge "$LEAD_SHORT" ] || { echo "head age $((today - $3))d < ${LEAD_SHORT}d"; return 1; }
+  echo soaked
+}
+
+# Judge one change: PR $2 of repo $1 (empty for a dev commit with no PR) at
+# head $3 (empty: the PR's head now), $4 the base the PR branched from, $5 its
+# dev commit when merged. Sets JUDGED_TYPE, JUDGED_HEAD, JUDGED_FIX (bugfix or
+# waived), JUDGED_BLOCKED, VERDICT and VERDICT_OK (1 = soaked).
+judge_change() {
+  local repo="$1" num="$2" head="$3" base="$4" commit="$5" cday="" hday="" reqs=0 waived=0 d
+  JUDGED_TYPE=new-feature JUDGED_HEAD="" JUDGED_FIX=0 JUDGED_BLOCKED=0
+  if [ -n "$num" ]; then
+    load_pr_info "$repo" "$num"
+    JUDGED_TYPE=$(pr_type "$repo" "$num")
+    [ -n "$head" ] || head=$(jq -r .head <<<"${PR_INFO[$repo#$num]}")
+    JUDGED_HEAD=$head
+    cday=$(first_day_pr "$repo" "$num")
+    hday=$(first_day_pr "$repo" "$num" "$head")
+    [ "$WAIVE_REF" != "$repo#$num" ] || waived=1
+    if grep -qxF "$repo#$num" <<<"$BLOCKED"; then JUDGED_BLOCKED=1; fi
+  fi
+  if [ -n "$commit" ]; then
+    d=$(first_day_commit "$commit")
+    cday=$(min_day "$cday" "$d")
+    hday=$(min_day "$hday" "$d")
+    if requirements_differ "$commit^" "$commit"; then reqs=1; fi
+  else
+    git cat-file -e "$head^{commit}" 2>/dev/null || fetch_ref "$repo" "pull/$num/head" >/dev/null
+    git cat-file -e "$head^{commit}" 2>/dev/null || fetch_ref "$repo" "$head" >/dev/null
+    if requirements_differ "$(git merge-base "$base" "$head")" "$head"; then reqs=1; fi
+  fi
+  if [ "$JUDGED_TYPE" = bugfix ] || [ "$waived" = 1 ]; then JUDGED_FIX=1; fi
+  if [ "$JUDGED_BLOCKED" = 1 ]; then
+    VERDICT="kept out by an open $BLOCKS_LATEST_LABEL issue" VERDICT_OK=0
+  elif VERDICT=$(soak_verdict "$JUDGED_TYPE" "$cday" "$hday" "$reqs" "$waived"); then
+    VERDICT_OK=1
+  else
+    VERDICT_OK=0
+  fi
+  [ "$reqs" = 0 ] || VERDICT+=" (changes the floor or requirements)"
+}
+
+# Culprit PRs of open blocks-latest issues on the fork, as "<owner/repo>#<N>"
+# lines in BLOCKED, from the PR URLs each issue links. An issue that links none
+# holds latest: the run cannot tell what to keep out.
+load_blocked() {
+  local issues unnamed
+  issues=$(gh issue list --repo "$FORK_REPO" --label "$BLOCKS_LATEST_LABEL" --state open \
+             --limit "$PR_LIST_LIMIT" --json number,title,body) \
+    || die "could not list $BLOCKS_LATEST_LABEL issues on $FORK_REPO"
+  local culprits='[(.title + "\n" + (.body // ""))
+    | scan("https://github\\.com/(home-assistant/core|Teslemetry/home-assistant)/pull/([0-9]+)")
+    | "\(.[0])#\(.[1])"]'
+  BLOCKED=$(jq -r ".[] | $culprits | .[]" <<<"$issues")
+  unnamed=$(jq -r ".[] | select($culprits | length == 0) | \"#\(.number)\"" <<<"$issues" | paste -sd' ' -)
+  if [ -n "$unnamed" ]; then
+    LATEST_HELD="$BLOCKS_LATEST_LABEL issue(s) $unnamed on $FORK_REPO link no culprit PR URL - link it, or close the issue"
+    return 1
+  fi
+  [ -z "$BLOCKED" ] || info "kept out by $BLOCKS_LATEST_LABEL: $(paste -sd' ' - <<<"$BLOCKED")"
+}
+
+# The change-set key of a latest: "dev <SHA>" then sorted "<repo> <N> <head>"
+# lines from stdin.
+latest_set_key() {
+  printf 'dev %s\n' "$1"
+  sed '/^[[:space:]]*$/d' | LC_ALL=C sort
+}
+
+# Add one judged change to LATEST_SELECTED ("repo<TAB>N<TAB>title<TAB>draft<TAB>head")
+# when the mode takes it. $1 repo, $2 N, $3 title, $4 draft.
+consider_change() {
+  local repo="$1" num="$2" ref lhead take="" why="$VERDICT"
+  if [ "$repo" = "$STAGING_REPO" ]; then ref="fork#$num"; else ref="#$num"; fi
+  lhead=$(awk -v r="$repo" -v n="$num" '$1 == r && $2 == n { print $3 }' <<<"$L_PRS")
+  if [ "$JUDGED_BLOCKED" = 1 ]; then
+    :
+  elif [ "$VERDICT_OK" = 1 ] && { [ "$LATEST_MODE" = weekly ] || [ "$JUDGED_FIX" = 1 ]; }; then
+    take=$JUDGED_HEAD
+    if [ "$JUDGED_FIX" = 1 ] && [ "$take" != "$lhead" ]; then FIX_FOUND=1; fi
+    if [ "$WAIVE_REF" = "$repo#$num" ]; then WAIVED_SEEN=1; fi
+  elif [ -n "$lhead" ]; then
+    take=$lhead why="kept at latest's head; $VERDICT"
+  elif [ "$VERDICT_OK" = 1 ]; then
+    why="soaked; a fix build takes only bugfixes"
+  fi
+  if [ -n "$take" ]; then info "$ref [$JUDGED_TYPE] takes ${take:0:10}: $why"; else info "$ref [$JUDGED_TYPE] waits: $why"; fi
+  [ -z "$take" ] || LATEST_SELECTED+="$repo"$'\t'"$num"$'\t'"$3"$'\t'"$4"$'\t'"$take"$'\n'
+}
+
+# Return 0 when every judged dev commit that dev commit $1 contains has soaked.
+dev_soaked_through() {
+  local c num ok
+  while read -r c num ok; do
+    [ -n "$c" ] || continue
+    if [ "$ok" != 1 ] && git merge-base --is-ancestor "$c" "$1"; then return 1; fi
+  done <<<"$DEV_VERDICTS"
+}
+
+# Decide whether this run builds latest, and from what. Sets LATEST_BUILD and,
+# when 1, LATEST_BASE_DEV, LATEST_BASE_MAIN, LATEST_CORE and LATEST_FORK
+# (list_core_prs line format). A latest not built for want of the captain's
+# word sets LATEST_HELD instead.
+plan_latest() {
+  log "Latest: plan"
+  LATEST_BUILD=0
+  git fetch origin main
+  git fetch upstream dev
+  collect_prs
+
+  local latest_unix
+  LATEST_TAG=$(gh api "repos/$FORK_REPO/releases/latest" --jq '.tag_name') \
+    || die "could not read the latest release on $FORK_REPO"
+  latest_unix=$(git for-each-ref --format='%(taggerdate:unix)' "refs/tags/$LATEST_TAG")
+  [ -n "$latest_unix" ] || die "latest release $LATEST_TAG has no annotated tag in the fetched tags"
+  if tag_lines "$LATEST_TAG" release-kind | grep -qx latest; then
+    L_DEV=$(tag_field "$LATEST_TAG" dev)
+    L_MAIN=$(tag_field "$LATEST_TAG" main)
+    L_PRS=$(tag_lines "$LATEST_TAG" pr)
+  else
+    # A latest from before this mode records no change set: its dev base is
+    # where its release branch meets dev, and its own base cannot be rebuilt.
+    L_DEV=$(git merge-base "$LATEST_TAG" upstream/dev) || die "cannot find the dev base of $LATEST_TAG"
+    L_MAIN="" L_PRS=""
+  fi
+  local age=$(( $(today_day) - latest_unix / 86400 ))
+  info "latest $LATEST_TAG: ${age}d old, dev base ${L_DEV:0:10}, $(sed '/^$/d' <<<"$L_PRS" | wc -l) PRs"
+
+  PRE_INDEX=$(prerelease_index)
+  load_blocked || { info "latest held: $LATEST_HELD"; return 0; }
+
+  # Judge every teslemetry dev commit since latest's dev base, oldest first.
+  local c subject num ok
+  DEV_VERDICTS=""
+  while IFS=$'\t' read -r c subject; do
+    [ -n "$c" ] || continue
+    num=$(sed -n 's/.*(#\([0-9][0-9]*\)).*/\1/p' <<<"$subject")
+    judge_change "$CORE_REPO" "$num" "" "" "$c"
+    DEV_VERDICTS+="$c ${num:--} $VERDICT_OK"$'\n'
+    info "dev ${c:0:10} ${num:+#$num }[$JUDGED_TYPE]: $VERDICT"
+  done < <(git log --no-merges --reverse --format='%H%x09%s' "$L_DEV..upstream/dev" -- "$INTEGRATION")
+
+  # Weekly once latest is 7 days old; a fix build needs latest's recorded
+  # change set, so a waiver on an older-format latest builds weekly.
+  if [ "$age" -ge 7 ]; then LATEST_MODE=weekly
+  elif [ -n "$L_MAIN" ]; then LATEST_MODE=fix
+  elif [ -n "$WAIVE_REF" ]; then LATEST_MODE=weekly
+  else info "$LATEST_TAG records no change set and is under 7 days old; no latest"; return 0
+  fi
+
+  # Base: the newest pre-release whose new dev commits have all soaked. A fix
+  # build keeps latest's own base.
+  LATEST_BASE_DEV="" LATEST_BASE_MAIN=""
+  local day tag kind dev main
+  if [ "$LATEST_MODE" = weekly ]; then
+    while read -r day tag kind dev; do
+      [ "$kind" = dev ] || continue
+      git merge-base --is-ancestor "$L_DEV" "$dev" 2>/dev/null || continue
+      main=$(tag_field "$tag" main)
+      git cat-file -e "$main^{commit}" 2>/dev/null || continue
+      dev_soaked_through "$dev" || continue
+      LATEST_BASE_DEV=$dev LATEST_BASE_MAIN=$main
+      info "base: $tag (dev ${dev:0:10})"
+      break
+    done < <(tac <<<"$PRE_INDEX")
+  fi
+  if [ -z "$LATEST_BASE_DEV" ]; then
+    [ -n "$L_MAIN" ] || { info "no pre-release base has soaked and $LATEST_TAG records no base; no latest"; return 0; }
+    LATEST_BASE_DEV=$L_DEV LATEST_BASE_MAIN=$L_MAIN
+    info "base: latest's own (dev ${L_DEV:0:10})"
+  fi
+
+  log "Latest: $LATEST_MODE build candidates"
+  LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN=0
+  local title draft sha core_base fork_base seen=" "
+  core_base=$(fetch_ref "$CORE_REPO" dev)
+  while IFS=$'\t' read -r num title draft sha; do
+    [ -n "$num" ] || continue
+    judge_change "$CORE_REPO" "$num" "$sha" "$core_base" ""
+    consider_change "$CORE_REPO" "$num" "$title" "$draft"
+  done <<<"$CORE_PRS"
+  if [ -n "$FORK_PRS" ]; then fork_base=$(fetch_ref "$STAGING_REPO" dev); fi
+  while IFS=$'\t' read -r num title draft sha; do
+    [ -n "$num" ] || continue
+    judge_change "$STAGING_REPO" "$num" "$sha" "$fork_base" ""
+    consider_change "$STAGING_REPO" "$num" "$title" "$draft"
+  done <<<"$FORK_PRS"
+  # PRs merged into dev beyond the base apply from their PR diff.
+  while read -r c num ok; do
+    [ -n "$c" ] && [ "$num" != - ] || continue
+    if git merge-base --is-ancestor "$c" "$LATEST_BASE_DEV" || [[ "$seen" == *" $num "* ]]; then continue; fi
+    seen+="$num "
+    judge_change "$CORE_REPO" "$num" "" "" "$c"
+    consider_change "$CORE_REPO" "$num" "$(jq -r .title <<<"${PR_INFO[$CORE_REPO#$num]}")" false
+  done <<<"$DEV_VERDICTS"
+
+  if [ -n "$WAIVE_REF" ] && [ "$WAIVED_SEEN" != 1 ]; then
+    die "--waive $WAIVE: not an open, composed or newly merged PR that latest can take (kept out by an issue?)"
+  fi
+  if [ "$LATEST_MODE" = fix ] && [ "$FIX_FOUND" != 1 ]; then
+    info "no soaked bugfix is missing from $LATEST_TAG; no latest"
+    return 0
+  fi
+  if [ "$(awk -F'\t' 'NF { print $1, $2, $5 }' <<<"$LATEST_SELECTED" | latest_set_key "$LATEST_BASE_DEV")" \
+       = "$(latest_set_key "$L_DEV" <<<"$L_PRS")" ]; then
+    info "the soaked set equals $LATEST_TAG's change set; no latest"
+    return 0
+  fi
+  LATEST_CORE=$(awk -F'\t' -v r="$CORE_REPO" '$1 == r { print $2 "\t" $3 "\t" $4 "\t" $5 }' <<<"$LATEST_SELECTED" | sort -n)
+  LATEST_FORK=$(awk -F'\t' -v r="$STAGING_REPO" '$1 == r { print $2 "\t" $3 "\t" $4 "\t" $5 }' <<<"$LATEST_SELECTED" | sort -n)
+  LATEST_BUILD=1
+}
+
+# The captain's word on a floor or requirements change: compare the composed
+# floor and requirements with latest's. A difference passes only with
+# --approve-requirements set to the digest of the composed ones; otherwise it
+# sets LATEST_HELD and returns 1.
+latest_requirements_word() {
+  local old new digest
+  old=$(requirements_text "$LATEST_TAG")
+  new=$(requirements_text HEAD)
+  [ "$old" != "$new" ] || { info "floor and requirements unchanged from $LATEST_TAG"; return 0; }
+  digest=$(printf '%s\n' "$new" | sha256sum | cut -c1-12)
+  diff <(printf '%s\n' "$old") <(printf '%s\n' "$new") | sed 's/^/      /' || true
+  if [ "$APPROVE_REQUIREMENTS" = "$digest" ]; then
+    info "floor/requirements change $digest approved by the captain"
+    return 0
+  fi
+  LATEST_HELD="the hacs.json floor or manifest requirements differ from $LATEST_TAG (diff above). With the captain's word, rerun with --approve-requirements $digest"
+  return 1
+}
+
+# Compose, stamp and gate latest on its own release branch; zip it and write
+# its notes outside the worktree. Then claim the pre-release's version.
+build_latest() {
+  LATEST_VERSION=$VERSION
+  log "Latest: compose v$LATEST_VERSION"
+  git branch -D "release-$VERSION" >/dev/null 2>&1 || true
+  git checkout -q -b "release-$VERSION" "$LATEST_BASE_MAIN"
+  COMPOSING_LATEST=1
+  compose_prs "$LATEST_CORE" "$LATEST_FORK"
+  COMPOSING_LATEST=0
+  if [ "$(printf '%s\n' ${APPLIED_SET[@]+"${APPLIED_SET[@]}"} | latest_set_key "$LATEST_BASE_DEV")" \
+       = "$(latest_set_key "$L_DEV" <<<"$L_PRS")" ]; then
+    info "with the waiting changes left out, the set equals $LATEST_TAG's; no latest"
+    return 0
+  fi
+  if ! latest_requirements_word; then
+    info "latest held: $LATEST_HELD"
+    return 0
+  fi
+  update_version
+  AIOPOWERWALL_FLOOR_TAG=$LATEST_TAG run_gates
+  build_gate
+  LATEST_DIR=$(mktemp -d)
+  trap 'rm -rf "$LATEST_DIR"' EXIT
+  mv release_notes.txt "$LATEST_DIR/release_notes.txt"
+  zip_integration "$LATEST_DIR/teslemetry.zip"
+  # The build gate recompiles translations into the tree; the zip holds them.
+  git checkout -q -- .
+  LATEST_MSG=$(printf 'Release %s\n\nrelease-kind: latest\ndev: %s\nmain: %s\n' \
+                 "$VERSION" "$LATEST_BASE_DEV" "$LATEST_BASE_MAIN"
+               printf 'pr: %s\n' ${APPLIED_SET[@]+"${APPLIED_SET[@]}"} | sed '/^pr: $/d')
+  LATEST_BUILT=1
+  VERSION=$(daily_version "$(date -u +%Y.%-m.%-d)" "$LATEST_VERSION")
+  info "latest v$LATEST_VERSION gated; the pre-release takes v$VERSION"
+}
+
 # Re-delete the core CI/CD workflows and commit if anything was staged.
 # --ignore-unmatch makes it a no-op when upstream didn't touch these paths.
 strip_core_ci() {
@@ -473,8 +916,9 @@ sync_dev() {
   strip_core_ci
   assert_no_conflict_markers
 
-  if [ "$DAILY" = 1 ] && [ "$PUBLISH" != 1 ]; then
-    info "daily dry run: main not pushed"
+  # A daily run pushes the sync only once every gate has passed (push_gated_sync).
+  if [ "$DAILY" = 1 ]; then
+    info "daily: main not pushed until every gate passes"
     return 0
   fi
 
@@ -495,6 +939,20 @@ sync_dev() {
     fi
     strip_core_ci
   done
+  info "main synced (non-force push)"
+}
+
+# Daily: push the gated dev sync to main, after every gate and the release
+# window check passed and before anything is tagged. A plain non-force push. If
+# main moved during the run, the gates covered a stale candidate: stop with
+# nothing published and leave the rerun to compose against the new main.
+push_gated_sync() {
+  log "Push the gated dev sync to main"
+  git fetch origin main
+  git merge-base --is-ancestor origin/main sync-dev \
+    || die "main moved since this run synced it - nothing published. Rerun the daily cut so the gates cover the current main."
+  git push origin sync-dev:main \
+    || die "push of the gated sync to main was rejected (main moved?) - nothing published. Rerun the daily cut."
   info "main synced (non-force push)"
 }
 
@@ -601,6 +1059,10 @@ collect_prs() {
 # multi-commit PR the intermediate patches conflict with each other even when
 # the net change merges cleanly. The fetched head and base give git apply -3
 # every pre-image blob, so it falls back to a real three-way merge.
+#
+# In a latest compose (COMPOSING_LATEST=1) a diff that cannot apply at all and
+# leaves no conflict (it edits a file only a younger change creates) waits: it
+# is left out and the notes name it. A real conflict still stops.
 apply_one_pr() {
   local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6" listed="$7"
   log "  PR $ref: $title"
@@ -624,6 +1086,11 @@ apply_one_pr() {
     info "applied cleanly"
   elif rerere_resolved; then
     CONFLICTED_PRS+=("$ref (rerere)")
+  elif [ "${COMPOSING_LATEST:-0}" = 1 ] && [ -z "$(git diff --name-only --diff-filter=U)" ]; then
+    git reset -q --hard HEAD
+    info "does not apply without a younger change; waits"
+    NOTE_LINES+=("Waiting for a younger change: [$ref](https://github.com/$repo/pull/$num): $title")
+    return 0
   else
     CONFLICTED_PRS+=("$ref")
     pause "PR $ref did not apply cleanly. Read its intent (gh pr diff $num --repo $repo), edit files to resolve, 'git add' each. Do NOT commit - this script commits."
@@ -641,6 +1108,7 @@ apply_one_pr() {
   fi
   NOTE_LINES+=("[$ref](https://github.com/$repo/pull/$num): $title$status")
   APPLIED_PRS+=("$ref $title$status")
+  APPLIED_SET+=("$repo $num $listed")
 }
 
 # Step 4: compose the release on top of synced core dev - every open Bre77
@@ -652,33 +1120,39 @@ apply_one_pr() {
 # `git add -A` can't stage it.
 apply_prs() {
   log "Step 4: apply core and staging-fork PR net diffs"
+  collect_prs
+  compose_prs "$CORE_PRS" "$FORK_PRS"
+}
 
+# Apply core PR lines $1, then fork PR lines $2 (list_core_prs format), each
+# as one commit, then the quality_scale.yaml checkpoint. Shared by the
+# pre-release and the latest compose.
+compose_prs() {
   APPLIED_PRS=()
+  APPLIED_SET=()
   CONFLICTED_PRS=()
   NOTE_LINES=()
   QUALITY_SCALE_PRS=()
 
-  collect_prs
-
   local num title draft sha core_base fork_base
-  if [ -z "$CORE_PRS" ]; then
-    info "no open Bre77 teslemetry PRs on $CORE_REPO to apply"
+  if [ -z "$1" ]; then
+    info "no core PRs on $CORE_REPO to apply"
   else
     core_base=$(fetch_ref "$CORE_REPO" dev)
     while IFS=$'\t' read -r num title draft sha; do
       [ -n "$num" ] || continue
       apply_one_pr "$CORE_REPO" "$num" "$title" "$draft" "#" "$core_base" "$sha"
-    done <<<"$CORE_PRS"
+    done <<<"$1"
   fi
 
-  if [ -z "$FORK_PRS" ]; then
-    info "no open teslemetry PRs on $STAGING_REPO (base dev) to apply"
+  if [ -z "$2" ]; then
+    info "no fork PRs on $STAGING_REPO to apply"
   else
     fork_base=$(fetch_ref "$STAGING_REPO" dev)
     while IFS=$'\t' read -r num title draft sha; do
       [ -n "$num" ] || continue
       apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base" "$sha"
-    done <<<"$FORK_PRS"
+    done <<<"$2"
   fi
 
   # TEMPORARY: apply the combined final quality_scale.yaml once (judgment step),
@@ -813,14 +1287,15 @@ subentry_migration_gate() {
 # downgrades the library and breaks local grid import/export. The build gate
 # passes green either way (both versions import), so this floor check is the
 # only thing that catches it. See AGENTS.md. Assert the composed pin is not
-# below the last shipped release's.
+# below the last shipped release's. A latest build sets AIOPOWERWALL_FLOOR_TAG
+# to the current latest: its older base may trail the newest pre-release's pin.
 aiopowerwall_pin_gate() {
   log "Gate: aiopowerwall not downgraded below last shipped release"
   local extract='s/.*"aiopowerwall==\([0-9][0-9.]*\)".*/\1/p'
   local composed last_tag shipped lowest
   composed=$(sed -n "$extract" "$INTEGRATION/manifest.json")
   [ -n "$composed" ] || die "aiopowerwall pin missing from composed $INTEGRATION/manifest.json"
-  last_tag=$(git tag -l 'v*' | sort -V | tail -1)
+  last_tag=${AIOPOWERWALL_FLOOR_TAG:-$(git tag -l 'v*' | sort -V | tail -1)}
   if [ -z "$last_tag" ]; then info "no prior release tag; skipping floor check"; return 0; fi
   shipped=$(git show "$last_tag:$INTEGRATION/manifest.json" 2>/dev/null | sed -n "$extract")
   if [ -z "$shipped" ]; then info "$last_tag pins no aiopowerwall; nothing to floor against"; return 0; fi
@@ -1171,6 +1646,24 @@ $detail" ;;
   info "$(paste -sd' ' - <<<"$reqs") resolve on every checked release"
 )
 
+# The fail-stop gates on the composed tree, before the build gate.
+run_gates() {
+  device_tracker_gate
+  tpms_atm_gate
+  services_child_devices_gate
+  subentry_migration_gate
+  aiopowerwall_pin_gate
+  subentry_translations_gate
+  services_exceptions_gate
+  core_constraints_gate
+}
+
+# Zip the composed integration, the release asset, into absolute path $1.
+zip_integration() {
+  rm -f "$1"
+  ( cd "$INTEGRATION" && rm -rf __pycache__ && rm -f ./*.orig && zip -r "$1" ./* >/dev/null )
+}
+
 # Step 6: full local build gate - the actual publish gate for this repo.
 # Mirrors .github/workflows/teslemetry-test.yml command-for-command. Blocks the
 # release on any failure before the approval pause is ever reached.
@@ -1196,19 +1689,44 @@ build_gate() {
 
 # Steps 7 & 8: approval pause, then publish. A bump cut never auto-publishes; a
 # daily run with --publish publishes once every gate has passed (it gets here
-# only then) and the release window allows it.
+# only then) and the release window allows it. A new latest resets the window,
+# so a latest run skips that check.
 approve_and_publish() {
   if [ "$DAILY" = 1 ]; then
-    release_window_guard
+    [ "$LATEST_BUILT" = 1 ] || release_window_guard
     if [ "$PUBLISH" != 1 ]; then
       log "DRY RUN (no --publish flag)"
-      info "Every gate passed. With --publish this run would tag v$VERSION with this annotation:"
+      info "Every gate passed. With --publish this run would push the dev sync to main, then:"
+      if [ "$LATEST_BUILT" = 1 ]; then
+        info "tag latest v$LATEST_VERSION (release-$LATEST_VERSION) with this annotation:"
+        printf '%s\n' "$LATEST_MSG" | sed 's/^/      /'
+      fi
+      info "tag v$VERSION with this annotation:"
       daily_tag_message | sed 's/^/      /'
       info "and publish it as the prerelease \"Pre-release v$VERSION\" on $FORK_REPO."
-      exit 0
+      [ "$LATEST_BUILT" != 1 ] || info "then publish v$LATEST_VERSION as latest \"Release v$LATEST_VERSION\"."
+      finish
     fi
-    publish_release "Pre-release" "$(daily_tag_message)"
-    return 0
+    push_gated_sync
+    # Latest is tagged first and the pre-release a second later: GitHub lists
+    # releases by tag date, so the pre-release stays the newest entry HACS reads.
+    if [ "$LATEST_BUILT" = 1 ]; then
+      git tag -a "v$LATEST_VERSION" "release-$LATEST_VERSION" -m "$LATEST_MSG"
+      sleep 1
+    fi
+    git tag -a "v$VERSION" -m "$(daily_tag_message)"
+    if [ "$LATEST_BUILT" = 1 ]; then
+      git push --atomic origin "v$LATEST_VERSION" "v$VERSION"
+    else
+      git push origin "v$VERSION"
+    fi
+    zip_integration "$PWD/teslemetry.zip"
+    publish_release "Pre-release" "$VERSION" release_notes.txt "$PWD/teslemetry.zip" prerelease
+    rm -f teslemetry.zip
+    if [ "$LATEST_BUILT" = 1 ]; then
+      publish_release "Release" "$LATEST_VERSION" "$LATEST_DIR/release_notes.txt" "$LATEST_DIR/teslemetry.zip" latest
+    fi
+    finish
   fi
 
   log "Step 7: approval"
@@ -1236,30 +1754,37 @@ approve_and_publish() {
     exit 0
   fi
 
-  publish_release "Beta" "Release $VERSION"
+  log "Step 8: publish"
+  git tag -a "v$VERSION" -m "Release $VERSION"
+  git push origin "v$VERSION"
+  zip_integration "$PWD/teslemetry.zip"
+  publish_release "Beta" "$VERSION" release_notes.txt "$PWD/teslemetry.zip" prerelease
+  rm -f teslemetry.zip
 }
 
-# Step 8: tag, release as a prerelease, push the release branch. $1 is the
-# release title prefix, $2 the tag annotation.
+# Step 8: release the pushed tag v$2 titled "$1 v$2" with notes file $3 and
+# asset $4, then push its release branch. $5 "prerelease" or "latest". Latest
+# is created with --latest and without --prerelease; nothing flips it later.
 publish_release() {
-  local title="$1" tag_message="$2"
-  log "Step 8: publish"
-  git tag -a "v$VERSION" -m "$tag_message"
-  git push origin "v$VERSION"
+  local title="$1" version="$2" notes="$3" asset="$4" kind="$5"
+  log "Publish v$version ($kind)"
+  if [ "$kind" = latest ]; then
+    gh release create "v$version" -F "$notes" --repo "$FORK_REPO" -t "$title v$version" --latest
+  else
+    gh release create "v$version" -F "$notes" --repo "$FORK_REPO" -t "$title v$version" --prerelease
+  fi
+  gh release upload "v$version" "$asset" --repo "$FORK_REPO"
 
-  ( cd "$INTEGRATION" && rm -rf __pycache__ && rm -f ./*.orig && zip -r ../../../teslemetry.zip ./* >/dev/null )
-  gh release create "v$VERSION" -F release_notes.txt --repo "$FORK_REPO" -t "$title v$VERSION" --prerelease
-  gh release upload "v$VERSION" teslemetry.zip --repo "$FORK_REPO"
-  rm -f teslemetry.zip
+  if [ "$kind" != latest ]; then
+    # Guarantee the prerelease flag with a TYPED API PATCH (-F sends a real
+    # boolean). Never `gh release edit`, which resets prerelease to false.
+    local rel_id
+    rel_id=$(gh release view "v$version" --repo "$FORK_REPO" --json databaseId --jq '.databaseId')
+    gh api --method PATCH "repos/$FORK_REPO/releases/$rel_id" -F prerelease=true >/dev/null
+  fi
 
-  # Guarantee the prerelease flag with a TYPED API PATCH (-F sends a real
-  # boolean). Never `gh release edit`, which resets prerelease to false.
-  local rel_id
-  rel_id=$(gh release view "v$VERSION" --repo "$FORK_REPO" --json databaseId --jq '.databaseId')
-  gh api --method PATCH "repos/$FORK_REPO/releases/$rel_id" -F prerelease=true >/dev/null
-
-  git push --set-upstream origin "release-$VERSION"
-  log "Published v$VERSION (prerelease) on $FORK_REPO"
+  git push --set-upstream origin "release-$version"
+  log "Published v$version ($kind) on $FORK_REPO"
 }
 
 main() {
@@ -1268,23 +1793,19 @@ main() {
   setup_rerere
   if [ "$DAILY" = 1 ]; then
     determine_daily_version
-    skip_if_inputs_unchanged
+    plan_latest
+    if [ "$LATEST_BUILD" = 1 ]; then build_latest; fi
+    # Neither change-detection skip applies on a run that builds latest.
+    [ "$LATEST_BUILT" = 1 ] || skip_if_inputs_unchanged
   else
     determine_version
   fi
   sync_dev
   create_release_branch
   apply_prs
-  if [ "$DAILY" = 1 ]; then skip_if_integration_unchanged; fi
+  if [ "$DAILY" = 1 ] && [ "$LATEST_BUILT" != 1 ]; then skip_if_integration_unchanged; fi
   update_version
-  device_tracker_gate
-  tpms_atm_gate
-  services_child_devices_gate
-  subentry_migration_gate
-  aiopowerwall_pin_gate
-  subentry_translations_gate
-  services_exceptions_gate
-  core_constraints_gate
+  run_gates
   build_gate
   approve_and_publish
 }

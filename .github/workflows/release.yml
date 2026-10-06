@@ -13,9 +13,21 @@ jobs:
     runs-on: "ubuntu-latest"
     permissions:
       contents: write
+    # Secrets cannot be read in a step `if`, so expose each webhook through env.
+    # A post whose webhook secret is unset is skipped instead of failing the run.
+    env:
+      DISCORD_WEBHOOK_NIGHTLY: ${{ secrets.DISCORD_WEBHOOK_NIGHTLY }}
+      DISCORD_WEBHOOK_BETA: ${{ secrets.DISCORD_WEBHOOK_BETA }}
     steps:
-      - name: "Github Releases To Discord"
+      - name: "Github Pre-releases To Discord nightly"
+        if: github.event.release.prerelease && env.DISCORD_WEBHOOK_NIGHTLY != ''
         uses: SethCohen/github-releases-to-discord@v1.20.0
         with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Teslemetry release for HACS"
+          webhook_url: ${{ env.DISCORD_WEBHOOK_NIGHTLY }}
+          username: "Teslemetry nightly for HACS"
+      - name: "Github Releases To Discord beta"
+        if: ${{ !github.event.release.prerelease && env.DISCORD_WEBHOOK_BETA != '' }}
+        uses: SethCohen/github-releases-to-discord@v1.20.0
+        with:
+          webhook_url: ${{ env.DISCORD_WEBHOOK_BETA }}
+          username: "Teslemetry beta for HACS"
