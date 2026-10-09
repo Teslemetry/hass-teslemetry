@@ -136,6 +136,9 @@ CORE_CI_PATHS=(
   .github/workflows/builder.yml
   .github/workflows/wheels.yml
   .github/workflows/e2e-tests.yml
+  .github/workflows/quality-scale-reviewer-trigger.yml
+  .github/workflows/quality-scale-reviewer.md
+  .github/workflows/quality-scale-reviewer.lock.yml
   .github/workflows/matchers
 )
 
