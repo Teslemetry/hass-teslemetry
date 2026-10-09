@@ -25,9 +25,9 @@
 # AND an explicit human "publish" at the approval pause. Daily mode (below) has
 # no human, so it stops at every checkpoint and publishes on --publish alone.
 #
-# Safe to run from an isolated worktree: it never checks out main, never
-# rebases, and never force-pushes. Every update to main goes through the
-# temporary sync-dev branch delivered with a plain non-force push.
+# Safe to run from an isolated worktree: it never checks out main. Every update
+# to main goes through the temporary sync-dev branch: main's fork commits
+# rebased onto upstream dev, pushed with a lease on the main this run fetched.
 #
 # Daily mode (`daily`) is the headless pre-release build a timer runs at 00:00
 # UTC. It differs from a bump cut in these ways:
@@ -210,9 +210,9 @@ setup_rerere() {
   info "rerere: on, cache $cache"
 }
 
-# After a failed merge or `git apply -3`, return 0 only if rerere replayed a
-# recorded resolution for every conflicted path, and stage those paths. Both
-# commands run rerere themselves. Not rerere.autoUpdate: inside `git apply -3`
+# After a failed merge, rebase or `git apply -3`, return 0 only if rerere replayed a
+# recorded resolution for every conflicted path, and stage those paths. Each
+# command runs rerere itself. Not rerere.autoUpdate: inside `git apply -3`
 # it fails on apply's own index lock. A failure that left no unmerged path
 # (a patch that did not apply at all) and any path rerere cannot resolve
 # (modify/delete, or a conflict it has not seen) return 1, so the caller stops.
@@ -897,21 +897,26 @@ strip_core_ci() {
   fi
 }
 
-# Step 2: sync main with upstream dev via a temp branch and a non-force push.
+# Step 2: sync main with upstream dev on a temp branch: rebase main's fork
+# commits onto upstream dev, then push with a lease on the main fetched here.
 sync_dev() {
   log "Step 2: sync main with upstream dev"
   git fetch origin main
   git fetch upstream dev
+  SYNC_BASE_MAIN=$(git rev-parse origin/main)
 
   git branch -D sync-dev >/dev/null 2>&1 || true
   git checkout -b sync-dev origin/main
 
-  if ! git merge --no-edit upstream/dev; then
-    if ! rerere_resolved; then
-      pause "Merge conflicts from upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit - this script finishes the merge."
-      assert_no_unmerged
-    fi
-    git commit --no-edit --no-verify
+  if ! git rebase upstream/dev; then
+    [ -d "$(git rev-parse --git-path rebase-merge)" ] || die "rebase of main onto upstream/dev failed"
+    while :; do
+      if ! rerere_resolved; then
+        pause "Conflict rebasing a main commit onto upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit or continue the rebase - this script does."
+        assert_no_unmerged
+      fi
+      GIT_EDITOR=true git rebase --continue && break
+    done
   fi
   strip_core_ci
   assert_no_conflict_markers
@@ -922,38 +927,21 @@ sync_dev() {
     return 0
   fi
 
-  # Non-force push with concurrent-push retry: if main moved under us, fold in
-  # the new origin/main and retry. Never --force / --force-with-lease.
-  local tries=0
-  until git push origin sync-dev:main; do
-    tries=$((tries + 1))
-    [ "$tries" -ge 3 ] && die "push to main rejected $tries times - resolve manually and rerun"
-    log "push rejected (main moved) - re-merging origin/main (attempt $tries)"
-    git fetch origin main
-    if ! git merge --no-edit origin/main; then
-      if ! rerere_resolved; then
-        pause "Conflicts merging the newer origin/main. Resolve and 'git add'; do NOT commit."
-        assert_no_unmerged
-      fi
-      git commit --no-edit --no-verify
-    fi
-    strip_core_ci
-  done
-  info "main synced (non-force push)"
+  git push --force-with-lease="main:$SYNC_BASE_MAIN" origin sync-dev:main \
+    || die "push to main refused (main moved since this run fetched it) - rerun"
+  info "main synced (rebased, leased push)"
 }
 
 # Daily: push the gated dev sync to main, after every gate and the release
-# window check passed and before anything is tagged. A plain non-force push. If
-# main moved during the run, the gates covered a stale candidate: stop with
-# nothing published and leave the rerun to compose against the new main.
+# window check passed and before anything is tagged. The lease is the main this
+# run rebased. If main moved during the run, the gates covered a stale
+# candidate: stop with nothing published and leave the rerun to compose against
+# the new main.
 push_gated_sync() {
   log "Push the gated dev sync to main"
-  git fetch origin main
-  git merge-base --is-ancestor origin/main sync-dev \
+  git push --force-with-lease="main:$SYNC_BASE_MAIN" origin sync-dev:main \
     || die "main moved since this run synced it - nothing published. Rerun the daily cut so the gates cover the current main."
-  git push origin sync-dev:main \
-    || die "push of the gated sync to main was rejected (main moved?) - nothing published. Rerun the daily cut."
-  info "main synced (non-force push)"
+  info "main synced (rebased, leased push)"
 }
 
 # Step 3: cut the release branch off the just-synced state.
