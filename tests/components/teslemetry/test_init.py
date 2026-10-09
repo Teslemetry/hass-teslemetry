@@ -671,6 +671,7 @@ async def test_live_status_coordinator_retry_exceptions(
     assert call_count == 1
 
     # The recovery/manual REST path still raises the exception
+    # pylint: disable-next=home-assistant-tests-coordinator-async-refresh
     await entry.runtime_data.energysites[0].live_coordinator.async_refresh()
     await hass.async_block_till_done()
 
@@ -701,6 +702,7 @@ async def test_live_status_auth_error(
         assert entry.state is ConfigEntryState.LOADED
 
         # The recovery/manual REST path surfaces the auth error
+        # pylint: disable-next=home-assistant-tests-coordinator-async-refresh
         await entry.runtime_data.energysites[0].live_coordinator.async_refresh()
         await hass.async_block_till_done()
 
@@ -729,6 +731,7 @@ async def test_live_status_generic_error(
         assert entry.state is ConfigEntryState.LOADED
 
         # The recovery/manual REST path surfaces the error
+        # pylint: disable-next=home-assistant-tests-coordinator-async-refresh
         await entry.runtime_data.energysites[0].live_coordinator.async_refresh()
         await hass.async_block_till_done()
 
@@ -1081,6 +1084,7 @@ async def test_live_status_coordinator_refresh_error(
     entry = await setup_platform(hass)
     assert entry.state is ConfigEntryState.LOADED
 
+    # pylint: disable-next=home-assistant-tests-coordinator-async-refresh
     await entry.runtime_data.energysites[0].live_coordinator.async_refresh()
     await hass.async_block_till_done()
 
