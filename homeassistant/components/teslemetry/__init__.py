@@ -39,6 +39,11 @@ from homeassistant.components.application_credentials import (
     async_import_client_credential,
 )
 from homeassistant.components.bluetooth import async_ble_device_from_address
+from homeassistant.components.labs import (
+    EventLabsUpdatedData,
+    async_is_preview_feature_enabled,
+    async_subscribe_preview_feature,
+)
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState, ConfigSubentry
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
@@ -47,7 +52,7 @@ from homeassistant.const import (
     CONF_PASSWORD,
     Platform,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
@@ -71,11 +76,14 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .const import (
     BLE_DISCONNECT_TIMEOUT,
+    CHARGE_ON_SOLAR_LOWER_LIMIT_KEY,
+    CHARGE_ON_SOLAR_SWITCH_KEY,
     CLIENT_ID,
     CONF_VIN,
     DOMAIN,
     ISSUE_GATEWAY_NOT_FOUND,
     ISSUE_TYPE_BLE_KEY_REJECTED,
+    LABS_CHARGE_ON_SOLAR_FEATURE,
     LOGGER,
     POWERWALL_KEY_FILE,
     RSA_PARENT_KEY,
@@ -99,7 +107,12 @@ from .helpers import (
     insufficient_credits_issue_id,
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
-from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
+from .models import (
+    TeslemetryChargeOnSolarStore,
+    TeslemetryData,
+    TeslemetryEnergyData,
+    TeslemetryVehicleData,
+)
 from .services import async_setup_services
 
 PLATFORMS: Final = [
@@ -766,6 +779,47 @@ def _async_setup_option_reload(
     entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
+async def _async_setup_charge_on_solar(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
+    scopes: list[Scope],
+    vehicles: list[TeslemetryVehicleData],
+) -> TeslemetryChargeOnSolarStore | None:
+    """Load the charge-on-solar store, or remove its entities when unavailable."""
+    if (
+        async_is_preview_feature_enabled(hass, DOMAIN, LABS_CHARGE_ON_SOLAR_FEATURE)
+        and Scope.VEHICLE_CMDS in scopes
+    ):
+        store = TeslemetryChargeOnSolarStore(hass, entry.entry_id)
+        await store.async_load(vehicles)
+        return store
+
+    entity_registry = er.async_get(hass)
+    for entity_entry in er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    ):
+        if (entity_entry.domain, entity_entry.translation_key) in (
+            (Platform.SWITCH, CHARGE_ON_SOLAR_SWITCH_KEY),
+            (Platform.NUMBER, CHARGE_ON_SOLAR_LOWER_LIMIT_KEY),
+        ):
+            entity_registry.async_remove(entity_entry.entity_id)
+    return None
+
+
+@callback
+def _async_subscribe_charge_on_solar_labs(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry
+) -> CALLBACK_TYPE:
+    """Reload the entry so the charge-on-solar entities follow the Labs toggle."""
+
+    async def _async_handle_labs_update(_event_data: EventLabsUpdatedData) -> None:
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    return async_subscribe_preview_feature(
+        hass, DOMAIN, LABS_CHARGE_ON_SOLAR_FEATURE, _async_handle_labs_update
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
@@ -1069,12 +1123,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 
     _prune_energy_subentries(hass, entry, scopes, products)
 
+    charge_on_solar_store = await _async_setup_charge_on_solar(
+        hass, entry, scopes, vehicles
+    )
+
     entry.runtime_data = TeslemetryData(
         vehicles=vehicles,
         energysites=energysites,
         scopes=scopes,
         stream=stream,
         metadata_coordinator=metadata_coordinator,
+        charge_on_solar_store=charge_on_solar_store,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -1095,6 +1154,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         {vehicle.vin for vehicle in vehicles},
         vehicle_metadata,
     )
+
+    entry.async_on_unload(_async_subscribe_charge_on_solar_labs(hass, entry))
 
     if stream:
         entry.async_on_unload(stream.close)
@@ -1301,12 +1362,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
-    """Remove the insufficient credits repair along with the entry.
+    """Remove the insufficient credits repair and the stored charge-on-solar settings.
 
-    Unload leaves it in place because setup does not re-probe credits, so
+    Unload leaves the repair in place because setup does not re-probe credits, so
     nothing would recreate it after a reload while the account is still short.
     """
     ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
+    await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
 
 
 async def async_migrate_entry(
