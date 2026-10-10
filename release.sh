@@ -1516,13 +1516,25 @@ core_release_plan() {
   printf '%s\n' "$plan"
 }
 
+# Print the release-notes note naming the Home Assistant floor tag $1. A stable
+# floor reads "Requires Home Assistant X.Y"; a pre-release floor (aN/bN/rcN)
+# says "beta". Prints nothing when $1 is not a core tag.
+floor_requirement_note() {
+  local floor_tag="$1" beta=""
+  [[ "$floor_tag" =~ ^([0-9]+\.[0-9]+)\.[0-9]+((a|b|rc)[0-9]+)?$ ]] || return 0
+  [ -z "${BASH_REMATCH[2]}" ] || beta=" beta"
+  printf '> ⚠️ **Requires Home Assistant %s%s**\n>\n> This beta requires Home Assistant %s or newer. HACS will not install it on an older Home Assistant version.\n\n' \
+    "${BASH_REMATCH[1]}" "$beta" "$floor_tag"
+}
+
 # Print the release-notes compatibility notes the composed build needs, on
 # stdout, from its manifest $1 and hacs.json $2:
 #   - the Tessie/Tesla Fleet library note, only when the composed tesla-fleet-api
 #     pin is ahead of the one the hacs.json floor release ships. The floor is
 #     the oldest core HACS will install this build on, so an equal pin there
 #     shares the library with the built-in integrations and the note is untrue.
-#   - the beta note, only when the floor names a core pre-release.
+#   - the Home Assistant requirement note, worded as a beta only when the floor
+#     names a core pre-release.
 # The floor's pin is read from that tag's tesla_fleet/manifest.json: it is the
 # requirement core installs for Tesla Fleet, while requirements_all.txt is only
 # generated from the manifests (script.gen_requirements_all).
@@ -1570,10 +1582,7 @@ PY
     printf '> ⚠️ **Compatibility with the built-in Tessie and Tesla Fleet integrations**\n>\n> This beta uses `tesla-fleet-api` %s, newer than the %s that Home Assistant %s ships. The built-in **Tessie** and **Tesla Fleet** integrations share that library, so they may break when this beta runs on Home Assistant versions that ship the older library. Do not run this beta alongside them on those versions.\n\n' \
       "${pin#*==}" "${core_pin#*==}" "$floor_tag"
   fi
-  if [[ "$floor_tag" =~ ^([0-9]+\.[0-9]+)\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
-    printf '> ⚠️ **Requires the Home Assistant %s beta**\n>\n> This beta requires Home Assistant %s or newer. HACS will not install it on an older Home Assistant version.\n\n' \
-      "${BASH_REMATCH[1]}" "$floor_tag"
-  fi
+  floor_requirement_note "$floor_tag"
 )
 
 # Hard gate: the composed requirements must be INSTALLABLE on the core releases

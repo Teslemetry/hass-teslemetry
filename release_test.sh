@@ -145,4 +145,13 @@ FAKE_GIT='git() { if [ "${1:-}" = rm ]; then echo "fatal: git rm failed" >&2; re
 check "failing git rm: stops headless" 3 "$rc"
 check "failing git rm: not logged as kept" 0 "$(grep -c 'kept deleted' "$SANDBOX/out")"
 
+# The Home Assistant requirement note: beta wording only for a pre-release floor.
+bash -c 'source "$1"; floor_requirement_note "$2"' _ "$ROOT/release.sh" 2026.10.0 > "$SANDBOX/note"
+check "stable floor: no beta in heading" 0 "$(grep -c "Requires Home Assistant.*beta\*\*" "$SANDBOX/note")"
+check "stable floor: names the version" 1 "$(grep -c 'Requires Home Assistant 2026.10\*\*' "$SANDBOX/note")"
+check "stable floor: body names the floor" 1 "$(grep -c 'requires Home Assistant 2026.10.0 or newer' "$SANDBOX/note")"
+bash -c 'source "$1"; floor_requirement_note "$2"' _ "$ROOT/release.sh" 2026.11.0b0 > "$SANDBOX/note"
+check "pre-release floor: beta wording" 1 "$(grep -c 'Requires Home Assistant 2026.11 beta\*\*' "$SANDBOX/note")"
+check "pre-release floor: body names the floor" 1 "$(grep -c 'requires Home Assistant 2026.11.0b0 or newer' "$SANDBOX/note")"
+
 exit "$FAILED"
