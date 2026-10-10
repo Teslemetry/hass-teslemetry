@@ -901,7 +901,7 @@ strip_core_ci() {
 # workflow this fork deliberately deletes by keeping it deleted. "Deliberately
 # deleted" is CORE_CI_PATHS, the same list strip_core_ci re-deletes. A conflict
 # qualifies only when main's replayed commit deleted the path (index stages 1
-# and 2, no stage 3) and the path is in that list; a workflow main keeps, a
+# and 2, no stage 3, and REBASE_HEAD deletes that exact path) and the path is in that list; a workflow main keeps, a
 # content conflict and any other path are left for rerere or a human. Returns 0
 # if it removed at least one path.
 keep_deleted_ci_conflicts() {
@@ -909,6 +909,10 @@ keep_deleted_ci_conflicts() {
   while IFS= read -r -d '' path; do
     stages=$(git ls-files -u -- "$path" | awk '{print $3}' | sort -u | tr -d '\n')
     [ "$stages" = "12" ] || continue
+    # A rename conflict can also leave stages 1 and 2 here: require the replayed
+    # commit itself to delete this exact path.
+    git diff --no-renames --diff-filter=D --name-only -z REBASE_HEAD^ REBASE_HEAD -- "$path" \
+      | grep -qz . || continue
     for ci in "${CORE_CI_PATHS[@]}"; do
       if [ "$path" = "$ci" ] || [ "${path#"$ci"/}" != "$path" ]; then
         git rm -q -- "$path"

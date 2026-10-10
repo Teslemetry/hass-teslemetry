@@ -95,4 +95,20 @@ run_sync; rc=$?
 check "mixed: stops headless" 3 "$rc"
 check "mixed: deletion logged" 1 "$(grep -c 'kept deleted: .github/workflows/ci.yaml' "$SANDBOX/out")"
 
+# Rename/delete conflict: main deletes code.txt, dev renames it onto a CORE_CI_PATHS
+# path. The conflict leaves stages 1 and 2 at that path, but the replayed commit
+# deletes code.txt, not the workflow, so it must not be removed.
+make_sandbox code.txt code.txt
+(
+  cd "$SANDBOX/seed" || exit 1
+  git checkout -q -f dev && git reset -q --hard HEAD~1
+  git_ mv code.txt .github/workflows/wheels.yml
+  git_ commit -qm "core renames code.txt"
+  git push -q -f "$SANDBOX/upstream.git" dev
+)
+git -C "$SANDBOX/work" fetch -q upstream 2>/dev/null
+run_sync; rc=$?
+check "rename/delete conflict: stops headless" 3 "$rc"
+check "rename/delete conflict: not logged as kept" 0 "$(grep -c 'kept deleted' "$SANDBOX/out")"
+
 exit "$FAILED"
