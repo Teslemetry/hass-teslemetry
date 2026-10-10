@@ -56,6 +56,9 @@ run_sync() {
     # shellcheck source=release.sh
     source "$ROOT/release.sh"
     DAILY=1 RERERE=0
+    # Fault injection (set by a test): define a git wrapper that stands in for a
+    # git subcommand misbehaving.
+    [ -z "${FAKE_GIT:-}" ] || eval "$FAKE_GIT"
     sync_dev
   ) >"$SANDBOX/out" 2>&1
 }
@@ -110,5 +113,36 @@ git -C "$SANDBOX/work" fetch -q upstream 2>/dev/null
 run_sync; rc=$?
 check "rename/delete conflict: stops headless" 3 "$rc"
 check "rename/delete conflict: not logged as kept" 0 "$(grep -c 'kept deleted' "$SANDBOX/out")"
+
+# Race: git diff refreshes the index, so it can still hold index.lock after it has
+# printed its paths. The wrapper holds the lock for a second after the diff output,
+# as a real refresh can; a loop fed straight from the diff would reach git rm while
+# the lock exists.
+# shellcheck disable=SC2016
+LOCK_RACE='git() {
+  if [ "${1:-}" = diff ] && [ "${2:-}" = -z ]; then
+    local lock; lock=$(command git rev-parse --git-path index.lock)
+    command git "$@"
+    : > "$lock"
+    ( sleep 1; rm -f "$lock" ) &
+    return 0
+  fi
+  if [ "${1:-}" = rm ] && [ -e "$(command git rev-parse --git-path index.lock)" ]; then
+    echo "fatal: Unable to create index.lock: File exists." >&2
+    return 128
+  fi
+  command git "$@"
+}'
+make_sandbox .github/workflows/ci.yaml .github/workflows/ci.yaml
+FAKE_GIT=$LOCK_RACE run_sync; rc=$?
+check "index lock held after diff: sync completes" 0 "$rc"
+check "index lock held after diff: stays deleted" "" "$(git -C "$SANDBOX/work" ls-files .github/workflows/ci.yaml)"
+
+# A failing git rm is reported, never logged as kept: the run stops headless.
+make_sandbox .github/workflows/ci.yaml .github/workflows/ci.yaml
+# shellcheck disable=SC2016
+FAKE_GIT='git() { if [ "${1:-}" = rm ]; then echo "fatal: git rm failed" >&2; return 128; fi; command git "$@"; }' run_sync; rc=$?
+check "failing git rm: stops headless" 3 "$rc"
+check "failing git rm: not logged as kept" 0 "$(grep -c 'kept deleted' "$SANDBOX/out")"
 
 exit "$FAILED"
