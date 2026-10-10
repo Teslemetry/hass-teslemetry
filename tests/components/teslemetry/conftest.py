@@ -1,5 +1,6 @@
 """Test fixtures for Teslemetry component."""
 
+import asyncio
 from collections.abc import Generator
 from copy import deepcopy
 from typing import Any
@@ -344,3 +345,48 @@ def mock_powerwall_connect() -> Generator[AsyncMock]:
         "aiopowerwall.PowerwallClient.connect", return_value="GATEWAY-DIN"
     ) as mock_connect:
         yield mock_connect
+
+
+@pytest.fixture(autouse=True)
+def mock_logship_export_loop(request: pytest.FixtureRequest) -> Generator[None]:
+    """Keep the log shipper's permanent export loop out of the hass background tasks.
+
+    HACS-only: the loop never finishes, so any test that waits for background
+    tasks would otherwise never return. The log shipper's own tests need it.
+    """
+    if request.module.__name__.endswith("test_logship"):
+        yield
+        return
+    with patch(
+        "homeassistant.components.teslemetry.logship.TeslemetryLogShipper._async_export_loop",
+        new=AsyncMock(),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def mock_ble_glue_stop_tolerates_mock_listeners() -> Generator[None]:
+    """Let the Bluetooth broadcast glue stop when a mock vehicle's listeners are not callable.
+
+    A plain AsyncMock Bluetooth vehicle returns coroutines from its listen_*
+    methods, which the glue keeps as unsubscribers and then cannot call.
+    """
+    try:
+        from tesla_fleet_api.tesla.vehicle.stream_glue import (  # noqa: PLC0415
+            BleBroadcastStreamGlue,
+        )
+    except ImportError:
+        yield
+        return
+
+    original_stop = BleBroadcastStreamGlue.stop
+
+    def stop(self: BleBroadcastStreamGlue) -> None:
+        for unsub in self._unsubs:
+            if asyncio.iscoroutine(unsub):
+                unsub.close()
+        self._unsubs = [unsub for unsub in self._unsubs if callable(unsub)]
+        original_stop(self)
+
+    with patch.object(BleBroadcastStreamGlue, "stop", stop):
+        yield
