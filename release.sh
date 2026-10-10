@@ -897,6 +897,30 @@ strip_core_ci() {
   fi
 }
 
+# During the sync rebase, resolve each modify/delete conflict on a core CI/CD
+# workflow this fork deliberately deletes by keeping it deleted. "Deliberately
+# deleted" is CORE_CI_PATHS, the same list strip_core_ci re-deletes. A conflict
+# qualifies only when main's replayed commit deleted the path (index stages 1
+# and 2, no stage 3) and the path is in that list; a workflow main keeps, a
+# content conflict and any other path are left for rerere or a human. Returns 0
+# if it removed at least one path.
+keep_deleted_ci_conflicts() {
+  local path stages ci kept=1
+  while IFS= read -r -d '' path; do
+    stages=$(git ls-files -u -- "$path" | awk '{print $3}' | sort -u | tr -d '\n')
+    [ "$stages" = "12" ] || continue
+    for ci in "${CORE_CI_PATHS[@]}"; do
+      if [ "$path" = "$ci" ] || [ "${path#"$ci"/}" != "$path" ]; then
+        git rm -q -- "$path"
+        info "kept deleted: $path (core changed it; this fork deletes it)"
+        kept=0
+        break
+      fi
+    done
+  done < <(git diff -z --name-only --diff-filter=U)
+  return "$kept"
+}
+
 # Step 2: sync main with upstream dev on a temp branch: rebase main's fork
 # commits onto upstream dev, then push with a lease on the main fetched here.
 sync_dev() {
@@ -911,7 +935,9 @@ sync_dev() {
   if ! git rebase upstream/dev; then
     [ -d "$(git rev-parse --git-path rebase-merge)" ] || die "rebase of main onto upstream/dev failed"
     while :; do
-      if ! rerere_resolved; then
+      if keep_deleted_ci_conflicts && [ -z "$(git diff --name-only --diff-filter=U)" ]; then
+        :
+      elif ! rerere_resolved; then
         pause "Conflict rebasing a main commit onto upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit or continue the rebase - this script does."
         assert_no_unmerged
       fi
