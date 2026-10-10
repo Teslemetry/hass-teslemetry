@@ -905,8 +905,11 @@ strip_core_ci() {
 # content conflict and any other path are left for rerere or a human. Returns 0
 # if it removed at least one path.
 keep_deleted_ci_conflicts() {
-  local path stages ci kept=1
-  while IFS= read -r -d '' path; do
+  local path stages ci kept=1 conflicted=()
+  # Collect every path before the loop so git diff has exited, and released any
+  # index lock it took, before git rm needs the index.
+  mapfile -d '' -t conflicted < <(git diff -z --name-only --diff-filter=U)
+  for path in "${conflicted[@]}"; do
     stages=$(git ls-files -u -- "$path" | awk '{print $3}' | sort -u | tr -d '\n')
     [ "$stages" = "12" ] || continue
     # A rename conflict can also leave stages 1 and 2 here: require the replayed
@@ -915,13 +918,13 @@ keep_deleted_ci_conflicts() {
       | grep -qz . || continue
     for ci in "${CORE_CI_PATHS[@]}"; do
       if [ "$path" = "$ci" ] || [ "${path#"$ci"/}" != "$path" ]; then
-        git rm -q -- "$path"
+        git rm -q -- "$path" || return 1
         info "kept deleted: $path (core changed it; this fork deletes it)"
         kept=0
         break
       fi
     done
-  done < <(git diff -z --name-only --diff-filter=U)
+  done
   return "$kept"
 }
 
