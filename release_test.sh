@@ -216,6 +216,30 @@ check "on_core_base: synced main" 0 \
 check "on_core_base: main before the sync" 1 \
   "$(cd "$SANDBOX/work" && bash -c 'source "$1"; on_core_base origin/main' _ "$ROOT/release.sh" >/dev/null 2>&1; echo $?)"
 
+# A branch started at an old base commit or on core dev and merged after a
+# sync brings that base and that dev history into main; neither is a fork
+# commit. (A branch also carrying old copies of fork commits replays them, as
+# it did before the pinned base.)
+(
+  cd "$SANDBOX/work" || exit 1
+  git fetch -q origin
+  git checkout -q -B late "$(git rev-parse 'origin/main^{/^HACS core base:}')"
+  echo later > later.txt && git_ add -A && git_ commit -qm "fork change on the old base"
+  git checkout -q -B stale-dev "$(git merge-base origin/main upstream/dev)"
+  echo late > late.txt && git_ add -A && git_ commit -qm "fork change on core dev"
+  git checkout -q -B merged sync-dev
+  git_ merge -q --no-edit late stale-dev >/dev/null
+  git push -q -f origin merged:main
+  git checkout -q --detach
+)
+run_sync; rc=$?
+check "stale merges: completes" 0 "$rc"
+check "stale merges: one base commit" 1 "$(work log --format=%s "2026.2.0..sync-dev" | grep -c '^HACS core base:')"
+check "stale merges: fork changes kept" "late later fork" \
+  "$(work show sync-dev:late.txt) $(work show sync-dev:later.txt) $(work show sync-dev:fork.txt)"
+check "stale merges: core file at the tag" "$(work show 2026.2.0:code.txt)" "$(work show sync-dev:code.txt)"
+check "stale merges: linear" 0 "$(work rev-list --merges --count "2026.2.0..sync-dev")"
+
 # pin_integration_requirements: manifest pins replace the same package's line
 # (names compared as pip does) and a pin with no line is appended.
 mkdir -p "$SANDBOX/pins/$INTEG_DIR"
