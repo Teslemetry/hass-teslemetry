@@ -20,6 +20,11 @@ VEHICLE_REDACT = [
     "drive_state_longitude",
     "drive_state_native_latitude",
     "drive_state_native_longitude",
+    "charge_schedule_data_charge_schedule_window_latitude",
+    "charge_schedule_data_charge_schedule_window_longitude",
+    # Schedule lists are not flattened, so their entries keep plain keys
+    "latitude",
+    "longitude",
 ]
 
 ENERGY_LIVE_REDACT = ["vin"]
