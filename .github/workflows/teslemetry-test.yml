@@ -30,6 +30,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: "Check out core at the pinned base"
+        # The integration is tested against the core release that hacs.json's
+        # "homeassistant" floor names, never core dev: everything outside the
+        # integration and its tests is put at that core tag. release.sh's
+        # build gate runs the same function. See AGENTS.md.
+        run: |
+          source ./release.sh
+          restore_core_base
+
       - name: "Read pinned Python and uv versions"
         id: "versions"
         run: |

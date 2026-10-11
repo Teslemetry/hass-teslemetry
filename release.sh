@@ -9,10 +9,13 @@
 # section documents WHY each step exists and the gotchas behind each gate;
 # this file owns HOW. Keep the two in sync when either changes.
 #
-# A cut composes core dev + every open Bre77 teslemetry PR on core + every open
-# teslemetry PR on the staging fork Teslemetry/home-assistant (base dev), core
-# PRs first (see apply_prs). With PROMOTE_QUEUE=<ha-promoter queue file> set,
-# only the fork PRs queued there are taken (see list_fork_prs).
+# A cut composes the pinned core base (the core release tag named by hacs.json's
+# "homeassistant" floor, with the integration and its tests taken from core dev)
+# + every open Bre77 teslemetry PR on core + every open teslemetry PR on the
+# staging fork Teslemetry/home-assistant (base dev), core PRs first (see
+# apply_prs). With PROMOTE_QUEUE=<ha-promoter queue file> set, only the fork PRs
+# queued there are taken (see list_fork_prs). The build gate tests the
+# integration against that core release (see restore_core_base).
 #
 # It runs the deterministic steps mechanically and hard-enforces the gates the
 # old prose runbook trusted an operator to remember (the device_tracker
@@ -27,7 +30,8 @@
 #
 # Safe to run from an isolated worktree: it never checks out main. Every update
 # to main goes through the temporary sync-dev branch: main's fork commits
-# rebased onto upstream dev, pushed with a lease on the main this run fetched.
+# rebased onto a fresh core base commit (see sync_dev), pushed with a lease on
+# the main this run fetched.
 #
 # Daily mode (`daily`) is the headless pre-release build a timer runs at 00:00
 # UTC. It differs from a bump cut in these ways:
@@ -96,7 +100,7 @@
 #   <blank line>
 #   release-kind: prerelease
 #   fingerprint: <sha256 hex of the fingerprint input below>
-#   dev: <upstream/dev commit SHA merged into the build>
+#   dev: <upstream/dev commit SHA whose integration the build took>
 #   main: <fork main commit SHA after the dev sync>
 #   pr: <owner/repo> <number> <head SHA>       (one line per composed PR, in
 #                                               apply order)
@@ -118,6 +122,7 @@ SENSOR_PY="$INTEGRATION/sensor.py"
 SERVICES_PY="$INTEGRATION/services.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
+CORE_BASE_SUBJECT="HACS core base:"  # subject prefix of main's base commit (see sync_dev)
 LEAD_SHORT=2                    # days: bugfix, code-quality, and every PR's current head
 LEAD_LONG=7                     # days: every other type, and floor/requirements changes
 BLOCKS_LATEST_LABEL="blocks-latest"
@@ -225,6 +230,123 @@ rerere_resolved() {
   git diff -z --name-only --diff-filter=U | xargs -0 git add --
   local path
   while IFS= read -r path; do info "rerere replayed: $path"; done <<<"$unmerged"
+}
+
+# --- pinned core base ----------------------------------------------------------
+# A build's core is the core release tag named by hacs.json's "homeassistant"
+# floor, never core dev: the floor is what the build claims to support, so it is
+# what the integration is tested against. Only the integration and its tests
+# come from core dev. hacs.json is the one place the pin lives; AGENTS.md has
+# the monthly bump. Any core API the integration needs that the pinned release
+# lacks is bridged inside the integration.
+
+# Core-owned paths a build takes from the pinned tag. The integration and its
+# tests are excluded (see restore_core_base), and requirements_all.txt then
+# takes the integration's own pins (see pin_integration_requirements).
+CORE_BASE_PATHS=(homeassistant tests script pyproject.toml requirements.txt
+  requirements_all.txt requirements_test.txt requirements_test_pre_commit.txt
+  .python-version)
+
+# Print the pinned core tag: the hacs.json floor at commit $1, or in the work
+# tree when $1 is empty. It must be a full core version, the name of its tag.
+core_base_tag() {
+  local floor
+  if [ -n "${1:-}" ]; then
+    floor=$(git show "$1:hacs.json" | jq -r '.homeassistant // ""')
+  else
+    floor=$(jq -r '.homeassistant // ""' hacs.json)
+  fi
+  [[ "$floor" =~ ^[0-9]{4}\.[0-9]+\.[0-9]+(b[0-9]+)?$ ]] \
+    || die "hacs.json homeassistant floor '$floor' is not a full core version (e.g. 2026.10.0): it names the pinned core base tag"
+  printf '%s\n' "$floor"
+}
+
+# Fetch core tag $1 into refs/tags/$1 from the upstream remote, or from core on
+# GitHub where there is none (CI). A shallow clone (CI) fetches only the tag's
+# commit; a full clone is never made shallow. Returns 1 if it cannot.
+fetch_core_tag() {
+  local src depth=()
+  src=$(git remote get-url upstream 2>/dev/null || echo "https://github.com/$CORE_REPO")
+  if [ "$(git rev-parse --is-shallow-repository)" = true ]; then depth=(--depth=1); fi
+  git fetch --quiet --no-tags ${depth[@]+"${depth[@]}"} "$src" "+refs/tags/$1:refs/tags/$1"
+}
+
+# Return 0 when commit $1 sits on the core tag its own hacs.json floor names. A
+# main from before the pinned base sits on core dev, which no release tag is in.
+on_core_base() {
+  local tag
+  tag=$(git show "$1:hacs.json" 2>/dev/null | jq -r '.homeassistant // ""') || return 1
+  [ -n "$tag" ] || return 1
+  git rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null || fetch_core_tag "$tag" 2>/dev/null || return 1
+  git merge-base --is-ancestor "refs/tags/$tag^{commit}" "$1"
+}
+
+# Put every CORE_BASE_PATHS path outside the integration and its tests in the
+# work tree at the pinned core tag, so tests and tooling run against exactly the
+# core release the build claims to support, whatever a composed PR changed
+# outside the integration. Work tree only: the index and commits keep the
+# composed state. The build gate and the CI workflow both run it first.
+restore_core_base() {
+  local tag
+  tag=$(core_base_tag)
+  log "Core at the pinned base $tag"
+  fetch_core_tag "$tag" || die "could not fetch core tag $tag - the hacs.json floor must be a released core version"
+  git restore --source="refs/tags/$tag^{commit}" --worktree -- "${CORE_BASE_PATHS[@]}" \
+    ":(exclude)$INTEGRATION" ":(exclude)tests/components/teslemetry"
+  pin_integration_requirements
+  info "core paths outside the integration match core $tag; requirements_all.txt has the integration's pins"
+}
+
+# In requirements_all.txt, replace the line of each package the integration's
+# manifest requires with the manifest's pin, and append a pin no line has.
+# Package names compare as pip does: case-insensitive, with - _ . the same.
+pin_integration_requirements() {
+  local out
+  out=$(jq -r '.requirements[]' "$INTEGRATION/manifest.json" | awk '
+    function norm(r) { r = tolower(r); sub(/[=<>!~\[;[:space:]].*/, "", r); gsub(/[-_.]+/, "-", r); return r }
+    FNR == NR { pin[norm($0)] = $0; next }
+    /^[^#[:space:]]/ && (norm($0) in pin) { print pin[norm($0)]; used[norm($0)] = 1; next }
+    { print }
+    END {
+      for (p in pin) if (!(p in used)) {
+        if (!header++) print "\n# homeassistant.components.teslemetry"
+        print pin[p]
+      }
+    }' - requirements_all.txt) || die "could not pin the integration requirements in requirements_all.txt"
+  printf '%s\n' "$out" > requirements_all.txt
+}
+
+# Print main $1's base commit: the newest commit on its first-parent line whose
+# subject starts with CORE_BASE_SUBJECT. A main from before the pinned base has
+# none; its base is where it meets upstream/dev.
+main_base_commit() {
+  local base
+  base=$(git log --first-parent --format='%H%x09%s' --grep="^$CORE_BASE_SUBJECT" "$1" \
+           | awk -F'\t' -v p="$CORE_BASE_SUBJECT" '!found && index($2, p) == 1 { print $1; found = 1 }')
+  [ -n "$base" ] || base=$(git merge-base "$1" upstream/dev) || die "cannot find the base of $1"
+  printf '%s\n' "$base"
+}
+
+# Print the base commit for core tag $1 with the integration and its tests
+# from commit $2: the tag's tree with those two paths replaced, its parent the
+# tag. Prints $3 (main's current base) instead when it is exactly that already,
+# so a sync with nothing new leaves main unchanged.
+make_base_commit() {
+  local tag="$1" src="$2" old="$3" tag_commit dir tree
+  tag_commit=$(git rev-parse "refs/tags/$tag^{commit}")
+  dir=$(mktemp -d)
+  GIT_INDEX_FILE="$dir/index" git read-tree "$tag_commit"
+  GIT_INDEX_FILE="$dir/index" git rm -r -q -f --cached --ignore-unmatch -- "$INTEGRATION" tests/components/teslemetry
+  GIT_INDEX_FILE="$dir/index" git read-tree --prefix="$INTEGRATION/" "$src:$INTEGRATION"
+  GIT_INDEX_FILE="$dir/index" git read-tree --prefix=tests/components/teslemetry/ "$src:tests/components/teslemetry"
+  tree=$(GIT_INDEX_FILE="$dir/index" git write-tree)
+  rm -rf "$dir"
+  if [ "$(git rev-parse "$old^{tree}")" = "$tree" ] && [ "$(git rev-parse -q --verify "$old^1" || true)" = "$tag_commit" ]; then
+    printf '%s\n' "$old"
+    return 0
+  fi
+  git commit-tree "$tree" -p "$tag_commit" \
+    -m "$CORE_BASE_SUBJECT core $tag with teslemetry from dev $(git rev-parse --short=10 "$src")"
 }
 
 # --- steps -------------------------------------------------------------------
@@ -769,8 +891,8 @@ plan_latest() {
   else info "$LATEST_TAG records no change set and is under 7 days old; no latest"; return 0
   fi
 
-  # Base: the newest pre-release whose new dev commits have all soaked. A fix
-  # build keeps latest's own base.
+  # Base: the newest pre-release on its pinned core tag whose new dev commits
+  # have all soaked. A fix build keeps latest's own base.
   LATEST_BASE_DEV="" LATEST_BASE_MAIN=""
   local day tag kind dev main
   if [ "$LATEST_MODE" = weekly ]; then
@@ -779,6 +901,7 @@ plan_latest() {
       git merge-base --is-ancestor "$L_DEV" "$dev" 2>/dev/null || continue
       main=$(tag_field "$tag" main)
       git cat-file -e "$main^{commit}" 2>/dev/null || continue
+      on_core_base "$main" || continue
       dev_soaked_through "$dev" || continue
       LATEST_BASE_DEV=$dev LATEST_BASE_MAIN=$main
       info "base: $tag (dev ${dev:0:10})"
@@ -787,6 +910,7 @@ plan_latest() {
   fi
   if [ -z "$LATEST_BASE_DEV" ]; then
     [ -n "$L_MAIN" ] || { info "no pre-release base has soaked and $LATEST_TAG records no base; no latest"; return 0; }
+    on_core_base "$L_MAIN" || { info "no pre-release base has soaked and $LATEST_TAG's base is not on its pinned core tag; no latest"; return 0; }
     LATEST_BASE_DEV=$L_DEV LATEST_BASE_MAIN=$L_MAIN
     info "base: latest's own (dev ${L_DEV:0:10})"
   fi
@@ -928,24 +1052,33 @@ keep_deleted_ci_conflicts() {
   return "$kept"
 }
 
-# Step 2: sync main with upstream dev on a temp branch: rebase main's fork
-# commits onto upstream dev, then push with a lease on the main fetched here.
+# Step 2: sync main on a temp branch: rebase main's fork commits onto a fresh
+# base commit (the pinned core tag named by main's hacs.json, with the
+# integration and its tests from upstream dev), then push with a lease on the
+# main fetched here. The fork commits are those after main's current base
+# commit; a main from before the pinned base has them after upstream dev.
 sync_dev() {
-  log "Step 2: sync main with upstream dev"
+  log "Step 2: sync main onto the pinned core base with the integration from upstream dev"
   git fetch origin main
   git fetch upstream dev
   SYNC_BASE_MAIN=$(git rev-parse origin/main)
+  local tag old_base new_base
+  tag=$(core_base_tag origin/main)
+  fetch_core_tag "$tag" || die "could not fetch core tag $tag - the hacs.json floor must be a released core version"
+  old_base=$(main_base_commit origin/main)
+  new_base=$(make_base_commit "$tag" upstream/dev "$old_base")
+  info "core base $tag, integration from dev $(git rev-parse --short=10 upstream/dev)"
 
   git branch -D sync-dev >/dev/null 2>&1 || true
   git checkout -b sync-dev origin/main
 
-  if ! git rebase upstream/dev; then
-    [ -d "$(git rev-parse --git-path rebase-merge)" ] || die "rebase of main onto upstream/dev failed"
+  if ! git rebase --onto "$new_base" "$old_base"; then
+    [ -d "$(git rev-parse --git-path rebase-merge)" ] || die "rebase of main onto the core base failed"
     while :; do
       if keep_deleted_ci_conflicts && [ -z "$(git diff --name-only --diff-filter=U)" ]; then
         :
       elif ! rerere_resolved; then
-        pause "Conflict rebasing a main commit onto upstream/dev. Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit or continue the rebase - this script does."
+        pause "Conflict rebasing a main commit onto the core base (core $tag, integration from upstream/dev). Edit files to resolve (no mergetool), 'git add' each resolved file. Do NOT commit or continue the rebase - this script does."
         assert_no_unmerged
       fi
       GIT_EDITOR=true git rebase --continue && break
@@ -1210,6 +1343,17 @@ NOTE
   cp "$INTEGRATION/manifest.json" "custom_components/teslemetry/manifest.json"
   git commit -am "v$VERSION" --no-verify >/dev/null
   info "manifests at $VERSION, release_notes.txt written"
+}
+
+# Hard gate: the composed build sits on the core tag its hacs.json floor names,
+# so the build gate tests the integration against the release it claims to
+# support. A latest built on a main from before the pinned base fails here.
+core_base_gate() {
+  log "Gate: build sits on its pinned core base"
+  local tag
+  tag=$(core_base_tag)
+  on_core_base HEAD || die "HEAD is not on core tag $tag (the hacs.json floor) - the build must be composed on the pinned core base"
+  info "on core $tag"
 }
 
 # Hard gate: the stable-core device_tracker compat shim v6.0.9 shipped broken.
@@ -1678,6 +1822,7 @@ $detail" ;;
 
 # The fail-stop gates on the composed tree, before the build gate.
 run_gates() {
+  core_base_gate
   device_tracker_gate
   tpms_atm_gate
   services_child_devices_gate
@@ -1699,6 +1844,7 @@ zip_integration() {
 # release on any failure before the approval pause is ever reached.
 build_gate() {
   log "Step 6: build gate (blocking)"
+  restore_core_base
   [ -d .venv ] || script/setup
   # shellcheck disable=SC1091
   source .venv/bin/activate
