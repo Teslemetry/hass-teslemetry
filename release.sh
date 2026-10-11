@@ -327,6 +327,25 @@ main_base_commit() {
   printf '%s\n' "$base"
 }
 
+# Print the commit sync_dev rebases main $1's fork commits from: no commit it
+# reaches is a fork commit. Those are every base commit main reaches (a merged
+# branch started before a sync can bring an older one) and where main meets
+# upstream/dev (a main, or a merged branch, from before the pinned base sits on
+# dev). Several are joined by a merge commit that is never pushed.
+rebase_upstream() {
+  local parents=() p args=() mb
+  mapfile -t parents < <(git log --format='%H%x09%s' --grep="^$CORE_BASE_SUBJECT" "$1" \
+                           | awk -F'\t' -v p="$CORE_BASE_SUBJECT" 'index($2, p) == 1 { print $1 }')
+  mb=$(git merge-base "$1" upstream/dev) || die "cannot find where $1 meets upstream/dev"
+  parents+=("$mb")
+  if [ "${#parents[@]}" -eq 1 ]; then
+    printf '%s\n' "${parents[0]}"
+    return 0
+  fi
+  for p in "${parents[@]}"; do args+=(-p "$p"); done
+  git commit-tree "$(git rev-parse "$1^{tree}")" "${args[@]}" -m "Bases of $1 (rebase upstream, never pushed)"
+}
+
 # Print the base commit for core tag $1 with the integration and its tests
 # from commit $2: the tag's tree with those two paths replaced, its parent the
 # tag. Prints $3 (main's current base) instead when it is exactly that already,
@@ -1055,24 +1074,25 @@ keep_deleted_ci_conflicts() {
 # Step 2: sync main on a temp branch: rebase main's fork commits onto a fresh
 # base commit (the pinned core tag named by main's hacs.json, with the
 # integration and its tests from upstream dev), then push with a lease on the
-# main fetched here. The fork commits are those after main's current base
-# commit; a main from before the pinned base has them after upstream dev.
+# main fetched here. The fork commits are those no base commit and no dev
+# commit reaches (see rebase_upstream).
 sync_dev() {
   log "Step 2: sync main onto the pinned core base with the integration from upstream dev"
   git fetch origin main
   git fetch upstream dev
   SYNC_BASE_MAIN=$(git rev-parse origin/main)
-  local tag old_base new_base
+  local tag old_base new_base from
   tag=$(core_base_tag origin/main)
   fetch_core_tag "$tag" || die "could not fetch core tag $tag - the hacs.json floor must be a released core version"
   old_base=$(main_base_commit origin/main)
   new_base=$(make_base_commit "$tag" upstream/dev "$old_base")
+  from=$(rebase_upstream origin/main)
   info "core base $tag, integration from dev $(git rev-parse --short=10 upstream/dev)"
 
   git branch -D sync-dev >/dev/null 2>&1 || true
   git checkout -b sync-dev origin/main
 
-  if ! git rebase --onto "$new_base" "$old_base"; then
+  if ! git rebase --onto "$new_base" "$from"; then
     [ -d "$(git rev-parse --git-path rebase-merge)" ] || die "rebase of main onto the core base failed"
     while :; do
       if keep_deleted_ci_conflicts && [ -z "$(git diff --name-only --diff-filter=U)" ]; then
