@@ -12,7 +12,12 @@ FAILED=0
 
 git_() { git -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
 
-# Build $SANDBOX/work with origin (main) and upstream (dev) remotes.
+TAG=2026.1.0
+INTEG_DIR=homeassistant/components/teslemetry
+TESTS=tests/components/teslemetry
+
+# Build $SANDBOX/work with origin (main) and upstream (dev) remotes. Core tag
+# $TAG (main's hacs.json floor, the pinned core base) is upstream dev's tip.
 #   $1: file main deletes from core's tree (empty: none)
 #   $2: file upstream/dev modifies afterwards
 #   $3: file main edits itself and dev edits too (empty: none), for a content conflict
@@ -29,12 +34,16 @@ make_sandbox() {
       echo "core $f" > ".github/workflows/$f"
     done
     echo base > code.txt
+    mkdir -p "$INTEG_DIR" "$TESTS"
+    echo base > "$INTEG_DIR/x.py"
+    echo base > "$TESTS/test_x.py"
     git_ add -A && git_ commit -qm "core base"
     git push -q "$SANDBOX/upstream.git" dev
     git checkout -q -b main
     [ -z "$deleted" ] || git_ rm -q -- "$deleted"
     [ -z "$content" ] || { echo main > "$content"; git_ add -A; }
     echo fork > fork.txt
+    printf '{"homeassistant": "%s"}\n' "$TAG" > hacs.json
     git_ add -A && git_ commit -qm "fork changes"
     git push -q "$SANDBOX/origin.git" main
     git checkout -q dev
@@ -42,6 +51,8 @@ make_sandbox() {
     [ -z "$content" ] || echo dev > "$content"
     git_ add -A && git_ commit -qm "core dev change"
     git push -q "$SANDBOX/upstream.git" dev
+    git tag "$TAG"
+    git push -q "$SANDBOX/upstream.git" "$TAG"
   )
   git clone -q "$SANDBOX/origin.git" "$SANDBOX/work"
   git -C "$SANDBOX/work" remote add upstream "$SANDBOX/upstream.git"
@@ -108,6 +119,8 @@ make_sandbox code.txt code.txt
   git_ mv code.txt .github/workflows/wheels.yml
   git_ commit -qm "core renames code.txt"
   git push -q -f "$SANDBOX/upstream.git" dev
+  git tag -f "$TAG" >/dev/null
+  git push -q -f "$SANDBOX/upstream.git" "$TAG"
 )
 git -C "$SANDBOX/work" fetch -q upstream 2>/dev/null
 run_sync; rc=$?
@@ -144,6 +157,75 @@ make_sandbox .github/workflows/ci.yaml .github/workflows/ci.yaml
 FAKE_GIT='git() { if [ "${1:-}" = rm ]; then echo "fatal: git rm failed" >&2; return 128; fi; command git "$@"; }' run_sync; rc=$?
 check "failing git rm: stops headless" 3 "$rc"
 check "failing git rm: not logged as kept" 0 "$(grep -c 'kept deleted' "$SANDBOX/out")"
+
+# Pinned core base: core paths come from the tag, the integration and its tests
+# from upstream dev, the fork commits on top.
+make_sandbox "" .github/workflows/teslemetry-test.yml
+(
+  cd "$SANDBOX/seed" || exit 1
+  git checkout -q dev
+  echo "dev only" >> code.txt
+  echo dev > "$INTEG_DIR/x.py"
+  echo dev > "$TESTS/test_x.py"
+  git_ add -A && git_ commit -qm "core dev beyond the tag"
+  git push -q "$SANDBOX/upstream.git" dev
+)
+run_sync; rc=$?
+work() { git -C "$SANDBOX/work" "$@"; }
+check "pinned base: sync completes" 0 "$rc"
+check "pinned base: core file at the tag" base "$(work show sync-dev:code.txt)"
+check "pinned base: integration from dev" dev "$(work show "sync-dev:$INTEG_DIR/x.py")"
+check "pinned base: integration tests from dev" dev "$(work show "sync-dev:$TESTS/test_x.py")"
+check "pinned base: fork commit kept" fork "$(work show sync-dev:fork.txt)"
+check "pinned base: on the tag" 0 "$(work merge-base --is-ancestor "$TAG" sync-dev; echo $?)"
+check "pinned base: dev not in main" 1 "$(work merge-base --is-ancestor upstream/dev sync-dev; echo $?)"
+check "pinned base: one base commit" 1 "$(work log --format=%s "$TAG..sync-dev" | grep -c '^HACS core base:')"
+
+# A second sync with nothing new leaves main as it is.
+work push -q -f origin sync-dev:main
+work checkout -q --detach
+run_sync; rc=$?
+check "resync: completes" 0 "$rc"
+check "resync: main unchanged" "$(work rev-parse origin/main)" "$(work rev-parse sync-dev)"
+
+# Pin bump: main's hacs.json names a newer tag; the old base commit is dropped.
+(
+  cd "$SANDBOX/seed" || exit 1
+  git checkout -q dev
+  git_ commit -q --allow-empty -m "core next release"
+  git tag 2026.2.0
+  git push -q "$SANDBOX/upstream.git" dev 2026.2.0
+)
+(
+  cd "$SANDBOX/work" || exit 1
+  git checkout -q -B bump origin/main
+  printf '{"homeassistant": "2026.2.0"}\n' > hacs.json
+  git_ commit -qam "Bump the pinned core base to 2026.2.0"
+  git push -q origin bump:main
+)
+run_sync; rc=$?
+check "pin bump: completes" 0 "$rc"
+check "pin bump: on the new tag" 0 "$(work merge-base --is-ancestor 2026.2.0 sync-dev; echo $?)"
+check "pin bump: one base commit" 1 "$(work log --format=%s "2026.2.0..sync-dev" | grep -c '^HACS core base:')"
+check "pin bump: fork commits kept" "fork 2026.2.0" \
+  "$(work show sync-dev:fork.txt) $(work show sync-dev:hacs.json | jq -r .homeassistant)"
+
+# on_core_base: only a commit on the tag its own hacs.json names passes.
+check "on_core_base: synced main" 0 \
+  "$(cd "$SANDBOX/work" && bash -c 'source "$1"; on_core_base sync-dev' _ "$ROOT/release.sh" >/dev/null 2>&1; echo $?)"
+check "on_core_base: main before the sync" 1 \
+  "$(cd "$SANDBOX/work" && bash -c 'source "$1"; on_core_base origin/main' _ "$ROOT/release.sh" >/dev/null 2>&1; echo $?)"
+
+# pin_integration_requirements: manifest pins replace the same package's line
+# (names compared as pip does) and a pin with no line is appended.
+mkdir -p "$SANDBOX/pins/$INTEG_DIR"
+printf '{"requirements": ["Tesla_Fleet.API==2.0.0", "new-lib==1.0"]}\n' > "$SANDBOX/pins/$INTEG_DIR/manifest.json"
+printf '# homeassistant.components.tessie\ntesla-fleet-api==1.0.0\n\nother==3\n' > "$SANDBOX/pins/requirements_all.txt"
+(cd "$SANDBOX/pins" && bash -c 'source "$1"; pin_integration_requirements' _ "$ROOT/release.sh")
+check "requirements pin: replaced" 1 "$(grep -cx 'Tesla_Fleet.API==2.0.0' "$SANDBOX/pins/requirements_all.txt")"
+check "requirements pin: old line gone" 0 "$(grep -c 'tesla-fleet-api==1.0.0' "$SANDBOX/pins/requirements_all.txt")"
+check "requirements pin: appended" 1 "$(grep -cx 'new-lib==1.0' "$SANDBOX/pins/requirements_all.txt")"
+check "requirements pin: others kept" 1 "$(grep -cx 'other==3' "$SANDBOX/pins/requirements_all.txt")"
 
 # The Home Assistant requirement note: beta wording only for a pre-release floor.
 bash -c 'source "$1"; floor_requirement_note "$2"' _ "$ROOT/release.sh" 2026.10.0 > "$SANDBOX/note"
