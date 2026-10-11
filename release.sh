@@ -240,9 +240,13 @@ rerere_resolved() {
 # the monthly bump. Any core API the integration needs that the pinned release
 # lacks is bridged inside the integration.
 
-# Core-owned paths a build takes from the pinned tag. The integration and its
-# tests are excluded (see restore_core_base), and requirements_all.txt then
-# takes the integration's own pins (see pin_integration_requirements).
+# Core-owned paths a build takes from the pinned tag. The integration, its
+# tests and homeassistant/generated are excluded (see restore_core_base), and
+# requirements_all.txt then takes the integration's own pins (see
+# pin_integration_requirements). The generated files are data made from the
+# manifests, not core API: core reads them for a built-in integration (here,
+# teslemetry's Labs preview features in generated/labs.py), where a HACS
+# install reads its own manifest instead.
 CORE_BASE_PATHS=(homeassistant tests script pyproject.toml requirements.txt
   requirements_all.txt requirements_test.txt requirements_test_pre_commit.txt
   .python-version)
@@ -292,7 +296,7 @@ restore_core_base() {
   log "Core at the pinned base $tag"
   fetch_core_tag "$tag" || die "could not fetch core tag $tag - the hacs.json floor must be a released core version"
   git restore --source="refs/tags/$tag^{commit}" --worktree -- "${CORE_BASE_PATHS[@]}" \
-    ":(exclude)$INTEGRATION" ":(exclude)tests/components/teslemetry"
+    ":(exclude)$INTEGRATION" ":(exclude)tests/components/teslemetry" ":(exclude)homeassistant/generated"
   pin_integration_requirements
   info "core paths outside the integration match core $tag; requirements_all.txt has the integration's pins"
 }
