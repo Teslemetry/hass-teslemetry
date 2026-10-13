@@ -488,9 +488,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 70,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 72,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.FAHRENHEIT
-                ),
+                "temperature_unit": (UnitOfTemperature.FAHRENHEIT),
             },
             None,
             (21.111, 22.222),
@@ -503,9 +501,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 70,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 72,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.FAHRENHEIT
-                ),
+                "temperature_unit": (UnitOfTemperature.FAHRENHEIT),
             },
             None,
             (21.111, 22.222),
@@ -518,9 +514,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 21,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 22,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.CELSIUS
-                ),
+                "temperature_unit": (UnitOfTemperature.CELSIUS),
             },
             None,
             (21.0, 22.0),
@@ -545,7 +539,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 70,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 72,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: "invalid",
+                "temperature_unit": "invalid",
             },
             None,
             (None, None),
@@ -558,9 +552,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: None,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: None,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.FAHRENHEIT
-                ),
+                "temperature_unit": (UnitOfTemperature.FAHRENHEIT),
             },
             None,
             (None, None),
@@ -585,9 +577,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 72,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 95,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.FAHRENHEIT
-                ),
+                "temperature_unit": (UnitOfTemperature.FAHRENHEIT),
             },
             None,
             (22.222, 35.0),
@@ -600,9 +590,7 @@ STORED_COP = {
             {
                 ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 72,
                 ClimateEntityStateAttribute.TARGET_TEMPERATURE: 95,
-                ClimateEntityStateAttribute.TEMPERATURE_UNIT: (
-                    UnitOfTemperature.FAHRENHEIT
-                ),
+                "temperature_unit": (UnitOfTemperature.FAHRENHEIT),
             },
             None,
             (22.222, 35.0),
@@ -659,8 +647,8 @@ async def test_streaming_restore_temperature_unit(
 
     entity = hass.data[DATA_COMPONENT].get_entity(entity_id)
     assert (
-        entity.native_current_temperature,
-        entity.native_target_temperature,
+        entity.current_temperature,
+        entity.target_temperature,
     ) == pytest.approx(expected_native, abs=1e-3)
     state = hass.states.get(entity_id)
     assert (
