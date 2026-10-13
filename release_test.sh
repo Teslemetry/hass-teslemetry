@@ -260,4 +260,102 @@ bash -c 'source "$1"; floor_requirement_note "$2"' _ "$ROOT/release.sh" 2026.11.
 check "pre-release floor: beta wording" 1 "$(grep -c 'Requires Home Assistant 2026.11 beta\*\*' "$SANDBOX/note")"
 check "pre-release floor: body names the floor" 1 "$(grep -c 'requires Home Assistant 2026.11.0b0 or newer' "$SANDBOX/note")"
 
+# PROMOTE_QUEUE needs=: parse with and without a docs branch; a malformed
+# needs= dies like any bad entry.
+printf '%s\n' 47 '#48 docs-branch' '49 docs-branch needs=fork#47' '50 needs=core#185594' \
+  "https://github.com/Teslemetry/home-assistant/pull/51 docs extra" '' > "$SANDBOX/queue"
+check "queue: parsed" "47|48|49 fork#47|50 core#185594|51" \
+  "$(bash -c 'source "$1"; read_promote_queue "$2"' _ "$ROOT/release.sh" "$SANDBOX/queue" | tr '\t' ' ' | sed 's/ $//' | paste -sd'|' -)"
+for bad in '52 needs=fork#x' '52 needs=' '52 needs=pr#1' '52 docs needs=fork#1 needs=core#2' '52 docs extra needs=fork#1'; do
+  printf '%s\n' "$bad" > "$SANDBOX/queue"
+  check "queue: '$bad' dies" "1 1" \
+    "$(bash -c 'source "$1"; read_promote_queue "$2"' _ "$ROOT/release.sh" "$SANDBOX/queue" >/dev/null 2>"$SANDBOX/err"; echo "$? $(grep -c 'bad queue entry' "$SANDBOX/err")")"
+done
+
+# list_fork_prs with needs=: a base present is composed and comes first, a
+# missing base (not queued, not open, or itself skipped) skips the entry.
+cat > "$SANDBOX/queue" <<'QUEUE'
+47
+48 teslemetry-docs needs=fork#47
+46 needs=fork#50
+50
+49 needs=fork#45
+41 needs=core#100
+60 needs=core#200
+61 needs=core#300
+62 needs=fork#49
+QUEUE
+list_needs() {
+  # shellcheck disable=SC2016
+  bash -c '
+    source "$1"
+    list_open_prs() {
+      jq -n "[(41,45,46,47,48,49,50,60,61,62) | {number: ., title: \"t\(.)\", isDraft: false,
+              headRefOid: \"h\(.)\", files: [{path: \"tests/components/teslemetry/x\"}]}]
+             | map(select(.number != 45))"
+    }
+    gh() { if [ "$2" = "repos/$CORE_REPO/pulls/200" ]; then echo true; else echo false; fi; }
+    CORE_PRS=$(printf "100\tcore\tfalse\tc100\n")
+    PROMOTE_QUEUE=$2 list_fork_prs' _ "$ROOT/release.sh" "$SANDBOX/queue" 2>"$SANDBOX/err"
+}
+check "needs: compose set and order" "41 core#100|47|48 fork#47|50|46 fork#50|60 core#200" \
+  "$(list_needs | cut -f1,5 | tr '\t' ' ' | sed 's/ $//' | paste -sd'|' -)"
+check "needs: missing fork base skipped" 1 "$(grep -c 'fork#49 needs fork#45, which this cut does not compose; skipped' "$SANDBOX/err")"
+check "needs: skipped base skips its dependent" 1 "$(grep -c 'fork#62 needs fork#49, which this cut does not compose; skipped' "$SANDBOX/err")"
+check "needs: core base neither open nor merged skipped" 1 "$(grep -c 'fork#61 needs core#300, which this cut does not compose; skipped' "$SANDBOX/err")"
+printf '%s\n' '46 needs=fork#50' '50 needs=fork#46' > "$SANDBOX/queue"
+check "needs: cycle dies" 1 "$(list_needs >/dev/null; echo $?)"
+
+# compose_prs with needs=fork: fork#48 branches from fork#47, which creates a
+# file, and fork#47 gains a commit afterwards. Applied after fork#47 it applies
+# only its own change; its plain net diff would re-add fork#47's file (add/add).
+rm -rf "$SANDBOX/staging.git" "$SANDBOX/st" "$SANDBOX/cw"
+git init -q --bare -b dev "$SANDBOX/staging.git"
+git init -q -b dev "$SANDBOX/st"
+(
+  cd "$SANDBOX/st" || exit 1
+  mkdir -p "$INTEG_DIR" "$TESTS"
+  echo base > "$INTEG_DIR/x.py"
+  git_ add -A && git_ commit -qm "fork dev"
+  git push -q "$SANDBOX/staging.git" dev
+  git checkout -q -b p47
+  echo new > "$INTEG_DIR/new.py"
+  echo p47 >> "$INTEG_DIR/x.py"
+  git_ add -A && git_ commit -qm "base change"
+  git checkout -q -b p48
+  echo dependent >> "$INTEG_DIR/new.py"
+  git_ commit -qam "dependent change"
+  git checkout -q p47
+  echo "p47 later" >> "$INTEG_DIR/x.py"
+  git_ commit -qam "base change, later"
+  git push -q "$SANDBOX/staging.git" p47:refs/pull/47/head p48:refs/pull/48/head
+)
+H47=$(git -C "$SANDBOX/st" rev-parse p47) H48=$(git -C "$SANDBOX/st" rev-parse p48)
+run_compose() {
+  rm -rf "$SANDBOX/cw"
+  git clone -q -b dev "$SANDBOX/staging.git" "$SANDBOX/cw"
+  (
+    cd "$SANDBOX/cw" || exit 1
+    export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=t \
+      GIT_CONFIG_KEY_1=user.email GIT_CONFIG_VALUE_1=t@t
+    # shellcheck source=release.sh
+    source "$ROOT/release.sh"
+    DAILY=1 RERERE=0
+    # shellcheck disable=SC2329
+    fetch_ref() { git fetch -q "$SANDBOX/staging.git" "$2" && git rev-parse FETCH_HEAD; }
+    compose_prs "" "$1" "$(git rev-parse HEAD)"
+  ) >"$SANDBOX/out" 2>&1
+}
+run_compose "$(printf '47\tbase\tfalse\t%s\t\n48\tdependent\tfalse\t%s\tfork#47\n' "$H47" "$H48")"; rc=$?
+check "needs compose: completes" 0 "$rc"
+check "needs compose: order" "fork#48: dependent|fork#47: base" "$(git -C "$SANDBOX/cw" log -2 --format=%s | paste -sd'|' -)"
+check "needs compose: both changes" "new dependent|base p47 p47 later" \
+  "$(git -C "$SANDBOX/cw" show "HEAD:$INTEG_DIR/new.py" | paste -sd' ' -)|$(git -C "$SANDBOX/cw" show "HEAD:$INTEG_DIR/x.py" | paste -sd' ' -)"
+run_compose "$(printf '47\tbase\tfalse\t%s\t\n48\tdependent\tfalse\t%s\t\n' "$H47" "$H48")"; rc=$?
+check "needs compose: without needs= the net diff conflicts" 3 "$rc"
+run_compose "$(printf '48\tdependent\tfalse\t%s\tfork#47\n' "$H48")"; rc=$?
+check "needs compose: base not applied, completes" 0 "$rc"
+check "needs compose: base not applied, left out" 1 "$(grep -c 'fork#48 needs fork#47, which this compose does not carry; left out' "$SANDBOX/out")"
+check "needs compose: base not applied, nothing committed" "fork dev" "$(git -C "$SANDBOX/cw" log -1 --format=%s)"
+
 exit "$FAILED"
