@@ -14,7 +14,11 @@
 # + every open Bre77 teslemetry PR on core + every open teslemetry PR on the
 # staging fork Teslemetry/home-assistant (base dev), core PRs first (see
 # apply_prs). With PROMOTE_QUEUE=<ha-promoter queue file> set, only the fork PRs
-# queued there are taken (see list_fork_prs). The build gate tests the
+# queued there are taken (see list_fork_prs). A queue line is
+# `<fork PR> [<docs branch>] [needs=core#<N>|needs=fork#<N>]`; a needs= entry
+# builds on that unmerged base PR, is taken only when the cut also composes the
+# base (or core#<N> is merged into dev), applies after it, and applies only its
+# own change (see apply_one_pr). The build gate tests the
 # integration against that core release (see restore_core_base).
 #
 # It runs the deterministic steps mechanically and hard-enforces the gates the
@@ -591,7 +595,7 @@ compose_set_lines() {
   while IFS=$'\t' read -r num title draft sha; do
     [ -n "$num" ] && printf '%s %s %s\n' "$CORE_REPO" "$num" "$sha"
   done <<<"$CORE_PRS"
-  while IFS=$'\t' read -r num title draft sha; do
+  while IFS=$'\t' read -r num title draft sha _; do
     [ -n "$num" ] && printf '%s %s %s\n' "$STAGING_REPO" "$num" "$sha"
   done <<<"$FORK_PRS"
   return 0
@@ -672,6 +676,7 @@ release_window_guard() {
 # --- latest (rules in the header) ----------------------------------------------
 
 declare -A PR_INFO=()
+declare -A APPLIED_HEADS=()  # applied PR ref ("#N", "fork#N") -> head, for needs= (see compose_prs)
 
 today_day() { echo $(( $(date -u +%s) / 86400 )); }
 
@@ -833,8 +838,9 @@ latest_set_key() {
   sed '/^[[:space:]]*$/d' | LC_ALL=C sort
 }
 
-# Add one judged change to LATEST_SELECTED ("repo<TAB>N<TAB>title<TAB>draft<TAB>head")
-# when the mode takes it. $1 repo, $2 N, $3 title, $4 draft.
+# Add one judged change to LATEST_SELECTED ("repo<TAB>N<TAB>title<TAB>draft<TAB>head<TAB>needs")
+# when the mode takes it. $1 repo, $2 N, $3 title, $4 draft, $5 a fork PR's
+# needs= base (see list_fork_prs) or empty.
 consider_change() {
   local repo="$1" num="$2" ref lhead take="" why="$VERDICT"
   if [ "$repo" = "$STAGING_REPO" ]; then ref="fork#$num"; else ref="#$num"; fi
@@ -851,7 +857,7 @@ consider_change() {
     why="soaked; a fix build takes only bugfixes"
   fi
   if [ -n "$take" ]; then info "$ref [$JUDGED_TYPE] takes ${take:0:10}: $why"; else info "$ref [$JUDGED_TYPE] waits: $why"; fi
-  [ -z "$take" ] || LATEST_SELECTED+="$repo"$'\t'"$num"$'\t'"$3"$'\t'"$4"$'\t'"$take"$'\n'
+  [ -z "$take" ] || LATEST_SELECTED+="$repo"$'\t'"$num"$'\t'"$3"$'\t'"$4"$'\t'"$take"$'\t'"${5:-}"$'\n'
 }
 
 # Return 0 when every judged dev commit that dev commit $1 contains has soaked.
@@ -940,7 +946,7 @@ plan_latest() {
 
   log "Latest: $LATEST_MODE build candidates"
   LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN=0
-  local title draft sha core_base fork_base seen=" "
+  local title draft sha needs core_base fork_base seen=" "
   core_base=$(fetch_ref "$CORE_REPO" dev)
   while IFS=$'\t' read -r num title draft sha; do
     [ -n "$num" ] || continue
@@ -948,10 +954,10 @@ plan_latest() {
     consider_change "$CORE_REPO" "$num" "$title" "$draft"
   done <<<"$CORE_PRS"
   if [ -n "$FORK_PRS" ]; then fork_base=$(fetch_ref "$STAGING_REPO" dev); fi
-  while IFS=$'\t' read -r num title draft sha; do
+  while IFS=$'\t' read -r num title draft sha needs; do
     [ -n "$num" ] || continue
     judge_change "$STAGING_REPO" "$num" "$sha" "$fork_base" ""
-    consider_change "$STAGING_REPO" "$num" "$title" "$draft"
+    consider_change "$STAGING_REPO" "$num" "$title" "$draft" "$needs"
   done <<<"$FORK_PRS"
   # PRs merged into dev beyond the base apply from their PR diff.
   while read -r c num ok; do
@@ -975,7 +981,8 @@ plan_latest() {
     return 0
   fi
   LATEST_CORE=$(awk -F'\t' -v r="$CORE_REPO" '$1 == r { print $2 "\t" $3 "\t" $4 "\t" $5 }' <<<"$LATEST_SELECTED" | sort -n)
-  LATEST_FORK=$(awk -F'\t' -v r="$STAGING_REPO" '$1 == r { print $2 "\t" $3 "\t" $4 "\t" $5 }' <<<"$LATEST_SELECTED" | sort -n)
+  # Fork PRs keep list_fork_prs' order: a needs=fork entry follows its base.
+  LATEST_FORK=$(awk -F'\t' -v r="$STAGING_REPO" '$1 == r { print $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 }' <<<"$LATEST_SELECTED")
   LATEST_BUILD=1
 }
 
@@ -1006,7 +1013,7 @@ build_latest() {
   git branch -D "release-$VERSION" >/dev/null 2>&1 || true
   git checkout -q -b "release-$VERSION" "$LATEST_BASE_MAIN"
   COMPOSING_LATEST=1
-  compose_prs "$LATEST_CORE" "$LATEST_FORK"
+  compose_prs "$LATEST_CORE" "$LATEST_FORK" "$LATEST_BASE_DEV"
   COMPOSING_LATEST=0
   if [ "$(printf '%s\n' ${APPLIED_SET[@]+"${APPLIED_SET[@]}"} | latest_set_key "$LATEST_BASE_DEV")" \
        = "$(latest_set_key "$L_DEV" <<<"$L_PRS")" ]; then
@@ -1171,33 +1178,54 @@ list_core_prs() {
     | jq -r 'sort_by(.number)[] | "\(.number)\t\(.title)\t\(.isDraft)\t\(.headRefOid)"'
 }
 
-# Fork PR numbers in the ha-promoter queue file $1, one per line, in file
-# order. A queue line is `123`, `#123` or the fork PR URL, optionally followed
-# by a docs branch name (ignored here); blank lines are skipped. Any other line
-# dies, so a malformed queue never silently drops an approved PR.
+# Fork PR numbers in the ha-promoter queue file $1, one "<number><TAB><needs>"
+# line per entry, in file order. A queue line is `123`, `#123` or the fork PR
+# URL, optionally followed by a docs branch name (ignored here), optionally
+# followed by `needs=core#<N>` or `needs=fork#<N>`: the PR builds on that
+# unmerged base and is composed only with it (see list_fork_prs). <needs> is
+# that ref, or empty. Blank lines are skipped. Any other line dies, so a
+# malformed queue never silently drops an approved PR.
 read_promote_queue() {
-  local file="$1" entry
+  local file="$1" line entry docs needs rest num
   [ -r "$file" ] || die "PROMOTE_QUEUE=$file is not a readable file"
-  while read -r entry _ || [ -n "$entry" ]; do
-    entry="${entry%$'\r'}"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    read -r entry docs needs rest <<<"$line"
     [ -n "$entry" ] || continue
     [[ "$entry" =~ ^(#|https://github\.com/$STAGING_REPO/pull/)?([0-9]+)$ ]] \
-      || die "PROMOTE_QUEUE=$file: bad queue entry: $entry"
-    printf '%s\n' "${BASH_REMATCH[2]}"
+      || die "PROMOTE_QUEUE=$file: bad queue entry: $line"
+    num=${BASH_REMATCH[2]}
+    # needs= is never a docs branch: without a docs branch it comes second.
+    if [[ "$docs" == needs=* ]]; then rest="$needs${rest:+ $rest}" needs=$docs; fi
+    if [[ "$needs" != needs=* ]]; then rest="$needs${rest:+ $rest}" needs=""; fi
+    if [[ " $rest" == *" needs="* ]] || { [ -n "$needs" ] && ! [[ "$needs" =~ ^needs=(core|fork)#[0-9]+$ ]]; }; then
+      die "PROMOTE_QUEUE=$file: bad queue entry: $line"
+    fi
+    printf '%s\t%s\n' "$num" "${needs#needs=}"
   done < "$file"
 }
 
 # Open PRs on the staging fork against its dev that touch the integration or
-# its tests, draft or ready, ascending, in the same line format.
+# its tests, draft or ready, ascending, in the same line format plus a fifth
+# field: the entry's needs= base ("core#<N>" or "fork#<N>"), or empty.
 # With PROMOTE_QUEUE set to the ha-promoter queue file, only the PRs queued
 # there are taken. A queued PR that is not in that open set is skipped with a
 # note on stderr: ha-promoter closes a fork PR when it opens it upstream, and
 # that change then returns through list_core_prs.
+#
+# A needs= entry is taken only with its base: needs=fork#N only when fork PR N
+# is taken too, needs=core#N only when core PR N is in list_core_prs or merged
+# into core dev (whose integration the core base carries). Otherwise it is
+# skipped with a note, as is any entry whose own base is skipped. Each needs=fork
+# entry comes after its base; the rest stay ascending.
 list_fork_prs() {
   local queued="null" num
   if [ -n "${PROMOTE_QUEUE:-}" ]; then
     # Bash clears errexit in command substitutions: propagate failures by hand.
-    queued=$(read_promote_queue "$PROMOTE_QUEUE" | jq -s 'unique') || exit 1
+    queued=$(read_promote_queue "$PROMOTE_QUEUE" \
+      | jq -Rs '[split("\n")[] | select(. != "") | split("\t")
+                 | {number: (.[0] | tonumber), needs: (if (.[1] // "") == "" then null else .[1] end)}]
+                | unique_by(.number)') || exit 1
   fi
   local json
   json=$(list_open_prs "$STAGING_REPO" --base dev \
@@ -1205,14 +1233,58 @@ list_fork_prs() {
          '[.[] | select(any(.files[].path;
              startswith("homeassistant/components/teslemetry/")
              or startswith("tests/components/teslemetry/")))
-           | select($queued == null or (.number | IN($queued[])))]
+           | .number as $n
+           | select($queued == null or any($queued[]; .number == $n))
+           | .needs = ($queued // [] | map(select(.number == $n))[0].needs)]
          | sort_by(.number)') || exit 1
   if [ "$queued" != null ]; then
-    for num in $(jq -r --argjson open "$json" '. - [$open[].number] | .[]' <<<"$queued"); do
+    for num in $(jq -r --argjson open "$json" '[.[].number] - [$open[].number] | .[]' <<<"$queued"); do
       info "fork#$num is queued but not an open teslemetry PR on $STAGING_REPO (base dev); skipped" >&2
     done
   fi
-  jq -r '.[] | "\(.number)\t\(.title)\t\(.isDraft)\t\(.headRefOid)"' <<<"$json"
+
+  # Core bases: open ones from list_core_prs (the cut's own listing when
+  # collect_prs already made it), the rest only when merged into dev.
+  local core_needs core_ok="[]" core_prs merged
+  core_needs=$(jq -r '[.[].needs // empty | select(startswith("core#")) | ltrimstr("core#")] | unique | .[]' <<<"$json")
+  if [ -n "$core_needs" ]; then
+    core_prs=${CORE_PRS-$(list_core_prs)} || exit 1
+    for num in $core_needs; do
+      if ! cut -f1 <<<"$core_prs" | grep -qx "$num"; then
+        merged=$(gh api "repos/$CORE_REPO/pulls/$num" --jq '.merged and .base.ref == "dev"') \
+          || die "could not read $CORE_REPO pull $num"
+        [ "$merged" = true ] || continue
+      fi
+      core_ok=$(jq --argjson n "$num" '. + [$n]' <<<"$core_ok")
+    done
+  fi
+  local result
+  result=$(jq --argjson core "$core_ok" '
+    def missing($nums):
+      .needs != null and ((.needs | split("#")) as [$repo, $n]
+        | ($n | tonumber) as $n
+        | if $repo == "fork" then ($nums | index($n)) == null else ($core | index($n)) == null end);
+    # Drop entries whose base is missing until none is: a dropped base drops its dependents.
+    def prune($dropped):
+      [.[].number] as $nums
+      | map(select(missing($nums))) as $miss
+      | if $miss == [] then {kept: ., dropped: $dropped}
+        else map(select(missing($nums) | not)) | prune($dropped + $miss) end;
+    # Ascending, except that a needs=fork entry waits for its base.
+    def order($done):
+      if . == [] then {order: $done}
+      else [$done[].number] as $nums
+        | map(select(.needs == null or (.needs | startswith("core#"))
+                     or ((.needs | ltrimstr("fork#") | tonumber) as $n | ($nums | index($n)) != null))) as $ready
+        | if $ready == [] then {order: $done, cycle: map(.number)}
+          else (. - [$ready[0]]) | order($done + [$ready[0]]) end end;
+    prune([]) | .dropped as $dropped | .kept | order([]) | .dropped = $dropped' <<<"$json") || exit 1
+  jq -r '.dropped[] | "fork#\(.number) needs \(.needs), which this cut does not compose; skipped"' <<<"$result" \
+    | while IFS= read -r num; do info "$num" >&2; done
+  if jq -e '.cycle' <<<"$result" >/dev/null; then
+    die "fork PRs $(jq -r '.cycle | map("fork#\(.)") | join(" ")' <<<"$result") need each other in a cycle (PROMOTE_QUEUE needs=)"
+  fi
+  jq -r '.order[] | "\(.number)\t\(.title)\t\(.isDraft)\t\(.headRefOid)\t\(.needs // "")"' <<<"$result"
 }
 
 # Capture both lists once, before applying anything, so a truncated or failed
@@ -1227,7 +1299,8 @@ collect_prs() {
 
 # Apply one PR as one commit. $1 repo, $2 number, $3 title, $4 draft flag,
 # $5 ref prefix ("#" for core, "fork#" for the staging fork), $6 the commit of
-# the PR's base branch, $7 the head SHA the PR listing returned. The prefix
+# the PR's base branch, $7 the head SHA the PR listing returned, $8 the head
+# of the PR's needs= base PR (empty: none). The prefix
 # marks the commit subject, the approval summary and the release-notes line.
 # The listed head is what gets applied, so a push to the PR during the run
 # cannot make the build differ from the head SHAs a daily tag records.
@@ -1238,19 +1311,30 @@ collect_prs() {
 # the net change merges cleanly. The fetched head and base give git apply -3
 # every pre-image blob, so it falls back to a real three-way merge.
 #
+# A needs= PR's branch carries its base PR's commits, which the compose has
+# already applied. Its diff starts at its merge-base with the base PR's head
+# instead, when that is newer than the one with its base branch, so it holds
+# only the PR's own change: re-applying the base's change would conflict where
+# the base creates a file (add/add).
+#
 # In a latest compose (COMPOSING_LATEST=1) a diff that cannot apply at all and
 # leaves no conflict (it edits a file only a younger change creates) waits: it
 # is left out and the notes name it. A real conflict still stops.
 apply_one_pr() {
-  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6" listed="$7"
+  local repo="$1" num="$2" title="$3" draft="$4" ref="$5$2" base="$6" listed="$7" needs_head="${8:-}"
   log "  PR $ref: $title"
-  local head mb
+  local head mb nmb
   head=$(fetch_ref "$repo" "pull/$num/head")
   if [ "$head" != "$listed" ]; then
     info "head moved to $head since listing; applying the listed $listed"
     head=$(fetch_ref "$repo" "$listed")
   fi
   mb=$(git merge-base "$base" "$head") || die "no merge-base for $repo pull/$num and its base"
+  if [ -n "$needs_head" ] && nmb=$(git merge-base "$needs_head" "$head") \
+     && git merge-base --is-ancestor "$mb" "$nmb"; then
+    mb=$nmb
+    info "diff from its merge-base with its needs= base, ${mb:0:10}"
+  fi
   # TEMPORARY (quality-scale work in progress): keep quality_scale.yaml out
   # of every per-PR diff to avoid repeated conflicts; the combined final
   # state is applied once at the end of apply_prs, only if a PR touched it.
@@ -1287,6 +1371,7 @@ apply_one_pr() {
   NOTE_LINES+=("[$ref](https://github.com/$repo/pull/$num): $title$status")
   APPLIED_PRS+=("$ref $title$status")
   APPLIED_SET+=("$repo $num $listed")
+  APPLIED_HEADS[$ref]=$head
 }
 
 # Step 4: compose the release on top of synced core dev - every open Bre77
@@ -1299,20 +1384,26 @@ apply_one_pr() {
 apply_prs() {
   log "Step 4: apply core and staging-fork PR net diffs"
   collect_prs
-  compose_prs "$CORE_PRS" "$FORK_PRS"
+  compose_prs "$CORE_PRS" "$FORK_PRS" "$(git rev-parse upstream/dev)"
 }
 
-# Apply core PR lines $1, then fork PR lines $2 (list_core_prs format), each
-# as one commit, then the quality_scale.yaml checkpoint. Shared by the
-# pre-release and the latest compose.
+# Apply core PR lines $1 (list_core_prs format), then fork PR lines $2
+# (list_fork_prs format), each as one commit, then the quality_scale.yaml
+# checkpoint. $3 is the core dev commit whose integration the base carries.
+# Shared by the pre-release and the latest compose.
+#
+# A fork PR with a needs= base applies only after that base: a fork PR or open
+# core PR this compose applied, or a core PR merged into $3. Otherwise it is
+# left out with a note (the latest compose can leave a base out).
 compose_prs() {
   APPLIED_PRS=()
   APPLIED_SET=()
+  APPLIED_HEADS=()
   CONFLICTED_PRS=()
   NOTE_LINES=()
   QUALITY_SCALE_PRS=()
 
-  local num title draft sha core_base fork_base
+  local num title draft sha needs needs_head core_base fork_base
   if [ -z "$1" ]; then
     info "no core PRs on $CORE_REPO to apply"
   else
@@ -1327,9 +1418,21 @@ compose_prs() {
     info "no fork PRs on $STAGING_REPO to apply"
   else
     fork_base=$(fetch_ref "$STAGING_REPO" dev)
-    while IFS=$'\t' read -r num title draft sha; do
+    while IFS=$'\t' read -r num title draft sha needs; do
       [ -n "$num" ] || continue
-      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base" "$sha"
+      needs_head=""
+      if [ -n "$needs" ]; then
+        needs_head=${APPLIED_HEADS[${needs#core}]:-}
+        if [ -z "$needs_head" ] && [[ "$needs" == core#* ]]; then
+          needs_head=$(core_pr_merged_head "${needs#core#}" "$3")
+        fi
+        if [ -z "$needs_head" ]; then
+          info "fork#$num needs $needs, which this compose does not carry; left out"
+          NOTE_LINES+=("Waiting for its base $needs: [fork#$num](https://github.com/$STAGING_REPO/pull/$num): $title")
+          continue
+        fi
+      fi
+      apply_one_pr "$STAGING_REPO" "$num" "$title" "$draft" "fork#" "$fork_base" "$sha" "$needs_head"
     done <<<"$2"
   fi
 
@@ -1345,6 +1448,19 @@ compose_prs() {
     info "no applied PR changed quality_scale.yaml"
   fi
   assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
+}
+
+# Print the head of core PR $1 when it is merged into dev and its merge commit
+# is in core dev commit $2; print nothing otherwise.
+core_pr_merged_head() {
+  local pr merge head
+  pr=$(gh api "repos/$CORE_REPO/pulls/$1" --jq 'select(.merged and .base.ref == "dev") | "\(.merge_commit_sha) \(.head.sha)"') \
+    || die "could not read $CORE_REPO pull $1"
+  read -r merge head <<<"$pr"
+  [ -n "$merge" ] && git cat-file -e "$merge^{commit}" 2>/dev/null \
+    && git merge-base --is-ancestor "$merge" "$2" || return 0
+  git cat-file -e "$head^{commit}" 2>/dev/null || head=$(fetch_ref "$CORE_REPO" "pull/$1/head")
+  printf '%s\n' "$head"
 }
 
 # Step 5: stamp version into both manifests and write release_notes.txt.
@@ -1940,9 +2056,9 @@ approve_and_publish() {
   info "Build gate: green (step 6 passed in full)"
   echo
 
-  local ans
-  read -r -p "    Type 'publish' to tag & release v$VERSION, anything else aborts: " ans < /dev/tty
-  [ "$ans" = "publish" ] || { info "aborted at approval - nothing published"; exit 0; }
+  local answer
+  read -r -p "    Type 'publish' to tag & release v$VERSION, anything else aborts: " answer < /dev/tty
+  [ "$answer" = "publish" ] || { info "aborted at approval - nothing published"; exit 0; }
 
   if [ "$PUBLISH" != 1 ]; then
     log "DRY RUN (no --publish flag)"
