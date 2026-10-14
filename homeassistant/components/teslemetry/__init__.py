@@ -23,6 +23,7 @@ from tesla_fleet_api.exceptions import (
     PrivateKeyError,
     SubscriptionRequired,
     TeslaFleetError,
+    is_key_rejected,
 )
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
@@ -72,6 +73,7 @@ from .const import (
     CONF_VIN,
     DOMAIN,
     ISSUE_GATEWAY_NOT_FOUND,
+    ISSUE_TYPE_BLE_KEY_REJECTED,
     LOGGER,
     POWERWALL_KEY_FILE,
     RSA_PARENT_KEY,
@@ -299,17 +301,6 @@ def _setup_vehicle_repairs(
     )
 
 
-def _ble_address_for_vin(entry: TeslemetryConfigEntry, vin: str) -> str | None:
-    """Return the paired Bluetooth address for a vehicle, if one was added."""
-    for subentry in entry.subentries.values():
-        if (
-            subentry.subentry_type == SUBENTRY_TYPE_VEHICLE
-            and subentry.data.get(CONF_VIN) == vin
-        ):
-            return subentry.data.get(CONF_ADDRESS)
-    return None
-
-
 # Two failure shapes must be caught to fall back to cloud control: the library
 # wraps existing-key failures in PrivateKeyError, the create-race path raises raw errors.
 _BLE_KEY_ERRORS: Final = (
@@ -325,11 +316,20 @@ async def _async_resolve_vehicle_api(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
     vin: str,
+    vehicle_name: str,
     cloud_vehicle: Vehicle,
 ) -> Vehicle | VehicleRouter:
     """Return the API a vehicle's platforms should call."""
-    address = _ble_address_for_vin(entry, vin)
-    if not address:
+    subentry = next(
+        (
+            subentry
+            for subentry in entry.subentries.values()
+            if subentry.subentry_type == SUBENTRY_TYPE_VEHICLE
+            and subentry.data.get(CONF_VIN) == vin
+        ),
+        None,
+    )
+    if subentry is None or not (address := subentry.data.get(CONF_ADDRESS)):
         return cloud_vehicle
 
     # A bad BLE key file for one vehicle must not tear down the whole entry.
@@ -361,7 +361,35 @@ async def _async_resolve_vehicle_api(
         bluetooth_vehicle.set_device(device)
         return True
 
-    return VehicleRouter(bluetooth_vehicle, cloud_vehicle, health=_in_range)
+    issue_id = f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{vin}"
+
+    @callback
+    def _on_result(err: BaseException | None, backend: Any, method: str) -> bool:
+        """Raise or clear the key rejected repair from Bluetooth command outcomes."""
+        if backend is bluetooth_vehicle:
+            if err is None:
+                ir.async_delete_issue(hass, DOMAIN, issue_id)
+            elif is_key_rejected(err):
+                ir.async_create_issue(
+                    hass,
+                    DOMAIN,
+                    issue_id,
+                    is_fixable=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key=ISSUE_TYPE_BLE_KEY_REJECTED,
+                    translation_placeholders={"vehicle": vehicle_name},
+                    data={
+                        "issue_type": ISSUE_TYPE_BLE_KEY_REJECTED,
+                        "entry_id": entry.entry_id,
+                        "subentry_id": subentry.subentry_id,
+                    },
+                )
+        # Always fail over: the cloud signs with its own key, so it can still succeed.
+        return True
+
+    return VehicleRouter(
+        bluetooth_vehicle, cloud_vehicle, health=_in_range, on_result=_on_result
+    )
 
 
 def _find_energy_subentry_id(entry: TeslemetryConfigEntry, site_id: int) -> str | None:
@@ -725,6 +753,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 hass,
                 entry,
                 vin,
+                product["display_name"] or vin,
                 vehicle,
             )
 
@@ -1054,6 +1083,7 @@ async def _async_refresh_energy_site(energysite: TeslemetryEnergyData) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Unload Teslemetry Config."""
+<<<<<<< ours
     await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
     # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.
     for vehicle in entry.runtime_data.vehicles:
@@ -1077,6 +1107,37 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
                     vehicle.vin,
                     BLE_DISCONNECT_TIMEOUT,
                 )
+=======
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.
+        for vehicle in entry.runtime_data.vehicles:
+            if isinstance(vehicle.api, VehicleRouter):
+                try:
+                    async with asyncio.timeout(BLE_DISCONNECT_TIMEOUT):
+                        try:
+                            await vehicle.api.primary.disconnect()
+                        except (BleakError, TeslaFleetError, TimeoutError) as err:
+                            # Swallowed so one stuck link cannot block the
+                            # unload, but warn: a leaked BLE connection can
+                            # keep the vehicle awake.
+                            LOGGER.warning(
+                                "Error disconnecting Bluetooth for %s: %s",
+                                vehicle.vin,
+                                err,
+                            )
+                except TimeoutError:
+                    LOGGER.warning(
+                        "Bluetooth disconnect for %s timed out after %ss",
+                        vehicle.vin,
+                        BLE_DISCONNECT_TIMEOUT,
+                    )
+                # Only the running router can observe the key, so its repair ends with it.
+                ir.async_delete_issue(
+                    hass, DOMAIN, f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{vehicle.vin}"
+                )
+    return unloaded
+>>>>>>> theirs
 
 
 async def async_migrate_entry(

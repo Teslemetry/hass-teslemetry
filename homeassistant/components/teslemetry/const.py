@@ -18,7 +18,11 @@ VEHICLE_KEY_FILE = "tesla_vehicle.key"
 BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
 BLE_PARENT_LOCK_KEY = f"{DOMAIN}_ble_parent_lock"
 BLE_DISCONNECT_TIMEOUT = 10
+<<<<<<< ours
 BLE_ADVERTISEMENT_TIMEOUT = 5
+=======
+BLE_HANDSHAKE_TIMEOUT = 60
+>>>>>>> theirs
 
 SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 CONF_SITE_ID = "site_id"
@@ -58,6 +62,8 @@ VEHICLE_ISSUE_LEARN_MORE: dict[str, str | None] = {
     "key": "https://teslemetry.com/key",
     "streaming_toggle": None,
 }
+
+ISSUE_TYPE_BLE_KEY_REJECTED = "ble_key_rejected"
 
 
 class TeslemetryState(StrEnum):
