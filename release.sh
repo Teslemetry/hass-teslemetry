@@ -2,8 +2,8 @@
 #
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
-# Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--publish]
-#         ./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish]
+# Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish]
+#         ./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--lower-floor <version>] [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -122,6 +122,7 @@ PR_LIST_LIMIT=200                           # gh pr list page size; filling it d
 INTEGRATION="homeassistant/components/teslemetry"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
+ISSUE_TRACKER="https://github.com/$FORK_REPO/issues"  # manifest.json issue_tracker (issue_tracker_gate)
 CORE_BASE_SUBJECT="HACS core base:"  # subject prefix of main's base commit (see sync_dev)
 LEAD_SHORT=2                    # days: bugfix, code-quality, and every PR's current head
 LEAD_LONG=7                     # days: every other type, and floor/requirements changes
@@ -170,6 +171,20 @@ pause() {
 }
 
 # --- gate helpers ------------------------------------------------------------
+
+# Print the line number of the first line inside async_setup_entry (up to the
+# next top-level def) of file $2 whose code contains text $1, or 0. A grep for a
+# name alone passes on a defined-but-never-called function, and a match in a
+# comment passes on a commented-out call, so comments are stripped first.
+setup_entry_line() {
+  awk -v text="$1" '
+    /^async def async_setup_entry\(/ { inside=1; next }
+    inside && /^(async def |def )/   { inside=0 }
+    { code=$0; sub(/#.*/, "", code) }
+    inside && !line && index(code, text) { line=NR }
+    END { print line+0 }
+  ' "$2"
+}
 
 # Fail if any tracked file carries a leftover conflict marker. Optional
 # pathspecs narrow the search. Enforced after every commit that could have
@@ -382,6 +397,7 @@ parse_args() {
   WAIVE=""  # daily: the one PR whose lead time the captain waived
   WAIVE_REF=""
   APPROVE_REQUIREMENTS=""
+  LOWER_FLOOR=""  # the composed hacs.json floor a deliberate lowering names (hacs_floor_gate)
   LATEST_BUILT=0
   LATEST_HELD=""
   while [ "$#" -gt 0 ]; do
@@ -394,7 +410,8 @@ parse_args() {
       --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE="$1" ;;
       --approve-requirements)
                          shift; [ "$#" -gt 0 ] || die "--approve-requirements requires the digest a run printed"; APPROVE_REQUIREMENTS="$1" ;;
-      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--publish] | daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish])" ;;
+      --lower-floor)     shift; [ "$#" -gt 0 ] || die "--lower-floor requires the new hacs.json floor"; LOWER_FLOOR="$1" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish] | daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--lower-floor <version>] [--publish])" ;;
     esac
     shift
   done
@@ -1029,7 +1046,7 @@ build_latest() {
     return 0
   fi
   update_version
-  AIOPOWERWALL_FLOOR_TAG=$LATEST_TAG run_gates
+  SHIPPED_FLOOR_TAG=$LATEST_TAG run_gates
   build_gate
   LATEST_DIR=$(mktemp -d)
   trap 'rm -rf "$LATEST_DIR"' EXIT
@@ -1506,28 +1523,58 @@ core_base_gate() {
 # asserted its existence. See AGENTS.md. Assert against the composed tree that
 # the function is defined, actually CALLED from async_setup_entry (a defined-
 # but-uncalled migration is exactly as broken as a missing one), and its tests
-# ship with it.
+# ship with it. The empty-holder cleanup must run after it: run first, it would
+# remove holders that still own records.
 subentry_migration_gate() {
   log "Gate: hacs_migrate_subentry_entities present in composed release"
-  local fn="hacs_migrate_subentry_entities"
+  local fn="hacs_migrate_subentry_entities" holder="hacs_remove_empty_holder_subentries"
+  local fn_line holder_line
   [ -f "$INIT_PY" ] || die "$INIT_PY missing"
   grep -q "def $fn" "$INIT_PY" \
     || die "$fn not defined in $INIT_PY - the HACS-only subentry back-migration is missing. It silently vanished in v6.0.9; see AGENTS.md."
-  # Extract the async_setup_entry body (up to the next top-level def) and
-  # confirm the call is inside it - a grep for the name alone passes on a
-  # defined-but-never-called function.
-  local called
-  called=$(awk -v fn="$fn" '
-    /^async def async_setup_entry\(/ { inside=1; next }
-    inside && /^(async def |def )/   { inside=0 }
-    inside && index($0, fn "(")       { found=1 }
-    END { print found+0 }
-  ' "$INIT_PY")
-  [ "$called" = 1 ] \
+  fn_line=$(setup_entry_line "$fn(" "$INIT_PY")
+  [ "$fn_line" != 0 ] \
     || die "$fn is defined but never called from async_setup_entry in $INIT_PY - a defined-but-uncalled migration is as broken as a missing one. See AGENTS.md for the v6.0.9 history."
   [ -f "$MIGRATION_TEST" ] \
     || die "$MIGRATION_TEST missing - the subentry back-migration must ship with its tests. See AGENTS.md."
-  info "$fn defined, called from async_setup_entry, tests present"
+  grep -q "^def $holder(" "$INIT_PY" \
+    || die "$holder not defined in $INIT_PY - the HACS-only empty-holder cleanup is missing. See AGENTS.md."
+  holder_line=$(setup_entry_line "$holder(" "$INIT_PY")
+  [ "$holder_line" -gt "$fn_line" ] \
+    || die "$holder must be called from async_setup_entry after $fn in $INIT_PY - run before it, it removes holders that still own records. See AGENTS.md."
+  info "$fn defined, called from async_setup_entry, tests present; $holder runs after it"
+}
+
+# Hard gate: beta_migration_fix backfills auth_implementation for early beta
+# entries. Dev has no test that sets up such an entry, so a conflict resolution
+# that drops it ships green and those installs fail OAuth setup. The core-dev
+# sync conflicts on its call. See AGENTS.md.
+beta_migration_gate() {
+  log "Gate: beta_migration_fix present in composed release"
+  local fn="beta_migration_fix"
+  [ -f "$INIT_PY" ] || die "$INIT_PY missing"
+  grep -q "^def $fn(" "$INIT_PY" \
+    || die "$fn not defined in $INIT_PY - the HACS-only auth_implementation backfill is missing. See AGENTS.md."
+  [ "$(setup_entry_line "$fn(" "$INIT_PY")" != 0 ] \
+    || die "$fn is defined but never called from async_setup_entry in $INIT_PY. See AGENTS.md."
+  info "$fn defined and called from async_setup_entry"
+}
+
+# Hard gate: the opt-in ClickStack log shipping setup in async_setup_entry. A
+# conflict resolution that drops it turns shipping off for every user who opted
+# in, and no test asserts that setup acquires the shipper. See AGENTS.md.
+logship_gate() {
+  log "Gate: ClickStack log shipping set up in composed release"
+  local call
+  [ -f "$INIT_PY" ] || die "$INIT_PY missing"
+  [ -f "$INTEGRATION/logship.py" ] || die "$INTEGRATION/logship.py missing - the HACS-only log shipper is gone. See AGENTS.md."
+  for call in "async_get_or_create_logship(" ".async_acquire(" ".async_release" "_async_setup_option_reload("; do
+    [ "$(setup_entry_line "$call" "$INIT_PY")" != 0 ] \
+      || die "async_setup_entry in $INIT_PY no longer contains $call - the HACS-only log shipping setup was dropped. See AGENTS.md."
+  done
+  grep -q 'def async_get_options_flow' "$INTEGRATION/config_flow.py" \
+    || die "$INTEGRATION/config_flow.py has no options flow - users cannot opt in to log shipping. See AGENTS.md."
+  info "log shipper acquired, released and reloaded from async_setup_entry; options flow present"
 }
 
 # Hard gate: aiopowerwall is a HACS-side standing pin that lives only on the
@@ -1536,7 +1583,7 @@ subentry_migration_gate() {
 # downgrades the library and breaks local grid import/export. The build gate
 # passes green either way (both versions import), so this floor check is the
 # only thing that catches it. See AGENTS.md. Assert the composed pin is not
-# below the last shipped release's. A latest build sets AIOPOWERWALL_FLOOR_TAG
+# below the last shipped release's. A latest build sets SHIPPED_FLOOR_TAG
 # to the current latest: its older base may trail the newest pre-release's pin.
 aiopowerwall_pin_gate() {
   log "Gate: aiopowerwall not downgraded below last shipped release"
@@ -1544,7 +1591,7 @@ aiopowerwall_pin_gate() {
   local composed last_tag shipped lowest
   composed=$(sed -n "$extract" "$INTEGRATION/manifest.json")
   [ -n "$composed" ] || die "aiopowerwall pin missing from composed $INTEGRATION/manifest.json"
-  last_tag=${AIOPOWERWALL_FLOOR_TAG:-$(git tag -l 'v*' | sort -V | tail -1)}
+  last_tag=${SHIPPED_FLOOR_TAG:-$(git tag -l 'v*' | sort -V | tail -1)}
   if [ -z "$last_tag" ]; then info "no prior release tag; skipping floor check"; return 0; fi
   shipped=$(git show "$last_tag:$INTEGRATION/manifest.json" 2>/dev/null | sed -n "$extract")
   if [ -z "$shipped" ]; then info "$last_tag pins no aiopowerwall; nothing to floor against"; return 0; fi
@@ -1552,6 +1599,52 @@ aiopowerwall_pin_gate() {
   [ "$lowest" = "$shipped" ] \
     || die "aiopowerwall==$composed downgrades below last shipped $last_tag ($shipped) - the HACS-side standing pin was overwritten by a PR patch. Restore it and regenerate requirements_all.txt. See AGENTS.md."
   info "aiopowerwall==$composed >= last shipped $shipped ($last_tag)"
+}
+
+# Hard gate: manifest.json's issue_tracker sends HA's "report issue" link to
+# this fork's tracker. Core's manifest has no such key, so a conflict
+# resolution that takes core's side drops it, and hassfest's manifest plugin,
+# the one check that reads the key, is skipped here. See AGENTS.md.
+issue_tracker_gate() {
+  log "Gate: manifest.json issue_tracker names the fork's tracker"
+  jq -e --arg url "$ISSUE_TRACKER" '.issue_tracker == $url' "$INTEGRATION/manifest.json" >/dev/null \
+    || die "$INTEGRATION/manifest.json issue_tracker is not $ISSUE_TRACKER - HA's report-issue link would point at core. Restore the key. See AGENTS.md."
+  info "issue_tracker is $ISSUE_TRACKER"
+}
+
+# Print hacs.json floor $1 as a key sort -V orders as core does: 2026.10.0b1
+# before 2026.10.0, where plain sort -V puts the beta after it.
+floor_sort_key() {
+  if [[ "$1" =~ ^(.*[0-9])b([0-9]+)$ ]]; then
+    printf '%s.0.%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  else
+    printf '%s.1\n' "$1"
+  fi
+}
+
+# Hard gate: HACS offers a build to every core at or above its hacs.json floor.
+# A PR or conflict resolution that lowers the floor below the last shipped
+# release's offers the build to cores it was never tested on, and the build
+# gate passes green (it tests whatever floor the tree names). A deliberate
+# lowering passes --lower-floor <the composed floor>. A latest build sets
+# SHIPPED_FLOOR_TAG to the current latest, as for aiopowerwall_pin_gate.
+hacs_floor_gate() {
+  log "Gate: hacs.json floor not below last shipped release"
+  local composed last_tag shipped lowest
+  composed=$(jq -r '.homeassistant // ""' hacs.json)
+  [ -n "$composed" ] || die "hacs.json declares no homeassistant floor"
+  last_tag=${SHIPPED_FLOOR_TAG:-$(git tag -l 'v*' | sort -V | tail -1)}
+  if [ -z "$last_tag" ]; then info "no prior release tag; skipping floor check"; return 0; fi
+  shipped=$(git show "$last_tag:hacs.json" 2>/dev/null | jq -r '.homeassistant // ""' 2>/dev/null || true)
+  if [ -z "$shipped" ]; then info "$last_tag declares no floor; nothing to compare"; return 0; fi
+  lowest=$(printf '%s\n%s\n' "$(floor_sort_key "$shipped")" "$(floor_sort_key "$composed")" | sort -V | head -1)
+  if [ "$lowest" = "$(floor_sort_key "$shipped")" ]; then
+    info "floor $composed >= last shipped $shipped ($last_tag)"
+    return 0
+  fi
+  [ "${LOWER_FLOOR:-}" = "$composed" ] \
+    || die "hacs.json floor $composed is below last shipped $last_tag ($shipped) - HACS would offer this build to cores it was not tested on. Restore the floor, or pass --lower-floor $composed to lower it deliberately. See AGENTS.md."
+  info "floor $composed lowered below $shipped ($last_tag) by --lower-floor"
 }
 
 # Hard gate: a config subentry type declared in code with no translations ships
@@ -1869,6 +1962,10 @@ run_gates() {
   aiopowerwall_pin_gate
   subentry_translations_gate
   core_constraints_gate
+  beta_migration_gate
+  logship_gate
+  issue_tracker_gate
+  hacs_floor_gate
 }
 
 # Zip the composed integration, the release asset, into absolute path $1.

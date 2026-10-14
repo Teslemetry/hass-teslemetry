@@ -2,6 +2,7 @@
 #
 # Sandbox tests for release.sh's sync_dev workflow handling. Builds throwaway
 # origin and upstream repos, then runs the real sync_dev rebase against them.
+# Also runs the HACS-only patch gates against a throwaway tree.
 # Fork-only, like release.sh. Usage: ./release_test.sh
 set -uo pipefail
 
@@ -388,5 +389,105 @@ check "daily tags: guard names the 6.x major" 1 "$(grep -c 'more than one 6.x mi
 run_version "v6.0.5 v6.1.2 v2026.10.11" "6.1"; rc=$?
 check "daily tags: --line 6.1 completes" 0 "$rc"
 check "daily tags: --line 6.1 bumps the 6.1 line" 1 "$(grep -cx 'VERSION=6.1.3' "$SANDBOX/out")"
+# HACS-only patch gates: each passes on a tree that carries its patch and fails
+# when a conflict resolution has broken it.
+GT="$SANDBOX/gates"
+make_gate_tree() {
+  rm -rf "$GT"
+  mkdir -p "$GT/$INTEG_DIR" "$GT/$TESTS"
+  cat > "$GT/$INTEG_DIR/__init__.py" <<'PY'
+def hacs_migrate_subentry_entities(hass, entry):
+    pass
+
+
+def hacs_remove_empty_holder_subentries(hass, entry):
+    pass
+
+
+def beta_migration_fix(hass, entry):
+    pass
+
+
+async def async_setup_entry(hass, entry):
+    hacs_migrate_subentry_entities(hass, entry)
+    hacs_remove_empty_holder_subentries(hass, entry)
+    logship = async_get_or_create_logship(hass, entry.unique_id)
+    await logship.async_acquire(force=False)
+    entry.async_on_unload(partial(logship.async_release, force=False))
+    _async_setup_option_reload(hass, entry, False)
+    beta_migration_fix(hass, entry)
+    return True
+
+
+async def async_unload_entry(hass, entry):
+    return True
+PY
+  echo 'class Flow:
+    def async_get_options_flow(config_entry): ...' > "$GT/$INTEG_DIR/config_flow.py"
+  touch "$GT/$INTEG_DIR/logship.py" "$GT/$TESTS/test_migration.py"
+  printf '{"domain": "teslemetry", "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues"}\n' > "$GT/$INTEG_DIR/manifest.json"
+  printf '{"homeassistant": "2026.10.0"}\n' > "$GT/hacs.json"
+  git -C "$GT" init -q
+  git_ -C "$GT" add -A && git_ -C "$GT" commit -qm shipped && git -C "$GT" tag v1.0.0
+}
+# Run gate $1 in the gate tree with optional extra assignments $2; print its exit code.
+run_gate() {
+  (cd "$GT" && eval "${2:-}" && bash -c 'source "$1"; '"$1" _ "$ROOT/release.sh") >"$SANDBOX/out" 2>&1
+  echo $?
+}
+# Apply sed expression $1 to the gate tree's __init__.py.
+edit_init() { sed -i "$1" "$GT/$INTEG_DIR/__init__.py"; }
+
+make_gate_tree
+for gate in subentry_migration_gate beta_migration_gate logship_gate issue_tracker_gate hacs_floor_gate; do
+  check "$gate: passes on an intact tree" 0 "$(run_gate "$gate")"
+done
+
+edit_init '/^def hacs_remove_empty_holder_subentries/,/^$/d; /    hacs_remove_empty_holder_subentries(/d'
+check "subentry_migration_gate: holder cleanup missing fails" 1 "$(run_gate subentry_migration_gate)"
+make_gate_tree
+edit_init '/    hacs_remove_empty_holder_subentries(/d; s/^    hacs_migrate_subentry_entities(hass, entry)$/    hacs_remove_empty_holder_subentries(hass, entry)\n&/'
+check "subentry_migration_gate: holder cleanup before migration fails" 1 "$(run_gate subentry_migration_gate)"
+check "subentry_migration_gate: order named" 1 "$(grep -c 'must be called from async_setup_entry after' "$SANDBOX/out")"
+make_gate_tree
+edit_init 's/^    hacs_remove_empty_holder_subentries(/    # &/'
+check "subentry_migration_gate: holder cleanup commented out fails" 1 "$(run_gate subentry_migration_gate)"
+
+make_gate_tree
+edit_init '/    beta_migration_fix(/d'
+check "beta_migration_gate: call dropped fails" 1 "$(run_gate beta_migration_gate)"
+make_gate_tree
+edit_init 's/^    beta_migration_fix(/    # &/'
+check "beta_migration_gate: call commented out fails" 1 "$(run_gate beta_migration_gate)"
+make_gate_tree
+edit_init '/^def beta_migration_fix/,/^$/d'
+check "beta_migration_gate: definition dropped fails" 1 "$(run_gate beta_migration_gate)"
+
+make_gate_tree
+edit_init '/async_acquire(/d'
+check "logship_gate: acquire dropped fails" 1 "$(run_gate logship_gate)"
+make_gate_tree
+edit_init 's/^    await logship.async_acquire(/    # &/'
+check "logship_gate: acquire commented out fails" 1 "$(run_gate logship_gate)"
+make_gate_tree
+edit_init '/_async_setup_option_reload(/d'
+check "logship_gate: option reload dropped fails" 1 "$(run_gate logship_gate)"
+make_gate_tree
+rm "$GT/$INTEG_DIR/logship.py"
+check "logship_gate: logship.py missing fails" 1 "$(run_gate logship_gate)"
+
+make_gate_tree
+printf '{"domain": "teslemetry"}\n' > "$GT/$INTEG_DIR/manifest.json"
+check "issue_tracker_gate: key dropped fails" 1 "$(run_gate issue_tracker_gate)"
+printf '{"domain": "teslemetry", "issue_tracker": "https://github.com/home-assistant/core/issues"}\n' > "$GT/$INTEG_DIR/manifest.json"
+check "issue_tracker_gate: core tracker fails" 1 "$(run_gate issue_tracker_gate)"
+
+make_gate_tree
+printf '{"homeassistant": "2026.10.0b0"}\n' > "$GT/hacs.json"
+check "hacs_floor_gate: floor below last shipped fails" 1 "$(run_gate hacs_floor_gate)"
+check "hacs_floor_gate: --lower-floor passes" 0 "$(run_gate hacs_floor_gate 'export LOWER_FLOOR=2026.10.0b0')"
+check "hacs_floor_gate: stale --lower-floor fails" 1 "$(run_gate hacs_floor_gate 'export LOWER_FLOOR=2026.9.0')"
+printf '{"homeassistant": "2026.11.0b1"}\n' > "$GT/hacs.json"
+check "hacs_floor_gate: raised floor passes" 0 "$(run_gate hacs_floor_gate)"
 
 exit "$FAILED"
