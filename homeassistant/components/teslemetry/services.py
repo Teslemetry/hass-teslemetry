@@ -1,7 +1,7 @@
 """Service calls for the Teslemetry integration."""
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import probatio
 
@@ -16,7 +16,11 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    service,
+)
 
 from .const import DOMAIN
 from .helpers import handle_command, handle_vehicle_command
@@ -67,34 +71,12 @@ def async_get_device_and_config_for_service_call(
     hass: HomeAssistant, call: ServiceCall
 ) -> tuple[dr.DeviceEntry, TeslemetryConfigEntry]:
     """Get the device entry and config entry related to a service call."""
-    device_id = call.data[CONF_DEVICE_ID]
-    device_registry = dr.async_get(hass)
-    # Teslemetry never parents devices (only via_device_id), so a targeted device is
-    # always a main device. The include_child_devices=False kwarg that would narrow
-    # this on dev core is absent on released cores and raises TypeError there; the
-    # cast restores the narrow return type the kwarg used to provide.
-    if (device_entry := device_registry.async_get(device_id)) is None:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="invalid_device",
-            translation_placeholders={"device_id": device_id},
-        )
-    device_entry = cast(dr.DeviceEntry, device_entry)
-
-    # config_entries is deprecated on dev core in favor of the single config_entry_id;
-    # reading it on dev triggers a deprecation frame report, so prefer config_entry_id
-    # when present and fall back to config_entries on the stable cores HACS supports.
-    primary_entry_id = getattr(device_entry, "config_entry_id", None)
-    entry_ids = {primary_entry_id} if primary_entry_id else device_entry.config_entries
-    for entry_id in entry_ids:
-        if entry := hass.config_entries.async_get_entry(entry_id):
-            if entry.domain == DOMAIN:
-                return device_entry, entry
-    raise ServiceValidationError(
-        translation_domain=DOMAIN,
-        translation_key="no_config_entry_for_device",
-        translation_placeholders={"device_id": device_entry.id},
+    config_entry: TeslemetryConfigEntry
+    # Callers match the device's serial number, which only a main device has
+    device_entry, config_entry = service.async_get_device_and_config_entry(
+        hass, DOMAIN, call.data[CONF_DEVICE_ID], include_child_devices=False
     )
+    return device_entry, config_entry
 
 
 def async_get_vehicle_for_entry(
