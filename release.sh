@@ -442,6 +442,14 @@ preflight() {
   info "branch=$branch publish=$PUBLISH daily=$DAILY"
 }
 
+# Every v* tag a bump cut computes from: all of them except the daily
+# v<UTC Y.M.D> pre-releases, whose four-digit-year major sorts above every 6.x
+# tag and would make a bare `patch` compute the next date instead of the next
+# 6.x number.
+line_tags() {
+  git tag -l 'v*' | grep -Ev '^v[0-9]{4}\.' || true
+}
+
 # Memory-independent guard for the no-line path. With --line omitted we bump off
 # the overall newest tag, which is safe only while the newest line is
 # unambiguous. It stops being unambiguous the moment a newer line opens above a
@@ -453,7 +461,7 @@ preflight() {
 # not covered; see AGENTS.md ("How the release line is selected").
 require_unambiguous_line() {
   local tip tip_ver tip_major minor_count
-  tip=$(git tag -l 'v*' | sort -V | tail -1)
+  tip=$(line_tags | sort -V | tail -1)
   [ -n "$tip" ] || return 0   # no tags at all: the absent-tag die handles it
   tip_ver=${tip#v}
   tip_major=${tip_ver%%.*}
@@ -466,7 +474,7 @@ require_unambiguous_line() {
 
   # (b) More than one minor line under the current major means the newest line is
   # ambiguous within the major you are almost certainly working in.
-  minor_count=$(git tag -l 'v*' \
+  minor_count=$(line_tags \
     | sed -n 's/^v\([0-9][0-9]*\)\.\([0-9][0-9]*\)\..*/\1 \2/p' \
     | awk -v M="$tip_major" '$1==M {print $2}' \
     | sort -u | wc -l | tr -d '[:space:]')
@@ -495,7 +503,7 @@ determine_version() {
     # line. `|| true` lets the empty-series die below fire instead of set -e.
     local lmaj lmin
     IFS='.' read -r lmaj lmin <<<"$LINE"
-    last=$(git tag -l 'v*' | grep -E "^v${lmaj}\.${lmin}\." | sort -V | tail -1 || true)
+    last=$(line_tags | grep -E "^v${lmaj}\.${lmin}\." | sort -V | tail -1 || true)
     [ -n "$last" ] || die "no 'v${LINE}.*' release tags found - cannot bump the $LINE line off an empty series"
     info "line $LINE selected; latest tag in series: $last"
   else
@@ -503,7 +511,7 @@ determine_version() {
     # tag) - but only after asserting the newest line is unambiguous, so a
     # forgotten --line cannot silently hijack a maintenance line.
     require_unambiguous_line
-    last=$(git tag -l 'v*' | sort -V | tail -1)
+    last=$(line_tags | sort -V | tail -1)
     [ -n "$last" ] || die "could not read latest release tag from git (no 'v*' tags found)"
     info "latest release tag: $last"
   fi
