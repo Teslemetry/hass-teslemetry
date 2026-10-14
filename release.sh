@@ -172,19 +172,24 @@ pause() {
 
 # --- gate helpers ------------------------------------------------------------
 
-# Print the line number of the first line inside async_setup_entry (up to the
-# next top-level def) of file $2 whose code contains text $1, or 0. A grep for a
-# name alone passes on a defined-but-never-called function, and a match in a
-# comment passes on a commented-out call, so comments are stripped first.
-setup_entry_line() {
-  awk -v text="$1" '
-    /^async def async_setup_entry\(/ { inside=1; next }
-    inside && /^(async def |def )/   { inside=0 }
+# Print the line number of the first line inside top-level block $1 (a line
+# matching that regex, up to the next top-level statement) of file $3 whose code
+# contains text $2, or 0. A match in a comment passes on a commented-out call,
+# so comments are stripped first.
+block_line() {
+  awk -v start="$1" -v text="$2" '
+    $0 ~ start                      { inside=1; next }
+    inside && /^[^[:space:]#)]/     { inside=0 }
     { code=$0; sub(/#.*/, "", code) }
     inside && !line && index(code, text) { line=NR }
     END { print line+0 }
-  ' "$2"
+  ' "$3"
 }
+
+# Print the line number of the first line inside async_setup_entry of file $2
+# whose code contains text $1, or 0. A grep for a name alone passes on a
+# defined-but-never-called function.
+setup_entry_line() { block_line '^async def async_setup_entry\(' "$1" "$2"; }
 
 # Fail if any tracked file carries a leftover conflict marker. Optional
 # pathspecs narrow the search. Enforced after every commit that could have
@@ -1574,7 +1579,9 @@ logship_gate() {
   done
   grep -q 'def async_get_options_flow' "$INTEGRATION/config_flow.py" \
     || die "$INTEGRATION/config_flow.py has no options flow - users cannot opt in to log shipping. See AGENTS.md."
-  info "log shipper acquired, released and reloaded from async_setup_entry; options flow present"
+  [ "$(block_line '^class [A-Za-z_]*\(OptionsFlow\)' CONF_SHIP_LOGS_TO_CLICKSTACK "$INTEGRATION/config_flow.py")" != 0 ] \
+    || die "the options flow in $INTEGRATION/config_flow.py no longer offers CONF_SHIP_LOGS_TO_CLICKSTACK - users cannot opt in to log shipping. See AGENTS.md."
+  info "log shipper acquired, released and reloaded from async_setup_entry; options flow offers the opt-in"
 }
 
 # Hard gate: aiopowerwall is a HACS-side standing pin that lives only on the

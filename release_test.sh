@@ -422,8 +422,15 @@ async def async_setup_entry(hass, entry):
 async def async_unload_entry(hass, entry):
     return True
 PY
-  echo 'class Flow:
-    def async_get_options_flow(config_entry): ...' > "$GT/$INTEG_DIR/config_flow.py"
+  cat > "$GT/$INTEG_DIR/config_flow.py" <<'PY'
+class Flow:
+    def async_get_options_flow(config_entry): ...
+
+
+class OptionsHandler(OptionsFlow):
+    async def async_step_init(self, user_input=None):
+        return Schema({Optional(CONF_SHIP_LOGS_TO_CLICKSTACK): BooleanSelector()})
+PY
   touch "$GT/$INTEG_DIR/logship.py" "$GT/$TESTS/test_migration.py"
   printf '{"domain": "teslemetry", "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues"}\n' > "$GT/$INTEG_DIR/manifest.json"
   printf '{"homeassistant": "2026.10.0"}\n' > "$GT/hacs.json"
@@ -460,6 +467,10 @@ make_gate_tree
 edit_init 's/^    beta_migration_fix(/    # &/'
 check "beta_migration_gate: call commented out fails" 1 "$(run_gate beta_migration_gate)"
 make_gate_tree
+edit_init '/^    beta_migration_fix(/d'
+printf '\n\nclass Later:\n    def method(self, hass, entry):\n        beta_migration_fix(hass, entry)\n' >> "$GT/$INTEG_DIR/__init__.py"
+check "beta_migration_gate: call only in a following class fails" 1 "$(run_gate beta_migration_gate)"
+make_gate_tree
 edit_init '/^def beta_migration_fix/,/^$/d'
 check "beta_migration_gate: definition dropped fails" 1 "$(run_gate beta_migration_gate)"
 
@@ -475,6 +486,9 @@ check "logship_gate: option reload dropped fails" 1 "$(run_gate logship_gate)"
 make_gate_tree
 rm "$GT/$INTEG_DIR/logship.py"
 check "logship_gate: logship.py missing fails" 1 "$(run_gate logship_gate)"
+make_gate_tree
+sed -i 's/Optional(CONF_SHIP_LOGS_TO_CLICKSTACK)/Optional("other")/' "$GT/$INTEG_DIR/config_flow.py"
+check "logship_gate: opt-in dropped from the options flow fails" 1 "$(run_gate logship_gate)"
 
 make_gate_tree
 printf '{"domain": "teslemetry"}\n' > "$GT/$INTEG_DIR/manifest.json"
