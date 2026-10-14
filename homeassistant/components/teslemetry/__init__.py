@@ -743,7 +743,7 @@ def _async_setup_option_reload(
     entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Set up Teslemetry config."""
 
     if "token" not in entry.data:
@@ -1089,6 +1089,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 
         entry.async_create_background_task(hass, listen(), "Teslemetry Stream")
 
+    return True
+
 
 def _setup_subentry_change_reload(
     hass: HomeAssistant, entry: TeslemetryConfigEntry
@@ -1234,36 +1236,38 @@ async def _async_refresh_energy_site(energysite: TeslemetryEnergyData) -> None:
         )
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Unload Teslemetry Config."""
-    await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
-    # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.
-    for vehicle in entry.runtime_data.vehicles:
-        if isinstance(vehicle.api, VehicleRouter):
-            try:
-                async with asyncio.timeout(BLE_DISCONNECT_TIMEOUT):
-                    try:
-                        await vehicle.api.primary.disconnect()
-                    except (BleakError, TeslaFleetError, TimeoutError) as err:
-                        # Swallowed so one stuck link cannot block the
-                        # unload, but warn: a leaked BLE connection can
-                        # keep the vehicle awake.
-                        LOGGER.warning(
-                            "Error disconnecting Bluetooth for %s: %s",
-                            vehicle.vin,
-                            err,
-                        )
-            except TimeoutError:
-                LOGGER.warning(
-                    "Bluetooth disconnect for %s timed out after %ss",
-                    vehicle.vin,
-                    BLE_DISCONNECT_TIMEOUT,
-                )
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        # Release any on-demand Bluetooth link only after platforms unloaded, or the still-loaded entry's backends must keep working.
+        for vehicle in entry.runtime_data.vehicles:
+            if isinstance(vehicle.api, VehicleRouter):
+                try:
+                    async with asyncio.timeout(BLE_DISCONNECT_TIMEOUT):
+                        try:
+                            await vehicle.api.primary.disconnect()
+                        except (BleakError, TeslaFleetError, TimeoutError) as err:
+                            # Swallowed so one stuck link cannot block the
+                            # unload, but warn: a leaked BLE connection can
+                            # keep the vehicle awake.
+                            LOGGER.warning(
+                                "Error disconnecting Bluetooth for %s: %s",
+                                vehicle.vin,
+                                err,
+                            )
+                except TimeoutError:
+                    LOGGER.warning(
+                        "Bluetooth disconnect for %s timed out after %ss",
+                        vehicle.vin,
+                        BLE_DISCONNECT_TIMEOUT,
+                    )
+    return unloaded
 
 
 async def async_migrate_entry(
     hass: HomeAssistant, config_entry: TeslemetryConfigEntry
-) -> None:
+) -> bool:
     """Migrate config entry."""
 
     if config_entry.version == 1:
@@ -1289,6 +1293,7 @@ async def async_migrate_entry(
             data=data,
             version=2,
         )
+    return True
 
 
 def create_handle_vehicle_stream(
