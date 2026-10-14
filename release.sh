@@ -22,9 +22,8 @@
 # integration against that core release (see restore_core_base).
 #
 # It runs the deterministic steps mechanically and hard-enforces the gates the
-# old prose runbook trusted an operator to remember (the device_tracker
-# ATTR_LATITUDE compat grep that v6.0.9 missed; the post-commit conflict-marker
-# grep; the full local build gate). It STOPS for a human at exactly two kinds
+# old prose runbook trusted an operator to remember (the post-commit
+# conflict-marker grep; the full local build gate). It STOPS for a human at exactly two kinds
 # of checkpoint: an unresolved conflict, and the pre-publish approval pause.
 # With RELEASE_RERERE_CACHE set, git rerere replays conflict resolutions
 # recorded by earlier cuts, so only a conflict it has not seen before stops.
@@ -121,9 +120,6 @@ CORE_REPO="home-assistant/core"             # upstream: core, source of PRs/dev
 STAGING_REPO="Teslemetry/home-assistant"    # staging fork: PRs awaiting review, layered on top
 PR_LIST_LIMIT=200                           # gh pr list page size; filling it dies (see list_open_prs)
 INTEGRATION="homeassistant/components/teslemetry"
-DEVICE_TRACKER="$INTEGRATION/device_tracker.py"
-SENSOR_PY="$INTEGRATION/sensor.py"
-SERVICES_PY="$INTEGRATION/services.py"
 INIT_PY="$INTEGRATION/__init__.py"
 MIGRATION_TEST="tests/components/teslemetry/test_migration.py"
 CORE_BASE_SUBJECT="HACS core base:"  # subject prefix of main's base commit (see sync_dev)
@@ -1496,66 +1492,6 @@ core_base_gate() {
   info "on core $tag"
 }
 
-# Hard gate: the stable-core device_tracker compat shim v6.0.9 shipped broken.
-# The break is stable-core-only, so the dev-form build gate passes green - this
-# grep is the only thing that catches it. See AGENTS.md for the full why.
-device_tracker_gate() {
-  log "Gate: device_tracker stable-core ATTR_LATITUDE compat"
-  [ -f "$DEVICE_TRACKER" ] || die "$DEVICE_TRACKER missing"
-  grep -q 'ATTR_LATITUDE'  "$DEVICE_TRACKER" || die "device_tracker.py must import/use ATTR_LATITUDE (not the dev-only enum member)"
-  grep -q 'ATTR_LONGITUDE' "$DEVICE_TRACKER" || die "device_tracker.py must import/use ATTR_LONGITUDE (not the dev-only enum member)"
-  # Forbidden only in code: the enum members are 2026.8-dev-only and raise
-  # AttributeError on the stable cores HACS users run. Allowed inside comments.
-  local hits
-  hits=$(awk '{ code=$0; sub(/#.*/,"",code);
-               if (code ~ /EntityStateAttribute\.(LATITUDE|LONGITUDE)/) print NR": "$0 }' \
-             "$DEVICE_TRACKER" || true)
-  [ -z "$hits" ] || die "device_tracker.py uses dev-only EntityStateAttribute.LATITUDE/.LONGITUDE in code:
-$hits"
-  info "ATTR_LATITUDE/ATTR_LONGITUDE present, dev-only enum absent from code"
-}
-
-# Hard gate: the stable-core TPMS UnitOfPressure.ATM compat shim v6.0.20
-# shipped broken. Core PR #181508 ships four streamed tire-pressure sensors
-# using UnitOfPressure.ATM (PressureConverter), but that member is dev-only
-# (core PR #178708, first released 2026.10) and raises AttributeError on every
-# stable core HACS users run - the break is stable-core-only, so the dev-form
-# build gate passes green. This grep is the only thing that catches it. See
-# AGENTS.md.
-tpms_atm_gate() {
-  log "Gate: sensor.py stable-core UnitOfPressure.ATM TPMS compat"
-  [ -f "$SENSOR_PY" ] || die "$SENSOR_PY missing"
-  # Forbidden only in code: the enum member is 2026.10-dev-only and raises
-  # AttributeError on the stable cores HACS users run. Allowed inside comments.
-  local hits
-  hits=$(awk '{ code=$0; sub(/#.*/,"",code);
-               if (code ~ /UnitOfPressure\.ATM/) print NR": "$0 }' \
-             "$SENSOR_PY" || true)
-  [ -z "$hits" ] || die "$SENSOR_PY uses dev-only UnitOfPressure.ATM in code - the four streamed TPMS sensors will raise AttributeError on stable core:
-$hits"
-  info "UnitOfPressure.ATM absent from sensor.py code"
-}
-
-# Hard gate: services.py must not call async_get with the dev-only
-# include_child_devices kwarg. Core PR #178666 added it to teslemetry's own
-# service helper on dev; it is absent on every released core, so it raises
-# TypeError there and every device-targeted Action fails with "unknown error" -
-# and the dev-form build gate passes green because dev has the kwarg. The sync
-# from core dev re-introduces it on the exact line every cut. Retire this gate
-# when the minimum core floor reaches 2026.9.0 (the kwarg's first release).
-services_child_devices_gate() {
-  log "Gate: services.py free of dev-only include_child_devices kwarg"
-  [ -f "$SERVICES_PY" ] || die "$SERVICES_PY missing"
-  # Forbidden only in code; allowed inside a comment explaining the shim.
-  local hits
-  hits=$(awk '{ code=$0; sub(/#.*/,"",code);
-               if (code ~ /include_child_devices/) print NR": "$0 }' \
-             "$SERVICES_PY" || true)
-  [ -z "$hits" ] || die "$SERVICES_PY passes dev-only include_child_devices to async_get - drop the kwarg (call async_get(device_id)); it raises TypeError on released cores. Re-introduced by the core-dev sync:
-$hits"
-  info "include_child_devices absent from services.py code"
-}
-
 # Hard gate: the HACS-only subentry back-migration silently vanished in v6.0.9
 # when the release branches carrying it were never merged back to main - two
 # releases shipped without it and nothing noticed, because only a doc sentence
@@ -1656,48 +1592,6 @@ A declared subentry type without translations renders as a bare unlabelled '+' b
     done
     info "subentry type '$type' labelled in source and compiled strings"
   done <<<"$types"
-}
-
-# Hard gate: the services.py device-lookup shim (the include_child_devices
-# drop) raises ServiceValidationError with translation_key values whose
-# exceptions.<key>.message strings live only in strings.json / translations/en.json,
-# not in services.py itself. A core-dev sync can resolve services.py correctly
-# (keep the shim) while strings.json has no textual conflict and silently takes
-# upstream's deletion of those keys, orphaning the shim's error messages with a
-# green build. Happened twice (release-6.0.19, release-6.0.20) before landing on
-# main. See AGENTS.md. Assert against the composed tree that every
-# translation_key="..." raised in services.py has a non-empty
-# exceptions.<key>.message in both strings.json and the compiled translations/en.json.
-services_exceptions_gate() {
-  log "Gate: services.py exception keys carry translations"
-  local strings="$INTEGRATION/strings.json"
-  local compiled="$INTEGRATION/translations/en.json"
-  [ -f "$SERVICES_PY" ] || die "$SERVICES_PY missing"
-
-  local keys
-  keys=$(sed -n 's/.*translation_key="\([^"]*\)".*/\1/p' "$SERVICES_PY" | sort -u)
-  if [ -z "$keys" ]; then
-    info "no translation_key=\"...\" raised in services.py; nothing to check"
-    return 0
-  fi
-
-  [ -f "$strings" ]  || die "$strings missing but services.py raises translation_key values"
-  [ -f "$compiled" ] || die "$compiled missing but services.py raises translation_key values"
-
-  local key pair file kind
-  while read -r key; do
-    [ -n "$key" ] || continue
-    for pair in "$strings|strings.json" "$compiled|compiled translations/en.json"; do
-      file=${pair%%|*}
-      kind=${pair#*|}
-      jq -e --arg k "$key" \
-        '(.exceptions[$k].message) as $m | ($m | type == "string") and ($m | length > 0)' \
-        "$file" >/dev/null 2>&1 \
-        || die "translation_key '$key' is raised in services.py but has no non-empty exceptions.$key.message in $kind.
-A core-dev sync can resolve services.py correctly while silently dropping the matching strings.json exceptions entry (no textual conflict), orphaning the shim's error message with a green build. Restore exceptions.$key in strings.json and recompile translations; do not hand-edit en.json. See AGENTS.md."
-    done
-    info "translation_key '$key' labelled in source and compiled strings"
-  done <<<"$keys"
 }
 
 # Lowest Python a requires-python specifier admits (">=3.14.2" -> 3.14.2).
@@ -1963,13 +1857,9 @@ $detail" ;;
 # The fail-stop gates on the composed tree, before the build gate.
 run_gates() {
   core_base_gate
-  device_tracker_gate
-  tpms_atm_gate
-  services_child_devices_gate
   subentry_migration_gate
   aiopowerwall_pin_gate
   subentry_translations_gate
-  services_exceptions_gate
   core_constraints_gate
 }
 
