@@ -358,4 +358,35 @@ check "needs compose: base not applied, completes" 0 "$rc"
 check "needs compose: base not applied, left out" 1 "$(grep -c 'fork#48 needs fork#47, which this compose does not carry; left out' "$SANDBOX/out")"
 check "needs compose: base not applied, nothing committed" "fork dev" "$(git -C "$SANDBOX/cw" log -1 --format=%s)"
 
+
+# A bump cut's version: daily v<UTC Y.M.D> tags sort above every 6.x tag and
+# must not become the line a bare `patch` bumps off.
+#   $1: space-separated tags on origin   $2: --line value (empty: none)
+run_version() {
+  rm -rf "$SANDBOX/vo.git" "$SANDBOX/vw"
+  git init -q --bare -b main "$SANDBOX/vo.git"
+  git init -q -b main "$SANDBOX/vw"
+  (
+    cd "$SANDBOX/vw" || exit 1
+    git_ commit -q --allow-empty -m base
+    for t in $1; do git tag "$t"; done
+    git remote add origin "$SANDBOX/vo.git"
+    git push -q origin main --tags
+    # shellcheck source=release.sh
+    source "$ROOT/release.sh"
+    BUMP=patch LINE=$2
+    determine_version
+    echo "VERSION=$VERSION"
+  ) >"$SANDBOX/out" 2>&1
+}
+run_version "v6.0.5 v2026.10.10 v2026.10.11" ""; rc=$?
+check "daily tags: bare patch completes" 0 "$rc"
+check "daily tags: bare patch bumps the 6.0 line" 1 "$(grep -cx 'VERSION=6.0.6' "$SANDBOX/out")"
+run_version "v6.0.5 v6.1.2 v2026.10.11" ""; rc=$?
+check "daily tags: two 6.x lines still stop a bare patch" 1 "$rc"
+check "daily tags: guard names the 6.x major" 1 "$(grep -c 'more than one 6.x minor line' "$SANDBOX/out")"
+run_version "v6.0.5 v6.1.2 v2026.10.11" "6.1"; rc=$?
+check "daily tags: --line 6.1 completes" 0 "$rc"
+check "daily tags: --line 6.1 bumps the 6.1 line" 1 "$(grep -cx 'VERSION=6.1.3' "$SANDBOX/out")"
+
 exit "$FAILED"
