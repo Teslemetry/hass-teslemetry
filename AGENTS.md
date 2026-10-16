@@ -33,6 +33,8 @@ A release is the pinned core base (below) plus, in `apply_prs`, one commit per P
 
 Both lists use `gh pr list --limit 200` (`PR_LIST_LIMIT`) and the cut dies if a list fills the limit. gh's default of 30 truncates silently, which drops the oldest PRs from a cut. To see today's compose set without cutting, `source ./release.sh` and run `list_core_prs` / `list_fork_prs`. Sourcing the script does not start a cut.
 
+After both lists, `apply_fixups` commits each tracked patch in `release-fixups/` whose PRs the cut applied. A file name such as `core-174090+core-186075.patch` names the PRs (`core-<N>`, `fork-<N>`). A fixup reconciles two PRs that apply cleanly together but clash in meaning, such as a call to a signature the other PR changes. If any named PR is not in the cut, the fixup does nothing. If the patch no longer applies, the cut stops. Delete the fixup once either PR merges upstream.
+
 ### How the release line is selected
 
 Versions bump off the latest release **tag** (`git tag -l 'v*'`, version-sorted). Tags are the durable record even when a release object is deleted (a yanked build whose tag is kept), and are the same source `aiopowerwall_pin_gate` reads.
