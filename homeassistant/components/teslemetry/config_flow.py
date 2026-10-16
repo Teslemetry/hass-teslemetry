@@ -579,7 +579,9 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
 
 def _energy_site_name(energy_data: TeslemetryEnergyData) -> str | None:
     """Return the name of an energy site, if it has one."""
-    name = energy_data.device.name
+    # HACS stable-core compat: DeviceInfo is a TypedDict in the pinned core
+    # release, so its fields are read by key, never as attributes.
+    name = energy_data.device.get("name")
     return name if isinstance(name, str) else None
 
 
