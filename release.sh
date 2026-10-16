@@ -127,6 +127,8 @@ CORE_BASE_SUBJECT="HACS core base:"  # subject prefix of main's base commit (see
 LEAD_SHORT=2                    # days: bugfix, code-quality, and every PR's current head
 LEAD_LONG=7                     # days: every other type, and floor/requirements changes
 BLOCKS_LATEST_LABEL="blocks-latest"
+# Tracked patches that reconcile two composed PRs (see apply_fixups).
+RELEASE_FIXUPS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/release-fixups"
 
 # Core CI/CD workflows this fork deliberately excludes. The core-dev sync would
 # otherwise resurrect them; stripped every cut. Keep in sync with the identical
@@ -1462,6 +1464,8 @@ compose_prs() {
     done <<<"$2"
   fi
 
+  apply_fixups
+
   # TEMPORARY: apply the combined final quality_scale.yaml once (judgment step),
   # only when an applied PR changed it.
   if [ "${#QUALITY_SCALE_PRS[@]}" -gt 0 ]; then
@@ -1474,6 +1478,37 @@ compose_prs() {
     info "no applied PR changed quality_scale.yaml"
   fi
   assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
+}
+
+# Apply each tracked release fixup whose PRs this compose applied, as one
+# commit. A fixup reconciles PRs that apply cleanly together but clash in
+# meaning (one changes a signature the other calls). Its file name lists the
+# PRs it needs, joined by "+": core-<N> for core #N, fork-<N> for fork#N
+# (release-fixups/core-174090+core-186075.patch). A fixup whose PRs are not all
+# applied (merged upstream, closed, or left out) does nothing; delete it once
+# one of its PRs merges upstream.
+apply_fixups() {
+  local patch name part ref missing parts
+  for patch in "$RELEASE_FIXUPS"/*.patch; do
+    [ -e "$patch" ] || continue
+    name=$(basename "$patch" .patch)
+    missing=""
+    IFS='+' read -ra parts <<<"$name"
+    for part in "${parts[@]}"; do
+      ref=${part/#core-/#}; ref=${ref/#fork-/fork#}
+      [ -n "${APPLIED_HEADS[$ref]:-}" ] || missing+=" $ref"
+    done
+    if [ -n "$missing" ]; then
+      info "fixup $name: not applied (${missing# } not in this compose)"
+      continue
+    fi
+    log "  fixup $name"
+    git apply --index "$patch" \
+      || pause "release-fixups/$name.patch no longer applies to this compose. Update the patch on main, or apply its intent by hand and 'git add' each file. Do NOT commit - this script commits."
+    assert_no_unmerged
+    git commit -m "fixup: $name" --allow-empty --no-verify >/dev/null
+    assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
+  done
 }
 
 # Print the head of core PR $1 when it is merged into dev and its merge commit
