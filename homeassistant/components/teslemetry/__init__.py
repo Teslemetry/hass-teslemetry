@@ -1329,11 +1329,13 @@ def async_setup_energy_device(
     ):
         if (part_name := component.get("part_name")) and part_name != "Unknown":
             models.add(part_name)
+    # HACS stable-core compat: DeviceInfo is a TypedDict in the pinned core
+    # release, so its fields are set by key, never as attributes.
     if models:
-        energysite.device.model = ", ".join(sorted(models))
+        energysite.device["model"] = ", ".join(sorted(models))  # HACS compat
 
     if version := data.get("version"):
-        energysite.device.sw_version = version
+        energysite.device["sw_version"] = version  # HACS compat
 
     device_registry.async_get_or_create_device(
         config_entry_id=entry.entry_id, device_info=energysite.device
