@@ -127,8 +127,10 @@ CORE_BASE_SUBJECT="HACS core base:"  # subject prefix of main's base commit (see
 LEAD_SHORT=2                    # days: bugfix, code-quality, and every PR's current head
 LEAD_LONG=7                     # days: every other type, and floor/requirements changes
 BLOCKS_LATEST_LABEL="blocks-latest"
-# Tracked patches that reconcile two composed PRs (see apply_fixups).
-RELEASE_FIXUPS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/release-fixups"
+# Tracked patches that reconcile two composed PRs (see apply_fixups), read from
+# the commit release.sh runs from: the latest compose checks out latest's base,
+# whose tree can predate them. main sets it before any checkout.
+RELEASE_FIXUPS_COMMIT=HEAD
 
 # Core CI/CD workflows this fork deliberately excludes. The core-dev sync would
 # otherwise resurrect them; stripped every cut. Keep in sync with the identical
@@ -1490,8 +1492,8 @@ compose_prs() {
 # latest fix build applies to the pinned core base (core-185983).
 apply_fixups() {
   local patch name part ref missing parts
-  for patch in "$RELEASE_FIXUPS"/*.patch; do
-    [ -e "$patch" ] || continue
+  for patch in $(git ls-tree --name-only "$RELEASE_FIXUPS_COMMIT" release-fixups/); do
+    [[ "$patch" == *.patch ]] || continue
     name=$(basename "$patch" .patch)
     missing=""
     IFS='+' read -ra parts <<<"$name"
@@ -1504,8 +1506,8 @@ apply_fixups() {
       continue
     fi
     log "  fixup $name"
-    git apply --index "$patch" \
-      || pause "release-fixups/$name.patch no longer applies to this compose. Update the patch on main, or apply its intent by hand and 'git add' each file. Do NOT commit - this script commits."
+    git show "$RELEASE_FIXUPS_COMMIT:$patch" | git apply --index \
+      || pause "$patch no longer applies to this compose. Update the patch on main, or apply its intent by hand and 'git add' each file. Do NOT commit - this script commits."
     assert_no_unmerged
     git commit -m "fixup: $name" --allow-empty --no-verify >/dev/null
     assert_no_conflict_markers "$INTEGRATION" tests/components/teslemetry
@@ -2144,6 +2146,9 @@ publish_release() {
 main() {
   parse_args "$@"
   preflight
+  RELEASE_FIXUPS_COMMIT=$(git rev-parse HEAD)
+  git cat-file -e "$RELEASE_FIXUPS_COMMIT:release-fixups" 2>/dev/null \
+    || info "no release-fixups/ on $RELEASE_FIXUPS_COMMIT; no fixup will apply"
   setup_rerere
   if [ "$DAILY" = 1 ]; then
     determine_daily_version
