@@ -35,6 +35,8 @@ Both lists use `gh pr list --limit 200` (`PR_LIST_LIMIT`) and the cut dies if a 
 
 After both lists, `apply_fixups` commits each tracked patch in `release-fixups/` whose PRs the cut applied. A file name such as `core-174090+core-186075.patch` names the PRs (`core-<N>`, `fork-<N>`). A fixup reconciles two PRs that apply cleanly together but clash in meaning, such as a call to a signature the other PR changes. If any named PR is not in the cut, the fixup does nothing. If the patch no longer applies, the cut stops. Delete the fixup once either PR merges upstream.
 
+`core-185983.patch` instead adapts one merged PR to the pinned core base. A latest fix build applies #185983's net diff on latest's own base, so its `test_climate.py` gets none of `main`'s climate shims; the patch rewrites its `ClimateEntityStateAttribute.TEMPERATURE_UNIT` keys and `native_*` temperature reads to `main`'s form. Delete it once the pinned core base has `ClimateEntityStateAttribute.TEMPERATURE_UNIT`.
+
 ### How the release line is selected
 
 Versions bump off the latest release **tag** (`git tag -l 'v*'`, version-sorted). Tags are the durable record even when a release object is deleted (a yanked build whose tag is kept), and are the same source `aiopowerwall_pin_gate` reads.
