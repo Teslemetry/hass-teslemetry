@@ -1486,7 +1486,8 @@ compose_prs() {
 # PRs it needs, joined by "+": core-<N> for core #N, fork-<N> for fork#N
 # (release-fixups/core-174090+core-186075.patch). A fixup whose PRs are not all
 # applied (merged upstream, closed, or left out) does nothing; delete it once
-# one of its PRs merges upstream.
+# one of its PRs merges upstream. A single-PR fixup adapts a merged PR that a
+# latest fix build applies to the pinned core base (core-185983).
 apply_fixups() {
   local patch name part ref missing parts
   for patch in "$RELEASE_FIXUPS"/*.patch; do
