@@ -72,12 +72,19 @@
 #     teslemetry dev commit since latest's own dev base has soaked; else
 #     latest's own base. On it, every soaked change the base lacks, core then
 #     fork, each ascending, at its current head; a change already in latest
-#     that has not soaked again stays at latest's head. A change whose diff
+#     that has not soaked again stays at latest's head. A change any earlier
+#     latest shipped is never dropped: until the base has it, it stays at the
+#     head the newest such latest shipped, even when its PR is closed or
+#     unqueued, and a fork PR ha-promoter opened upstream ("opened upstream as
+#     <core PR URL>" on the fork PR) is the same change as that core PR. If
+#     latest lacks it, the run restores it as a fix. Only a blocks-latest issue
+#     keeps it out. A change whose diff
 #     cannot apply at all (it needs a younger change) waits, named in the
 #     notes; a conflict rerere cannot replay stops the run as in a pre-release.
 #   - When: weekly (7 days since latest) takes every soaked change. On other
-#     days a soaked bugfix missing from latest builds latest's own change set
-#     plus the soaked bugfixes. An open issue labelled blocks-latest that links
+#     days a soaked bugfix missing from latest, or a shipped change latest
+#     dropped, builds latest's own change set plus the soaked bugfixes and the
+#     restored changes. An open issue labelled blocks-latest that links
 #     a culprit PR keeps that PR out. Nothing is built when the set equals
 #     latest's.
 #   - A floor or requirements difference from latest holds latest for the
@@ -757,6 +764,7 @@ release_window_guard() {
 # --- latest (rules in the header) ----------------------------------------------
 
 declare -A PR_INFO=()
+declare -A PROMOTED=()       # fork PR number -> core PR ha-promoter opened it as, or "-" (see load_promoted)
 declare -A APPLIED_HEADS=()  # applied PR ref ("#N", "fork#N") -> head, for needs= (see compose_prs)
 
 today_day() { echo $(( $(date -u +%s) / 86400 )); }
@@ -811,6 +819,30 @@ load_pr_info() {
   PR_INFO[$1#$2]=$(gh api "repos/$1/pulls/$2" \
     --jq '{title, draft, head: .head.sha, labels: [.labels[].name], body: (.body // "")}') \
     || die "could not read $1 pull $2"
+}
+
+# Cache in PROMOTED the core PR that ha-promoter opened fork PR $1 as: the
+# newest "opened upstream as <core PR URL>" comment on the fork PR, or "-".
+# ha-promoter closes the fork PR then, so the change continues as that core PR.
+load_promoted() {
+  [ -z "${PROMOTED[$1]:-}" ] || return 0
+  local core
+  core=$(gh api "repos/$STAGING_REPO/issues/$1/comments?per_page=100" --paginate \
+           --jq '.[].body | capture("opened upstream as https://github\\.com/home-assistant/core/pull/(?<n>[0-9]+)").n') \
+    || die "could not read the comments on $STAGING_REPO pull $1"
+  core=$(tail -1 <<<"$core")
+  PROMOTED[$1]=${core:--}
+}
+
+# Every change a latest release shipped, as "<owner/repo> <number> <head SHA>"
+# lines, each at the head the newest latest that shipped it recorded.
+shipped_latest_prs() {
+  local tag
+  git for-each-ref --sort=-taggerdate --format='%(refname:short)' 'refs/tags/v[0-9][0-9][0-9][0-9].*' \
+    | while read -r tag; do
+        tag_lines "$tag" release-kind | grep -qx latest || continue
+        tag_lines "$tag" pr
+      done | awk 'NF && !seen[$1 " " $2]++'
 }
 
 # The type of a cached PR: a core PR's one type label, or a fork PR's one
@@ -919,26 +951,88 @@ latest_set_key() {
   sed '/^[[:space:]]*$/d' | LC_ALL=C sort
 }
 
+# Print the head that change list $3 ("<owner/repo> <number> <head SHA>"
+# lines) records for PR $2 of repo $1, or nothing.
+listed_head() {
+  awk -v r="$1" -v n="$2" '$1 == r && $2 == n { print $3 }' <<<"$3"
+}
+
 # Add one judged change to LATEST_SELECTED ("repo<TAB>N<TAB>title<TAB>draft<TAB>head<TAB>needs")
 # when the mode takes it. $1 repo, $2 N, $3 title, $4 draft, $5 a fork PR's
-# needs= base (see list_fork_prs) or empty.
+# needs= base (see list_fork_prs) or empty. A change an earlier latest shipped
+# (SHIPPED_PRS) that the mode does not take stays at its shipped head; a
+# shipped fork PR that ha-promoter opened as core PR $2 counts as this change.
 consider_change() {
-  local repo="$1" num="$2" ref lhead take="" why="$VERDICT"
+  local repo="$1" num="$2" ref lhead shead take="" why="$VERDICT" f
+  local krepo="$1" knum="$2" ktitle="$3" kdraft="$4" kneeds="${5:-}"
   if [ "$repo" = "$STAGING_REPO" ]; then ref="fork#$num"; else ref="#$num"; fi
-  lhead=$(awk -v r="$repo" -v n="$num" '$1 == r && $2 == n { print $3 }' <<<"$L_PRS")
+  HANDLED+="$repo#$num "
+  lhead=$(listed_head "$repo" "$num" "$L_PRS")
+  shead=$(listed_head "$repo" "$num" "$SHIPPED_PRS")
+  if [ "$repo" = "$CORE_REPO" ]; then
+    for f in $(awk -v r="$STAGING_REPO" '$1 == r { print $2 }' <<<"$SHIPPED_PRS"); do
+      load_promoted "$f"
+      [ "${PROMOTED[$f]}" = "$num" ] || continue
+      HANDLED+="$STAGING_REPO#$f "
+      [ -z "$shead" ] || continue
+      load_pr_info "$STAGING_REPO" "$f"
+      krepo=$STAGING_REPO knum=$f kneeds=""
+      ktitle=$(jq -r .title <<<"${PR_INFO[$STAGING_REPO#$f]}")
+      kdraft=$(jq -r .draft <<<"${PR_INFO[$STAGING_REPO#$f]}")
+      lhead=$(listed_head "$STAGING_REPO" "$f" "$L_PRS")
+      shead=$(listed_head "$STAGING_REPO" "$f" "$SHIPPED_PRS")
+    done
+  fi
   if [ "$JUDGED_BLOCKED" = 1 ]; then
     :
   elif [ "$VERDICT_OK" = 1 ] && { [ "$LATEST_MODE" = weekly ] || [ "$JUDGED_FIX" = 1 ]; }; then
-    take=$JUDGED_HEAD
+    take=$JUDGED_HEAD krepo=$repo knum=$num ktitle=$3 kdraft=$4 kneeds="${5:-}"
     if [ "$JUDGED_FIX" = 1 ] && [ "$take" != "$lhead" ]; then FIX_FOUND=1; fi
     if [ "$WAIVE_REF" = "$repo#$num" ]; then WAIVED_SEEN=1; fi
-  elif [ -n "$lhead" ]; then
-    take=$lhead why="kept at latest's head; $VERDICT"
+  elif [ -n "$shead" ] && ! grep -qxF "$krepo#$knum" <<<"$BLOCKED"; then
+    take=$shead why="kept at latest's head; $VERDICT"
+    if [ -z "$lhead" ]; then FIX_FOUND=1 why="restored: an earlier latest shipped it; $VERDICT"; fi
+    [ "$krepo" = "$repo" ] || why="as fork#$knum, $why"
   elif [ "$VERDICT_OK" = 1 ]; then
     why="soaked; a fix build takes only bugfixes"
   fi
   if [ -n "$take" ]; then info "$ref [$JUDGED_TYPE] takes ${take:0:10}: $why"; else info "$ref [$JUDGED_TYPE] waits: $why"; fi
-  [ -z "$take" ] || LATEST_SELECTED+="$repo"$'\t'"$num"$'\t'"$3"$'\t'"$4"$'\t'"$take"$'\t'"${5:-}"$'\n'
+  [ -z "$take" ] || LATEST_SELECTED+="$krepo"$'\t'"$knum"$'\t'"$ktitle"$'\t'"$kdraft"$'\t'"$take"$'\t'"$kneeds"$'\n'
+}
+
+# Keep at its shipped head each change an earlier latest shipped that no
+# candidate list carried (its PR closed, unqueued or unlisted), unless the base
+# has it (its core PR, or the core PR ha-promoter opened it as, merged into the
+# base's dev) or a blocks-latest issue keeps it out. If latest lacks it, it is
+# restored as a fix.
+carry_shipped() {
+  local repo num head ref core merged why
+  while read -r repo num head; do
+    [ -n "$repo" ] || continue
+    [[ "$HANDLED" != *" $repo#$num "* ]] || continue
+    if [ "$repo" = "$STAGING_REPO" ]; then
+      ref="fork#$num"
+      load_promoted "$num"
+      core=${PROMOTED[$num]}
+    else
+      ref="#$num" core=$num
+    fi
+    merged=""
+    if [ "$core" != - ]; then merged=$(core_pr_merged_head "$core" "$LATEST_BASE_DEV") || exit 1; fi
+    if [ -n "$merged" ]; then
+      info "$ref: the base has it (core #$core merged)"
+      continue
+    fi
+    if grep -qxF "$repo#$num" <<<"$BLOCKED"; then
+      info "$ref waits: kept out by an open $BLOCKS_LATEST_LABEL issue"
+      continue
+    fi
+    why="kept at latest's head"
+    if [ -z "$(listed_head "$repo" "$num" "$L_PRS")" ]; then FIX_FOUND=1 why="restored"; fi
+    info "$ref takes ${head:0:10}: $why; an earlier latest shipped it and no open, queued or merged PR replaces it"
+    load_pr_info "$repo" "$num"
+    LATEST_SELECTED+="$repo"$'\t'"$num"$'\t'"$(jq -r .title <<<"${PR_INFO[$repo#$num]}")"$'\t'"$(jq -r .draft <<<"${PR_INFO[$repo#$num]}")"$'\t'"$head"$'\t'$'\n'
+  done <<<"$SHIPPED_PRS"
 }
 
 # Return 0 when every judged dev commit that dev commit $1 contains has soaked.
@@ -976,6 +1070,7 @@ plan_latest() {
     L_DEV=$(git merge-base "$LATEST_TAG" upstream/dev) || die "cannot find the dev base of $LATEST_TAG"
     L_MAIN="" L_PRS=""
   fi
+  SHIPPED_PRS=$(shipped_latest_prs)
   local age=$(( $(today_day) - latest_unix / 86400 ))
   info "latest $LATEST_TAG: ${age}d old, dev base ${L_DEV:0:10}, $(sed '/^$/d' <<<"$L_PRS" | wc -l) PRs"
 
@@ -1026,7 +1121,7 @@ plan_latest() {
   fi
 
   log "Latest: $LATEST_MODE build candidates"
-  LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN=0
+  LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN=0 HANDLED=" "
   local title draft sha needs core_base fork_base seen=" "
   core_base=$(fetch_ref "$CORE_REPO" dev)
   while IFS=$'\t' read -r num title draft sha; do
@@ -1048,12 +1143,13 @@ plan_latest() {
     judge_change "$CORE_REPO" "$num" "" "" "$c"
     consider_change "$CORE_REPO" "$num" "$(jq -r .title <<<"${PR_INFO[$CORE_REPO#$num]}")" false
   done <<<"$DEV_VERDICTS"
+  carry_shipped
 
   if [ -n "$WAIVE_REF" ] && [ "$WAIVED_SEEN" != 1 ]; then
     die "--waive $WAIVE: not an open, composed or newly merged PR that latest can take (kept out by an issue?)"
   fi
   if [ "$LATEST_MODE" = fix ] && [ "$FIX_FOUND" != 1 ]; then
-    info "no soaked bugfix is missing from $LATEST_TAG; no latest"
+    info "no soaked bugfix or shipped change is missing from $LATEST_TAG; no latest"
     return 0
   fi
   if [ "$(awk -F'\t' 'NF { print $1, $2, $5 }' <<<"$LATEST_SELECTED" | latest_set_key "$LATEST_BASE_DEV")" \
