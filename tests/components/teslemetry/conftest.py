@@ -22,6 +22,7 @@ from .const import (
     METADATA_ENERGY,
     METADATA_LEGACY,
     METADATA_OLD_FIRMWARE,
+    POWERWALL_STATUS,
     PRODUCTS,
     PRODUCTS_ENERGY,
     SITE_INFO,
@@ -435,3 +436,13 @@ def mock_ble_glue_stop_tolerates_mock_listeners() -> Generator[None]:
 
     with patch.object(BleBroadcastStreamGlue, "stop", stop):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_powerwall_status() -> Generator[AsyncMock]:
+    """Mock the local Powerwall gateway status."""
+    with patch(
+        "aiopowerwall.PowerwallClient.get_status",
+        side_effect=lambda: deepcopy(POWERWALL_STATUS),
+    ) as mock_status:
+        yield mock_status
