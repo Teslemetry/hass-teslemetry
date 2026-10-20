@@ -322,7 +322,58 @@ restore_core_base() {
   git restore --source="refs/tags/$tag^{commit}" --worktree -- "${CORE_BASE_PATHS[@]}" \
     ":(exclude)$INTEGRATION" ":(exclude)tests/components/teslemetry" ":(exclude)homeassistant/generated"
   pin_integration_requirements
+  alias_pytest_homeassistant "$tag"
   info "core paths outside the integration match core $tag; requirements_all.txt has the integration's pins"
+}
+
+# TEMPORARY. Core dev's teslemetry tests import their helpers from the
+# pytest_homeassistant package (packages/pytest-home-assistant), which core tag
+# $1 predates: there they are the same modules under tests. When the tag has no
+# such package, write an untracked pytest_homeassistant package at the repo root
+# that makes every pytest_homeassistant.<name> import return the module
+# tests.<name>, the same object, so module state and mock.patch targets are
+# shared. The repo root is on sys.path for pytest, as `import tests` needs. It
+# writes nothing once the tag has the package; delete this function and its
+# call once the pinned core base has packages/pytest-home-assistant.
+alias_pytest_homeassistant() {
+  rm -rf pytest_homeassistant
+  if git cat-file -e "refs/tags/$1^{commit}:packages/pytest-home-assistant/pytest_homeassistant" 2>/dev/null; then
+    return 0
+  fi
+  mkdir pytest_homeassistant
+  cat > pytest_homeassistant/__init__.py <<'EOF'
+"""pytest_homeassistant as an alias of tests, for a core release before it.
+
+Written by release.sh's alias_pytest_homeassistant; never committed.
+"""
+
+import importlib
+import importlib.abc
+import importlib.util
+import sys
+
+
+class _TestsAlias(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+    """Import pytest_homeassistant.<name> as the module tests.<name>."""
+
+    def find_spec(self, fullname, path, target=None):
+        if fullname.startswith(f"{__name__}."):
+            return importlib.util.spec_from_loader(fullname, self)
+        return None
+
+    def create_module(self, spec):
+        module = importlib.import_module(f"tests{spec.name[len(__name__) :]}")
+        spec.loader_state = module.__spec__
+        return module
+
+    def exec_module(self, module):
+        # The import system set the alias spec on the tests module; put back its own.
+        module.__spec__ = module.__spec__.loader_state
+
+
+sys.meta_path.insert(0, _TestsAlias())
+EOF
+  info "core $1 has no pytest_homeassistant package: aliased it to tests (untracked, see alias_pytest_homeassistant)"
 }
 
 # In requirements_all.txt, replace the line of each package the integration's
