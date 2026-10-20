@@ -7,7 +7,7 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 ```bash
 ./release.sh <major|minor|patch> [--line <major.minor>]            # dry run, stops before publish
 ./release.sh <major|minor|patch> [--line <major.minor>] --publish  # arms the real tag + GitHub release
-./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--publish]
+./release.sh daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--publish]
                                                                    # headless daily pre-release v<UTC Y.M.D>, plus a soaked latest when its rules pass
                                                                    # either mode also takes --lower-floor <version>; see hacs_floor_gate
 ```
