@@ -3,7 +3,7 @@
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
 # Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish]
-#         ./release.sh daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--lower-floor <version>] [--publish]
+#         ./release.sh daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -90,7 +90,8 @@
 #   - A floor or requirements difference from latest holds latest for the
 #     captain's word: rerun with --approve-requirements <digest the run
 #     printed>. --waive <#N|fork#N> is the captain's urgent waiver of one PR's
-#     lead time; the run builds latest with it, then the pre-release.
+#     lead time; repeat it to waive several PRs. The run builds latest with
+#     them, then the pre-release.
 #   - On a latest run neither change-detection skip applies. Latest is tagged
 #     first and the pre-release a second later; the pre-release is published
 #     first and latest last. Any gate failure publishes neither. A held latest
@@ -461,8 +462,8 @@ parse_args() {
   PUBLISH=0
   DAILY=0
   LINE=""   # optional <major.minor> series selector; empty = derive from tags
-  WAIVE=""  # daily: the one PR whose lead time the captain waived
-  WAIVE_REF=""
+  WAIVE=""  # daily: the PRs whose lead time the captain waived, as given
+  WAIVE_REFS=""  # the same PRs as "<owner/repo>#<N>" lines
   APPROVE_REQUIREMENTS=""
   LOWER_FLOOR=""  # the composed hacs.json floor a deliberate lowering names (hacs_floor_gate)
   LATEST_BUILT=0
@@ -474,20 +475,21 @@ parse_args() {
       --publish)         PUBLISH=1 ;;
       --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
       --line=*)          LINE="${1#--line=}" ;;
-      --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE="$1" ;;
+      --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE+="${WAIVE:+ }$1" ;;
       --approve-requirements)
                          shift; [ "$#" -gt 0 ] || die "--approve-requirements requires the digest a run printed"; APPROVE_REQUIREMENTS="$1" ;;
       --lower-floor)     shift; [ "$#" -gt 0 ] || die "--lower-floor requires the new hacs.json floor"; LOWER_FLOOR="$1" ;;
-      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish] | daily [--waive <#N|fork#N>] [--approve-requirements <digest>] [--lower-floor <version>] [--publish])" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish] | daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish])" ;;
     esac
     shift
   done
   if [ "$DAILY" = 1 ]; then
     [ -z "$BUMP" ] && [ -z "$LINE" ] || die "daily takes no bump and no --line: its version is the UTC date"
-    if [ -n "$WAIVE" ]; then
-      [[ "$WAIVE" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--waive takes #N (core) or fork#N, got: $WAIVE"
-      if [ "${BASH_REMATCH[1]}" = "fork#" ]; then WAIVE_REF="$STAGING_REPO#${BASH_REMATCH[2]}"; else WAIVE_REF="$CORE_REPO#${BASH_REMATCH[2]}"; fi
-    fi
+    local w
+    for w in $WAIVE; do
+      [[ "$w" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--waive takes #N (core) or fork#N, got: $w"
+      if [ "${BASH_REMATCH[1]}" = "fork#" ]; then WAIVE_REFS+="$STAGING_REPO#${BASH_REMATCH[2]}"$'\n'; else WAIVE_REFS+="$CORE_REPO#${BASH_REMATCH[2]}"$'\n'; fi
+    done
     return 0
   fi
   [ -z "$WAIVE" ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive and --approve-requirements apply to daily only"
@@ -900,7 +902,7 @@ judge_change() {
     JUDGED_HEAD=$head
     cday=$(first_day_pr "$repo" "$num")
     hday=$(first_day_pr "$repo" "$num" "$head")
-    [ "$WAIVE_REF" != "$repo#$num" ] || waived=1
+    if grep -qxF "$repo#$num" <<<"$WAIVE_REFS"; then waived=1; fi
     if grep -qxF "$repo#$num" <<<"$BLOCKED"; then JUDGED_BLOCKED=1; fi
   fi
   if [ -n "$commit" ]; then
@@ -988,7 +990,7 @@ consider_change() {
   elif [ "$VERDICT_OK" = 1 ] && { [ "$LATEST_MODE" = weekly ] || [ "$JUDGED_FIX" = 1 ]; }; then
     take=$JUDGED_HEAD krepo=$repo knum=$num ktitle=$3 kdraft=$4 kneeds="${5:-}"
     if [ "$JUDGED_FIX" = 1 ] && [ "$take" != "$lhead" ]; then FIX_FOUND=1; fi
-    if [ "$WAIVE_REF" = "$repo#$num" ]; then WAIVED_SEEN=1; fi
+    if grep -qxF "$repo#$num" <<<"$WAIVE_REFS"; then WAIVED_SEEN+="$repo#$num"$'\n'; fi
   elif [ -n "$shead" ] && ! grep -qxF "$krepo#$knum" <<<"$BLOCKED"; then
     take=$shead why="kept at latest's head; $VERDICT"
     if [ -z "$lhead" ]; then FIX_FOUND=1 why="restored: an earlier latest shipped it; $VERDICT"; fi
@@ -1092,7 +1094,7 @@ plan_latest() {
   # change set, so a waiver on an older-format latest builds weekly.
   if [ "$age" -ge 7 ]; then LATEST_MODE=weekly
   elif [ -n "$L_MAIN" ]; then LATEST_MODE=fix
-  elif [ -n "$WAIVE_REF" ]; then LATEST_MODE=weekly
+  elif [ -n "$WAIVE_REFS" ]; then LATEST_MODE=weekly
   else info "$LATEST_TAG records no change set and is under 7 days old; no latest"; return 0
   fi
 
@@ -1121,7 +1123,7 @@ plan_latest() {
   fi
 
   log "Latest: $LATEST_MODE build candidates"
-  LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN=0 HANDLED=" "
+  LATEST_SELECTED="" FIX_FOUND=0 WAIVED_SEEN="" HANDLED=" "
   local title draft sha needs core_base fork_base seen=" "
   core_base=$(fetch_ref "$CORE_REPO" dev)
   while IFS=$'\t' read -r num title draft sha; do
@@ -1145,8 +1147,10 @@ plan_latest() {
   done <<<"$DEV_VERDICTS"
   carry_shipped
 
-  if [ -n "$WAIVE_REF" ] && [ "$WAIVED_SEEN" != 1 ]; then
-    die "--waive $WAIVE: not an open, composed or newly merged PR that latest can take (kept out by an issue?)"
+  local unseen
+  unseen=$(grep -vxF -f <(printf '%s\n' "$WAIVED_SEEN") <<<"$WAIVE_REFS" | sed '/^$/d' | paste -sd' ' -) || true
+  if [ -n "$unseen" ]; then
+    die "--waive $unseen: not an open, composed or newly merged PR that latest can take (kept out by an issue?)"
   fi
   if [ "$LATEST_MODE" = fix ] && [ "$FIX_FOUND" != 1 ]; then
     info "no soaked bugfix or shipped change is missing from $LATEST_TAG; no latest"
