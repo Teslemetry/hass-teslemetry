@@ -462,7 +462,7 @@ parse_args() {
   PUBLISH=0
   DAILY=0
   LINE=""   # optional <major.minor> series selector; empty = derive from tags
-  WAIVE=""  # daily: the PRs whose lead time the captain waived, as given
+  WAIVE=()  # daily: the PRs whose lead time the captain waived, as given
   WAIVE_REFS=""  # the same PRs as "<owner/repo>#<N>" lines
   APPROVE_REQUIREMENTS=""
   LOWER_FLOOR=""  # the composed hacs.json floor a deliberate lowering names (hacs_floor_gate)
@@ -475,7 +475,7 @@ parse_args() {
       --publish)         PUBLISH=1 ;;
       --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
       --line=*)          LINE="${1#--line=}" ;;
-      --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE+="${WAIVE:+ }$1" ;;
+      --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE+=("$1") ;;
       --approve-requirements)
                          shift; [ "$#" -gt 0 ] || die "--approve-requirements requires the digest a run printed"; APPROVE_REQUIREMENTS="$1" ;;
       --lower-floor)     shift; [ "$#" -gt 0 ] || die "--lower-floor requires the new hacs.json floor"; LOWER_FLOOR="$1" ;;
@@ -486,13 +486,13 @@ parse_args() {
   if [ "$DAILY" = 1 ]; then
     [ -z "$BUMP" ] && [ -z "$LINE" ] || die "daily takes no bump and no --line: its version is the UTC date"
     local w
-    for w in $WAIVE; do
+    for w in ${WAIVE[@]+"${WAIVE[@]}"}; do
       [[ "$w" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--waive takes #N (core) or fork#N, got: $w"
       if [ "${BASH_REMATCH[1]}" = "fork#" ]; then WAIVE_REFS+="$STAGING_REPO#${BASH_REMATCH[2]}"$'\n'; else WAIVE_REFS+="$CORE_REPO#${BASH_REMATCH[2]}"$'\n'; fi
     done
     return 0
   fi
-  [ -z "$WAIVE" ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive and --approve-requirements apply to daily only"
+  [ "${#WAIVE[@]}" = 0 ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive and --approve-requirements apply to daily only"
   [ -n "$BUMP" ] || die "specify one of: major | minor | patch | daily"
   if [ -n "$LINE" ]; then
     [[ "$LINE" =~ ^[0-9]+\.[0-9]+$ ]] || die "--line must be <major.minor> (e.g. 6.0), got: $LINE"
@@ -1196,6 +1196,10 @@ build_latest() {
   COMPOSING_LATEST=1
   compose_prs "$LATEST_CORE" "$LATEST_FORK" "$LATEST_BASE_DEV"
   COMPOSING_LATEST=0
+  local unapplied
+  unapplied=$(grep -vxF -f <(printf '%s\n' ${APPLIED_SET[@]+"${APPLIED_SET[@]}"} | awk 'NF { print $1 "#" $2 }') \
+                <<<"$WAIVE_REFS" | sed '/^$/d' | paste -sd' ' -) || true
+  [ -z "$unapplied" ] || die "--waive $unapplied: the latest compose left it out (see the notes above)"
   if [ "$(printf '%s\n' ${APPLIED_SET[@]+"${APPLIED_SET[@]}"} | latest_set_key "$LATEST_BASE_DEV")" \
        = "$(latest_set_key "$L_DEV" <<<"$L_PRS")" ]; then
     info "with the waiting changes left out, the set equals $LATEST_TAG's; no latest"
