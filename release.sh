@@ -974,6 +974,9 @@ consider_change() {
       load_promoted "$f"
       [ "${PROMOTED[$f]}" = "$num" ] || continue
       HANDLED+="$STAGING_REPO#$f "
+      if grep -qxF "$STAGING_REPO#$f" <<<"$BLOCKED"; then
+        JUDGED_BLOCKED=1 VERDICT_OK=0 VERDICT="kept out by an open $BLOCKS_LATEST_LABEL issue" why=$VERDICT
+      fi
       [ -z "$shead" ] || continue
       load_pr_info "$STAGING_REPO" "$f"
       krepo=$STAGING_REPO knum=$f kneeds=""
@@ -1023,7 +1026,8 @@ carry_shipped() {
       info "$ref: the base has it (core #$core merged)"
       continue
     fi
-    if grep -qxF "$repo#$num" <<<"$BLOCKED"; then
+    if grep -qxF "$repo#$num" <<<"$BLOCKED" \
+       || { [ "$core" != - ] && grep -qxF "$CORE_REPO#$core" <<<"$BLOCKED"; }; then
       info "$ref waits: kept out by an open $BLOCKS_LATEST_LABEL issue"
       continue
     fi
