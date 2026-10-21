@@ -1215,6 +1215,19 @@ change_keys() {
   fi
 }
 
+# Set EXPANDED_KEYS to the change_keys of every "<owner/repo>#<N>" line of $1,
+# so a blocks-latest issue or --exclude naming a promoted fork PR also matches
+# its core PR.
+expand_keys() {
+  local repo num
+  EXPANDED_KEYS=""
+  while IFS='#' read -r repo num; do
+    [ -n "$repo" ] || continue
+    change_keys "$repo" "$num"
+    EXPANDED_KEYS+="$CHANGE_KEYS"$'\n'
+  done <<<"$1"
+}
+
 # Gate: latest never omits a change the current latest shipped. Each change in
 # $LATEST_TAG's change set (L_PRS) must be in this compose (APPLIED_SET), as
 # itself or as the core PR ha-promoter opened it as; or in the base (that core
@@ -1225,6 +1238,9 @@ change_keys() {
 latest_superset_gate() {
   log "Gate: latest v$LATEST_VERSION keeps every change $LATEST_TAG shipped"
   local entry repo num head ref core merged applied="" shipped="" added="" removed="" kept="" dropped="" excused=""
+  local blocked_keys exclude_keys
+  expand_keys "$BLOCKED"; blocked_keys=$EXPANDED_KEYS
+  expand_keys "$EXCLUDE_REFS"; exclude_keys=$EXPANDED_KEYS
   for entry in ${APPLIED_SET[@]+"${APPLIED_SET[@]}"}; do
     read -r repo num head <<<"$entry"
     change_keys "$repo" "$num"
@@ -1244,9 +1260,9 @@ latest_superset_gate() {
     if [ -n "$core" ]; then merged=$(core_pr_merged_head "$core" "$LATEST_BASE_DEV") || exit 1; fi
     if [ -n "$merged" ]; then
       removed+=", $ref (base has it: core #$core merged)"
-    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$BLOCKED"; then
+    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$blocked_keys"; then
       removed+=", $ref (kept out by an open $BLOCKS_LATEST_LABEL issue)"
-    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$EXCLUDE_REFS"; then
+    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$exclude_keys"; then
       removed+=", $ref (--exclude)"
       excused+="$CHANGE_KEYS"$'\n'
     else
@@ -1264,8 +1280,13 @@ latest_superset_gate() {
   info "latest change set vs $LATEST_TAG: added${added:- none}; removed ${removed:-none}; kept${kept:- none}"
   [ -z "$dropped" ] \
     || die "latest v$LATEST_VERSION would drop${dropped}, which $LATEST_TAG shipped: not in the compose, not merged into its base, not kept out by a $BLOCKS_LATEST_LABEL issue. Fix the plan, or rerun with --exclude naming each one to drop it on purpose; nothing published"
-  local unused
-  unused=$(grep -vxF -f <(printf '%s\n' "$excused") <<<"$EXCLUDE_REFS" | sed '/^$/d' | paste -sd' ' -) || true
+  local unused="" x
+  while read -r x; do
+    [ -n "$x" ] || continue
+    change_keys "${x%%#*}" "${x#*#}"
+    grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$excused" || unused+=" $x"
+  done <<<"$EXCLUDE_REFS"
+  unused=${unused# }
   [ -z "$unused" ] || info "--exclude $unused: excuses no drop (latest keeps it, or $LATEST_TAG did not ship it)"
 }
 
