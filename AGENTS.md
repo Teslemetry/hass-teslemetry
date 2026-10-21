@@ -7,7 +7,7 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 ```bash
 ./release.sh <major|minor|patch> [--line <major.minor>]            # dry run, stops before publish
 ./release.sh <major|minor|patch> [--line <major.minor>] --publish  # arms the real tag + GitHub release
-./release.sh daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--publish]
+./release.sh daily [--waive <#N|fork#N>]... [--exclude <#N|fork#N>]... [--approve-requirements <digest>] [--publish]
                                                                    # headless daily pre-release v<UTC Y.M.D>, plus a soaked latest when its rules pass
                                                                    # either mode also takes --lower-floor <version>; see hacs_floor_gate
 ```
@@ -75,6 +75,7 @@ A cut based on a release **tag** inherits that tag's frozen copy of `release.sh`
 - **`logship_gate`** — `async_setup_entry` still gets, acquires and releases the log shipper and calls `_async_setup_option_reload`, `logship.py` exists, and `config_flow.py` keeps its options flow with the `ship_logs_to_clickstack` choice.
 - **`issue_tracker_gate`** — `manifest.json` `issue_tracker` is `https://github.com/Teslemetry/hass-teslemetry/issues`.
 - **`hacs_floor_gate`** — the composed `hacs.json` floor is not below the last shipped tag's (a latest build compares with the current latest). A floor below it ships green and HACS offers the build to cores it was never tested on. To lower the floor on purpose, pass `--lower-floor <the composed floor>`; a value that does not equal the composed floor does not pass.
+- **`latest_superset_gate`** — a new latest keeps every change the current latest shipped: in the compose (a promoted fork PR counts as its core PR), merged into its base, kept out by an open blocks-latest issue, or named by `--exclude <#N|fork#N>`, the captain's acceptance of that one drop. Anything else stops the run with nothing published, so a planner or compose bug cannot silently drop a shipped fix. It logs one `latest change set vs <tag>: added ...; removed ... (reason); kept ...` line before publishing.
 - **Full build gate** against the pinned core base, mirroring `.github/workflows/teslemetry-test.yml` command-for-command. This is the real publish gate for this repo; there is no branch-protection required-check.
 
 ### Publish safety

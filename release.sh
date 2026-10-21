@@ -3,7 +3,7 @@
 # Reproducible HACS beta release pipeline for hass-teslemetry.
 #
 # Usage:  ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish]
-#         ./release.sh daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish]
+#         ./release.sh daily [--waive <#N|fork#N>]... [--exclude <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish]
 #
 # This script IS the release process. AGENTS.md's "Task: build a release"
 # section documents WHY each step exists and the gotchas behind each gate;
@@ -92,6 +92,13 @@
 #     printed>. --waive <#N|fork#N> is the captain's urgent waiver of one PR's
 #     lead time; repeat it to waive several PRs. The run builds latest with
 #     them, then the pre-release.
+#   - A new latest never omits a change the current latest shipped. Each one
+#     must be in the composed latest (a promoted fork PR as its core PR), in
+#     the base (its core PR merged), kept out by a blocks-latest issue, or
+#     named by --exclude <#N|fork#N>, the captain's acceptance of that one
+#     drop (repeat it for several). Anything else stops the run with nothing
+#     published. Before publishing, the run logs one line comparing the new
+#     change set with latest's: "latest change set vs <tag>: ...".
 #   - On a latest run neither change-detection skip applies. Latest is tagged
 #     first and the pre-release a second later; the pre-release is published
 #     first and latest last. Any gate failure publishes neither. A held latest
@@ -464,6 +471,8 @@ parse_args() {
   LINE=""   # optional <major.minor> series selector; empty = derive from tags
   WAIVE=()  # daily: the PRs whose lead time the captain waived, as given
   WAIVE_REFS=""  # the same PRs as "<owner/repo>#<N>" lines
+  EXCLUDE=()  # daily: the shipped changes the captain lets latest drop, as given
+  EXCLUDE_REFS=""  # the same PRs as "<owner/repo>#<N>" lines
   APPROVE_REQUIREMENTS=""
   LOWER_FLOOR=""  # the composed hacs.json floor a deliberate lowering names (hacs_floor_gate)
   LATEST_BUILT=0
@@ -476,10 +485,11 @@ parse_args() {
       --line)            shift; [ "$#" -gt 0 ] || die "--line requires a <major.minor> value"; LINE="$1" ;;
       --line=*)          LINE="${1#--line=}" ;;
       --waive)           shift; [ "$#" -gt 0 ] || die "--waive requires a PR (#N or fork#N)"; WAIVE+=("$1") ;;
+      --exclude)         shift; [ "$#" -gt 0 ] || die "--exclude requires a PR (#N or fork#N)"; EXCLUDE+=("$1") ;;
       --approve-requirements)
                          shift; [ "$#" -gt 0 ] || die "--approve-requirements requires the digest a run printed"; APPROVE_REQUIREMENTS="$1" ;;
       --lower-floor)     shift; [ "$#" -gt 0 ] || die "--lower-floor requires the new hacs.json floor"; LOWER_FLOOR="$1" ;;
-      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish] | daily [--waive <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish])" ;;
+      *) die "unknown argument: $1 (usage: ./release.sh <major|minor|patch> [--line <major.minor>] [--lower-floor <version>] [--publish] | daily [--waive <#N|fork#N>]... [--exclude <#N|fork#N>]... [--approve-requirements <digest>] [--lower-floor <version>] [--publish])" ;;
     esac
     shift
   done
@@ -490,9 +500,13 @@ parse_args() {
       [[ "$w" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--waive takes #N (core) or fork#N, got: $w"
       if [ "${BASH_REMATCH[1]}" = "fork#" ]; then WAIVE_REFS+="$STAGING_REPO#${BASH_REMATCH[2]}"$'\n'; else WAIVE_REFS+="$CORE_REPO#${BASH_REMATCH[2]}"$'\n'; fi
     done
+    for w in ${EXCLUDE[@]+"${EXCLUDE[@]}"}; do
+      [[ "$w" =~ ^(fork#|#)?([0-9]+)$ ]] || die "--exclude takes #N (core) or fork#N, got: $w"
+      if [ "${BASH_REMATCH[1]}" = "fork#" ]; then EXCLUDE_REFS+="$STAGING_REPO#${BASH_REMATCH[2]}"$'\n'; else EXCLUDE_REFS+="$CORE_REPO#${BASH_REMATCH[2]}"$'\n'; fi
+    done
     return 0
   fi
-  [ "${#WAIVE[@]}" = 0 ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive and --approve-requirements apply to daily only"
+  [ "${#WAIVE[@]}" = 0 ] && [ "${#EXCLUDE[@]}" = 0 ] && [ -z "$APPROVE_REQUIREMENTS" ] || die "--waive, --exclude and --approve-requirements apply to daily only"
   [ -n "$BUMP" ] || die "specify one of: major | minor | patch | daily"
   if [ -n "$LINE" ]; then
     [[ "$LINE" =~ ^[0-9]+\.[0-9]+$ ]] || die "--line must be <major.minor> (e.g. 6.0), got: $LINE"
@@ -1190,6 +1204,71 @@ latest_requirements_word() {
   return 1
 }
 
+# Set CHANGE_KEYS to the "<owner/repo>#<N>" keys of PR $2 of repo $1: the PR,
+# and for a fork PR ha-promoter opened upstream, that core PR too. Not in a
+# command substitution, so load_promoted's cache survives.
+change_keys() {
+  CHANGE_KEYS="$1#$2"
+  if [ "$1" = "$STAGING_REPO" ]; then
+    load_promoted "$2"
+    [ "${PROMOTED[$2]}" = - ] || CHANGE_KEYS+=$'\n'"$CORE_REPO#${PROMOTED[$2]}"
+  fi
+}
+
+# Gate: latest never omits a change the current latest shipped. Each change in
+# $LATEST_TAG's change set (L_PRS) must be in this compose (APPLIED_SET), as
+# itself or as the core PR ha-promoter opened it as; or in the base (that core
+# PR merged into LATEST_BASE_DEV); or kept out by an open blocks-latest issue;
+# or named by --exclude. Anything else stops the run, so a planner or compose
+# bug cannot silently drop a shipped fix. Logs one line, the composed change
+# set against latest's, for the run log and the daily note.
+latest_superset_gate() {
+  log "Gate: latest v$LATEST_VERSION keeps every change $LATEST_TAG shipped"
+  local entry repo num head ref core merged applied="" shipped="" added="" removed="" kept="" dropped="" excused=""
+  for entry in ${APPLIED_SET[@]+"${APPLIED_SET[@]}"}; do
+    read -r repo num head <<<"$entry"
+    change_keys "$repo" "$num"
+    applied+="$CHANGE_KEYS"$'\n'
+  done
+  while read -r repo num head; do
+    [ -n "$repo" ] || continue
+    change_keys "$repo" "$num"
+    shipped+="$CHANGE_KEYS"$'\n'
+    if [ "$repo" = "$STAGING_REPO" ]; then ref="fork#$num"; else ref="#$num"; fi
+    if grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$applied"; then
+      kept+=" $ref"
+      continue
+    fi
+    core=$(sed -n "s|^$CORE_REPO#||p" <<<"$CHANGE_KEYS")
+    merged=""
+    if [ -n "$core" ]; then merged=$(core_pr_merged_head "$core" "$LATEST_BASE_DEV") || exit 1; fi
+    if [ -n "$merged" ]; then
+      removed+=", $ref (base has it: core #$core merged)"
+    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$BLOCKED"; then
+      removed+=", $ref (kept out by an open $BLOCKS_LATEST_LABEL issue)"
+    elif grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$EXCLUDE_REFS"; then
+      removed+=", $ref (--exclude)"
+      excused+="$CHANGE_KEYS"$'\n'
+    else
+      removed+=", $ref (DROPPED)"
+      dropped+=" $ref"
+    fi
+  done <<<"$L_PRS"
+  for entry in ${APPLIED_SET[@]+"${APPLIED_SET[@]}"}; do
+    read -r repo num head <<<"$entry"
+    change_keys "$repo" "$num"
+    grep -qxF -f <(printf '%s\n' "$CHANGE_KEYS") <<<"$shipped" && continue
+    if [ "$repo" = "$STAGING_REPO" ]; then added+=" fork#$num"; else added+=" #$num"; fi
+  done
+  removed=${removed#, }
+  info "latest change set vs $LATEST_TAG: added${added:- none}; removed ${removed:-none}; kept${kept:- none}"
+  [ -z "$dropped" ] \
+    || die "latest v$LATEST_VERSION would drop${dropped}, which $LATEST_TAG shipped: not in the compose, not merged into its base, not kept out by a $BLOCKS_LATEST_LABEL issue. Fix the plan, or rerun with --exclude naming each one to drop it on purpose; nothing published"
+  local unused
+  unused=$(grep -vxF -f <(printf '%s\n' "$excused") <<<"$EXCLUDE_REFS" | sed '/^$/d' | paste -sd' ' -) || true
+  [ -z "$unused" ] || info "--exclude $unused: excuses no drop (latest keeps it, or $LATEST_TAG did not ship it)"
+}
+
 # Compose, stamp and gate latest on its own release branch; zip it and write
 # its notes outside the worktree. Then claim the pre-release's version.
 build_latest() {
@@ -1209,6 +1288,7 @@ build_latest() {
     info "with the waiting changes left out, the set equals $LATEST_TAG's; no latest"
     return 0
   fi
+  latest_superset_gate
   if ! latest_requirements_word; then
     info "latest held: $LATEST_HELD"
     return 0
