@@ -30,10 +30,11 @@
 # A bump cut never auto-publishes: the real tag/release only runs with --publish
 # AND an explicit human "publish" at the approval pause. Because those pauses
 # read /dev/tty, preflight refuses a bump cut that has no terminal, before any
-# state changes; a rerun after a crash starts clean (every update is on temporary
-# branches, and main moves only at the end). Preflight also unshallows a shallow
-# clone, since a shallow clone breaks the merge-base work in apply_prs. Daily mode (below) has
-# no human, so it stops at every checkpoint and publishes on --publish alone.
+# state changes; a rerun after a crash starts clean (it works on temporary
+# branches and fetches afresh), though a bump cut's sync_dev has already pushed
+# the dev sync to main by then, dry run or not. Preflight also unshallows a
+# shallow clone, since a shallow clone breaks the merge-base work in apply_prs.
+# Daily mode (below) has no human, so it stops at every checkpoint and publishes on --publish alone.
 #
 # Safe to run from an isolated worktree: it never checks out main. Every update
 # to main goes through the temporary sync-dev branch: main's fork commits
@@ -523,8 +524,13 @@ preflight() {
   # A bump cut reads /dev/tty at every conflict pause and at the approval, so
   # without a controlling terminal it would crash mid-cut. Refuse up front,
   # before any state changes. Daily mode never reads the terminal.
-  if [ "$DAILY" != 1 ] && ! { : </dev/tty; } 2>/dev/null; then
-    die "a $BUMP cut needs a terminal (conflict pauses and the approval read /dev/tty) and none is attached - run it from an interactive shell, or use 'daily' for a headless run"
+  # The cut must also own the terminal's foreground: a background job can open
+  # /dev/tty, but its first read stops it with SIGTTIN, after sync_dev pushed main.
+  if [ "$DAILY" != 1 ]; then
+    local pgrp tpgrp
+    read -r pgrp tpgrp < <(ps -o pgid= -o tpgid= -p $$ 2>/dev/null) || true
+    { : </dev/tty; } 2>/dev/null && [ -n "${pgrp:-}" ] && [ "${pgrp:-}" = "${tpgrp:-}" ] \
+      || die "a $BUMP cut needs a terminal it runs in the foreground of (conflict pauses and the approval read /dev/tty) and has none - run it from an interactive shell, not as a background job or without a terminal, or use 'daily' for a headless run"
   fi
 
   # A shallow clone breaks the merge-base work in apply_prs. Complete it now,
