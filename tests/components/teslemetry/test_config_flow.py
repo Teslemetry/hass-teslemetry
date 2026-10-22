@@ -104,6 +104,20 @@ from .const import ADDRESS, CONFIG_V1, METADATA, PRODUCTS, UNIQUE_ID, VIN
 REDIRECT = "https://example.com/auth/external/callback"
 
 
+@pytest.fixture
+def mock_setup_entry() -> Generator[MagicMock]:
+    """Mock Teslemetry async_setup_entry to return True.
+
+    HACS-only, TEMPORARY: overrides the conftest fixture, which core dev mocks
+    with return_value=None. The pinned core base fails a setup that does not
+    return a boolean. Retire with the boolean config entry returns shim.
+    """
+    with patch(
+        "homeassistant.components.teslemetry.async_setup_entry", return_value=True
+    ) as mock_async_setup_entry:
+        yield mock_async_setup_entry
+
+
 @pytest.mark.usefixtures("current_request_with_host")
 @pytest.mark.usefixtures("mock_setup_entry")
 async def test_oauth_flow(

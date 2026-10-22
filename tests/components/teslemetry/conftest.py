@@ -21,6 +21,7 @@ from .const import (
     METADATA,
     METADATA_ENERGY,
     METADATA_LEGACY,
+    POWERWALL_STATUS,
     PRODUCTS,
     PRODUCTS_ENERGY,
     SITE_INFO,
@@ -33,7 +34,7 @@ from .const import (
 def mock_setup_entry():
     """Mock Teslemetry async_setup_entry method."""
     with patch(
-        "homeassistant.components.teslemetry.async_setup_entry", return_value=True
+        "homeassistant.components.teslemetry.async_setup_entry", return_value=None
     ) as mock_async_setup_entry:
         yield mock_async_setup_entry
 
@@ -379,6 +380,16 @@ def mock_powerwall_connect() -> Generator[AsyncMock]:
         "aiopowerwall.PowerwallClient.connect", return_value="GATEWAY-DIN"
     ) as mock_connect:
         yield mock_connect
+
+
+@pytest.fixture(autouse=True)
+def mock_powerwall_status() -> Generator[AsyncMock]:
+    """Mock the local Powerwall gateway status."""
+    with patch(
+        "aiopowerwall.PowerwallClient.get_status",
+        side_effect=lambda: deepcopy(POWERWALL_STATUS),
+    ) as mock_status:
+        yield mock_status
 
 
 @pytest.fixture(autouse=True)
