@@ -1139,6 +1139,7 @@ plan_latest() {
   elif [ -n "$WAIVE_REFS" ]; then LATEST_MODE=weekly
   else info "$LATEST_TAG records no change set and is under 7 days old; no latest"; return 0
   fi
+  info "$LATEST_MODE night: latest is ${age}d old; weekly takes every soaked change from 7d or on a --waive when latest records no change set, a fix build only soaked bugfixes, waived PRs and dropped shipped changes"
 
   # Base: the newest pre-release on its pinned core tag whose new dev commits
   # have all soaked. A fix build keeps latest's own base.
@@ -1195,7 +1196,7 @@ plan_latest() {
     die "--waive $unseen: not an open, composed or newly merged PR that latest can take (kept out by an issue?)"
   fi
   if [ "$LATEST_MODE" = fix ] && [ "$FIX_FOUND" != 1 ]; then
-    info "no soaked bugfix or shipped change is missing from $LATEST_TAG; no latest"
+    log "Latest: none tonight: not a weekly night (${age}d < 7d) and no soaked bugfix, waived PR or shipped change is missing from $LATEST_TAG; no compose, no build gate"
     return 0
   fi
   if [ "$(awk -F'\t' 'NF { print $1, $2, $5 }' <<<"$LATEST_SELECTED" | latest_set_key "$LATEST_BASE_DEV")" \
