@@ -1,0 +1,43 @@
+diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
+index 5a97ce01e1a..588c8d59b9b 100644
+--- a/homeassistant/components/teslemetry/__init__.py
++++ b/homeassistant/components/teslemetry/__init__.py
+@@ -599,7 +599,6 @@ def _async_check_gateway_din(
+         severity=ir.IssueSeverity.WARNING,
+         translation_key=ISSUE_GATEWAY_MISMATCH,
+         translation_placeholders={"site": subentry.title, "host": client.host},
+-        config_entry_id=entry.entry_id,
+     )
+     return False
+ 
+@@ -1556,6 +1555,13 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+     nothing would recreate it after a reload while the account is still short.
+     """
+     ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
++    # HACS stable-core compat: the pinned core release cannot tie an issue to a
++    # config entry, so the gateway mismatch repairs are removed with it here.
++    for subentry in entry.subentries.values():
++        if subentry.subentry_type == SUBENTRY_TYPE_ENERGY_SITE and subentry.unique_id:
++            ir.async_delete_issue(
++                hass, DOMAIN, _gateway_mismatch_issue_id(int(subentry.unique_id))
++            )
+     await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
+ 
+ 
+diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
+index 08db7d5d31d..e37274f1dab 100644
+--- a/tests/components/teslemetry/test_init.py
++++ b/tests/components/teslemetry/test_init.py
+@@ -2276,7 +2276,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
+     assert issue.translation_key == "gateway_mismatch"
+     assert issue.translation_placeholders == {"site": "Energy Site", "host": HOST}
+     assert not issue.is_fixable
+-    assert issue.config_entry_id == entry.entry_id
++
++    # HACS stable-core compat: removing the entry removes the repair.
++    assert await hass.config_entries.async_remove(entry.entry_id)
++    await hass.async_block_till_done()
++    assert issue_registry.async_get_issue(DOMAIN, MISMATCH_ISSUE_ID) is None
+ 
+ 
+ async def test_local_gateway_din_mismatch_repair_cleared_after_match(
