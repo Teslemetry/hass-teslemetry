@@ -1580,6 +1580,7 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = 
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
+        value_fn=lambda value: value or 0,
     ),
     TeslemetryEnergySensorEntityDescription(
         key="generator_power",
@@ -1720,6 +1721,10 @@ async def async_setup_entry(
         or (
             description.key == "percentage_charged"
             and energysite.info_coordinator.data.get("components_battery")
+        )
+        or (
+            description.key == "grid_services_power"
+            and energysite.info_coordinator.data.get("components_grid_services_enabled")
         )
     )
 
