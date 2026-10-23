@@ -260,7 +260,8 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
     TeslemetryVehicleSensorEntityDescription(
         key="charge_state_charge_energy_added",
         polling=True,
-        streaming_listener=lambda vehicle, callback: vehicle.listen_ACChargingEnergyIn(
+        # Measured at the battery for AC and DC sessions; ACChargingEnergyIn is AC only
+        streaming_listener=lambda vehicle, callback: vehicle.listen_DCChargingEnergyIn(
             callback
         ),
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -271,7 +272,7 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
     TeslemetryVehicleSensorEntityDescription(
         key="charge_state_charger_power",
         polling=True,
-        streaming_listener=lambda vehicle, callback: vehicle.listen_ACChargingPower(
+        streaming_listener=lambda vehicle, callback: vehicle.listen_ChargerPower(
             callback
         ),
         state_class=SensorStateClass.MEASUREMENT,
@@ -1732,6 +1733,14 @@ async def async_setup_entry(
         for energysite in entry.runtime_data.energysites
         for description in ENERGY_HISTORY_DESCRIPTIONS
         if energysite.history_coordinator is not None
+        and (
+            "battery" not in description.key
+            or energysite.info_coordinator.data.get("components_battery")
+        )
+        and (
+            "solar" not in description.key
+            or energysite.info_coordinator.data.get("components_solar")
+        )
     )
 
     if entry.runtime_data.stream is not None:

@@ -52,16 +52,18 @@
         "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
         "entry_not_loaded": "The Teslemetry account must be loaded before setting up local control. Try again once it has finished loading.",
         "no_powerwall": "Local control requires a Powerwall, and no energy site with one is currently accessible on your Teslemetry account.",
+        "powerwall_unreachable": "There is a problem communicating with your Powerwall. Ensure it has a reliable network connection and try again later.",
         "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
       },
-      "entry_type": "Energy site",
+      "entry_type": "Local energy site",
       "error": {
         "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
         "invalid_password": "[%key:common::config_flow::error::invalid_auth%]",
         "key_expired": "The approval window on your Powerwall closed before the key was approved. Submit to open a new window, flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
         "key_not_approved": "Your Powerwall system rejected Home Assistant's key because it has not been approved. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
         "key_not_registered": "Home Assistant's key is no longer registered on your Powerwall system. Restart setup to register it again.",
-        "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again."
+        "key_pending": "Home Assistant's key has not been approved yet. Flick the On/Off switch on your primary Powerwall off and back on to approve it, then submit again.",
+        "powerwall_unreachable": "[%key:component::teslemetry::config_subentries::energy_site::abort::powerwall_unreachable%]"
       },
       "initiate_flow": {
         "reconfigure": "Reconfigure energy site",
@@ -98,7 +100,7 @@
         "no_supported_vehicles": "None of the vehicles left to add support Bluetooth commands. Vehicles without the vehicle command protocol, such as Model S and Model X built before 2021, cannot be added as a local vehicle.",
         "no_vehicles": "Home Assistant cannot access any vehicles in your Teslemetry account. Check that the vehicle is in your account and that Teslemetry has access to it."
       },
-      "entry_type": "Bluetooth vehicle",
+      "entry_type": "Local vehicle",
       "error": {
         "auth_not_started": "The vehicle could not start the key card request. Wake the vehicle, then select Submit to try again.",
         "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
@@ -156,6 +158,12 @@
       "blind_spot_collision_warning_chime": {
         "name": "Blind spot collision warning chime"
       },
+      "bluetooth": {
+        "name": "Bluetooth"
+      },
+      "bluetooth_session": {
+        "name": "Bluetooth session"
+      },
       "bms_full_charge_complete": {
         "name": "BMS full charge"
       },
@@ -201,6 +209,9 @@
       "components_grid_services_enabled": {
         "name": "Grid services enabled"
       },
+      "contactor_closed": {
+        "name": "Contactor closed"
+      },
       "dc_dc_enable": {
         "name": "DC to DC converter"
       },
@@ -219,6 +230,9 @@
       "emergency_lane_departure_avoidance": {
         "name": "Emergency lane departure avoidance"
       },
+      "escan_firmware_updating": {
+        "name": "ESCAN firmware updating"
+      },
       "europe_vehicle": {
         "name": "European vehicle"
       },
@@ -227,6 +241,9 @@
       },
       "gps_state": {
         "name": "GPS state"
+      },
+      "grid_ok": {
+        "name": "Grid OK"
       },
       "grid_services_active": {
         "name": "Grid services active"
@@ -261,11 +278,17 @@
       "located_at_work": {
         "name": "Located at work"
       },
+      "microgrid_ok": {
+        "name": "Microgrid OK"
+      },
       "offroad_lightbar_present": {
         "name": "Offroad lightbar"
       },
       "pin_to_drive_enabled": {
         "name": "PIN to Drive enabled"
+      },
+      "pw3can_firmware_updating": {
+        "name": "PW3CAN firmware updating"
       },
       "rear_display_hvac_enabled": {
         "name": "Rear display HVAC"
@@ -281,6 +304,12 @@
       },
       "service_mode": {
         "name": "Service mode"
+      },
+      "site_manager_running": {
+        "name": "Site manager running"
+      },
+      "site_running": {
+        "name": "Site running"
       },
       "speed_limit_mode": {
         "name": "Speed limited"
@@ -347,6 +376,12 @@
       "boombox": {
         "name": "Play fart"
       },
+      "disable_keep_accessory_power_mode": {
+        "name": "Disable keep accessory power"
+      },
+      "enable_keep_accessory_power_mode": {
+        "name": "Enable keep accessory power"
+      },
       "enable_keyless_driving": {
         "name": "Keyless driving"
       },
@@ -387,7 +422,7 @@
           "preset_mode": {
             "state": {
               "camp": "Camp mode",
-              "dog": "Dog mode",
+              "dog": "Pet mode",
               "keep": "Keep mode",
               "off": "[%key:common::state::normal%]"
             }
@@ -1254,6 +1289,9 @@
     },
     "command_reason": {
       "message": "Command was rejected: {reason}"
+    },
+    "local_update_failed": {
+      "message": "Error fetching data from the local Powerwall gateway: {message}"
     },
     "missing_scope": {
       "message": "Missing required scope: {scope}"
