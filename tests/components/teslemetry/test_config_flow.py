@@ -107,7 +107,7 @@ from homeassistant.helpers import (
 from homeassistant.setup import async_setup_component
 
 from . import mock_config_entry, setup_platform
-from .const import ADDRESS, CONFIG_V1, METADATA, PRODUCTS, UNIQUE_ID, VIN
+from .const import ADDRESS, CONFIG_V1, GATEWAY_DIN, METADATA, PRODUCTS, UNIQUE_ID, VIN
 
 REDIRECT = "https://example.com/auth/external/callback"
 
@@ -2321,8 +2321,6 @@ SITE_ID = 123456
 WALL_CONNECTOR_SITE_ID = 555555
 HOST = "192.168.91.1"
 PASSWORD = "abcde"
-# Matches the paired site's `gateway_id` in the products fixture.
-GATEWAY_DIN = "ABC123"
 PUBLIC_KEY_DER = b"public-key-der"
 PUBLIC_KEY_B64 = "cHVibGljLWtleS1kZXI="
 

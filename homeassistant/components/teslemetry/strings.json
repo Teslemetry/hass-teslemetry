@@ -1373,6 +1373,10 @@
       },
       "title": "Re-approve the Bluetooth key for {vehicle}"
     },
+    "gateway_mismatch": {
+      "description": "The saved local network address {host} for {site} now reaches a different Powerwall system, so Home Assistant has stopped using local control for this site and sends its commands through the cloud. This can happen when your router gives the address to another device.\n\nTo fix this, reconfigure the energy site on the Teslemetry integration page to pair it again with the correct address. Giving the Powerwall system a fixed address on your router stops this from happening again.",
+      "title": "[%key:component::teslemetry::issues::gateway_not_found::title%]"
+    },
     "gateway_not_found": {
       "fix_flow": {
         "abort": {
