@@ -435,3 +435,42 @@ def mock_ble_glue_stop_tolerates_mock_listeners() -> Generator[None]:
 
     with patch.object(BleBroadcastStreamGlue, "stop", stop):
         yield
+
+
+# HACS-only, TEMPORARY: tests of core dev's issue ownership (issues linked to a
+# config entry by config_entry_id), which the pinned core release lacks. The
+# integration's local equivalent in hacs_issue_registry is covered by
+# test_hacs_issue_registry.py. Retire with hacs_issue_registry.
+_TESTS_NEEDING_CORE_ISSUE_OWNERSHIP = {
+    "test_ignored_gateway_repair_kept_on_setup",
+    "test_stale_gateway_repairs_deleted_on_setup",
+    "test_gateway_repairs_refresh_cancelled_on_setup_failure",
+    "test_stale_repair_issues_deleted_on_setup",
+}
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Skip the tests of core issue ownership on a core release without it."""
+    from homeassistant.helpers import issue_registry as ir  # noqa: PLC0415
+
+    if hasattr(ir, "async_begin_issues_refresh"):
+        return
+    skip = pytest.mark.skip(reason="the pinned core release has no issue ownership")
+    for item in items:
+        if (
+            "components/teslemetry/" in item.nodeid
+            and getattr(item, "originalname", item.name)
+            in _TESTS_NEEDING_CORE_ISSUE_OWNERSHIP
+        ):
+            item.add_marker(skip)
+
+
+@pytest.fixture
+def snapshot(snapshot: Any) -> Any:
+    """Return the snapshot assertion that accepts core dev's device_id form.
+
+    HACS-only, TEMPORARY: see hacs_snapshot.
+    """
+    from .hacs_snapshot import use_any_device_id  # noqa: PLC0415
+
+    return use_any_device_id(snapshot)
