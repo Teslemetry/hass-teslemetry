@@ -1,0 +1,22 @@
+diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
+index ead3bc8447..c134f78414 100644
+--- a/homeassistant/components/teslemetry/__init__.py
++++ b/homeassistant/components/teslemetry/__init__.py
+@@ -120,2 +120,3 @@ from .helpers import (
+     flatten,
++    insufficient_credits_issue_id,
+ )
+@@ -1586,2 +1587,5 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+     await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
++    # HACS stable-core compat: the pinned core release cannot tie an issue to a
++    # config entry, so the insufficient credits repair is removed with it here.
++    ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
+ 
+diff --git a/homeassistant/components/teslemetry/helpers.py b/homeassistant/components/teslemetry/helpers.py
+index 68f43d336d..479f78fbda 100644
+--- a/homeassistant/components/teslemetry/helpers.py
++++ b/homeassistant/components/teslemetry/helpers.py
+@@ -140,3 +140,2 @@ async def handle_command(
+             insufficient_credits_issue_id(entry),
+-            config_entry_id=entry.entry_id,
+             is_fixable=False,

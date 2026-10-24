@@ -1,8 +1,8 @@
 diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
-index 5a97ce01e1a..588c8d59b9b 100644
+index d2711ee66b..ead3bc8447 100644
 --- a/homeassistant/components/teslemetry/__init__.py
 +++ b/homeassistant/components/teslemetry/__init__.py
-@@ -599,7 +599,6 @@ def _async_check_gateway_din(
+@@ -613,7 +613,6 @@ def _async_check_gateway_din(
          severity=ir.IssueSeverity.WARNING,
          translation_key=ISSUE_GATEWAY_MISMATCH,
          translation_placeholders={"site": subentry.title, "host": client.host},
@@ -10,10 +10,10 @@ index 5a97ce01e1a..588c8d59b9b 100644
      )
      return False
  
-@@ -1556,6 +1555,13 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
-     nothing would recreate it after a reload while the account is still short.
-     """
-     ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
+@@ -1577,6 +1576,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+ 
+ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+     """Remove the stored charge-on-solar settings."""
 +    # HACS stable-core compat: the pinned core release cannot tie an issue to a
 +    # config entry, so the gateway mismatch repairs are removed with it here.
 +    for subentry in entry.subentries.values():
@@ -25,10 +25,10 @@ index 5a97ce01e1a..588c8d59b9b 100644
  
  
 diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
-index 08db7d5d31d..e37274f1dab 100644
+index 91dc540cbd..5dc4821c9c 100644
 --- a/tests/components/teslemetry/test_init.py
 +++ b/tests/components/teslemetry/test_init.py
-@@ -2276,7 +2276,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
+@@ -2400,7 +2400,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
      assert issue.translation_key == "gateway_mismatch"
      assert issue.translation_placeholders == {"site": "Energy Site", "host": HOST}
      assert not issue.is_fixable
