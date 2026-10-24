@@ -78,6 +78,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
+from . import hacs_issue_registry
 from .const import (
     BLE_DISCONNECT_TIMEOUT,
     CHARGE_ON_SOLAR_LOWER_LIMIT_KEY,
@@ -138,6 +139,10 @@ _VEHICLE_ISSUE_ID_PATTERN = re.compile(
 )
 
 type TeslemetryConfigEntry = ConfigEntry[TeslemetryData]
+
+# HACS compat: issue refresh helpers for the pinned core release. Rebound here,
+# not imported as ir, so the core import line every PR diff carries stays put.
+ir = hacs_issue_registry  # noqa: F811
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
