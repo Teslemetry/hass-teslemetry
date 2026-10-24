@@ -20,3 +20,33 @@ index 68f43d336d..479f78fbda 100644
              insufficient_credits_issue_id(entry),
 -            config_entry_id=entry.entry_id,
              is_fixable=False,
+diff --git a/homeassistant/components/teslemetry/number.py b/homeassistant/components/teslemetry/number.py
+index 7080f39b7ae..375ba9dfbe4 100644
+--- a/homeassistant/components/teslemetry/number.py
++++ b/homeassistant/components/teslemetry/number.py
+@@ -402,7 +402,9 @@ class TeslemetryChargeOnSolarLowerLimitNumberEntity(
+                 return
+ 
+             sent_value = await async_set_charge_on_solar(
+-                handle_vehicle_command,
++                lambda command: handle_vehicle_command(
++                    self.hass, self.config_entry, command
++                ),
+                 self.api,
+                 enabled=True,
+                 lower_charge_limit=value,
+diff --git a/homeassistant/components/teslemetry/switch.py b/homeassistant/components/teslemetry/switch.py
+index cf8df7546e5..0047f3227f0 100644
+--- a/homeassistant/components/teslemetry/switch.py
++++ b/homeassistant/components/teslemetry/switch.py
+@@ -425,7 +425,9 @@ class TeslemetryChargeOnSolarSwitchEntity(TeslemetryChargeOnSolarEntity, SwitchE
+         """Set charge-on-solar mode, omitting the upper bound if it isn't known yet."""
+         async with self.vehicle.charge_on_solar_lock:
+             await async_set_charge_on_solar(
+-                handle_vehicle_command,
++                lambda command: handle_vehicle_command(
++                    self.hass, self.config_entry, command
++                ),
+                 self.api,
+                 enabled=enabled,
+                 lower_charge_limit=self.vehicle.charge_on_solar_lower_limit,
