@@ -1,18 +1,12 @@
 """Test the HACS-only issue refresh helpers for the pinned core release."""
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
-from tesla_fleet_api.exceptions import TeslaFleetError
 
 from homeassistant.components.teslemetry import hacs_issue_registry
 from homeassistant.components.teslemetry.const import DOMAIN
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
-
-from . import mock_config_entry
 
 
 def _create_issue(hass: HomeAssistant, issue_id: str, entry_id: str) -> None:
@@ -36,49 +30,63 @@ def test_core_names_pass_through() -> None:
     assert hacs_issue_registry.async_get is ir.async_get
 
 
-async def test_stale_repairs_deleted_on_setup(
+async def test_refresh_deletes_stale_issues_of_its_entry(
     hass: HomeAssistant, issue_registry: ir.IssueRegistry
 ) -> None:
-    """Vehicle and gateway repairs of the entry which are stale are deleted.
+    """A refresh deletes the stale issues of its config entry.
 
-    Repairs owned by another config entry are left alone.
+    Issues created again during the refresh, issues of another config entry and
+    issues outside the refresh's set are left alone.
     """
-    entry = mock_config_entry()
+    entry = MockConfigEntry(domain=DOMAIN)
     entry.add_to_hass(hass)
     other_entry = MockConfigEntry(domain=DOMAIN)
     other_entry.add_to_hass(hass)
-    stale_issue_ids = ["key_GONE", "gateway_not_found_111"]
-    kept_issue_ids = ["key_OTHER_ACCOUNT", "gateway_not_found_222"]
-    for issue_id in stale_issue_ids:
+    for issue_id in ("gateway_not_found_111", "gateway_not_found_222", "key_GONE"):
         _create_issue(hass, issue_id, entry.entry_id)
-    for issue_id in kept_issue_ids:
-        _create_issue(hass, issue_id, other_entry.entry_id)
+    _create_issue(hass, "gateway_not_found_333", other_entry.entry_id)
 
-    with patch("homeassistant.components.teslemetry.PLATFORMS", []):
-        await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
+    with hacs_issue_registry.async_begin_issues_refresh(
+        hass,
+        DOMAIN,
+        issue_id_pattern="gateway_not_found_",
+        config_entry_id=entry.entry_id,
+    ):
+        _create_issue(hass, "gateway_not_found_222", entry.entry_id)
 
-    assert entry.state is ConfigEntryState.LOADED
-    for issue_id in stale_issue_ids:
-        assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
-    for issue_id in kept_issue_ids:
-        assert issue_registry.async_get_issue(DOMAIN, issue_id)
+    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_111") is None
+    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_222")
+    assert issue_registry.async_get_issue(DOMAIN, "key_GONE")
+    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_333")
 
 
-async def test_gateway_repairs_kept_on_setup_failure(
-    hass: HomeAssistant, issue_registry: ir.IssueRegistry, mock_live_status: AsyncMock
+async def test_refresh_deleted_issue_stays_deleted(
+    hass: HomeAssistant, issue_registry: ir.IssueRegistry
 ) -> None:
-    """A failed setup leaves the gateway repairs alone."""
-    entry = mock_config_entry()
-    entry.add_to_hass(hass)
-    _create_issue(hass, "gateway_not_found_111", entry.entry_id)
-    mock_live_status.side_effect = TeslaFleetError
+    """An issue deleted during a refresh is not created again by it."""
+    _create_issue(hass, "gateway_not_found_1", "entry")
 
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    with hacs_issue_registry.async_begin_issues_refresh(
+        hass, DOMAIN, issue_ids=["gateway_not_found_1"]
+    ):
+        hacs_issue_registry.async_delete_issue(hass, DOMAIN, "gateway_not_found_1")
 
-    assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_111")
+    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_1") is None
+
+
+async def test_cancelled_refresh_deletes_nothing(
+    hass: HomeAssistant, issue_registry: ir.IssueRegistry
+) -> None:
+    """A cancelled refresh, as a failed setup leaves it, deletes nothing."""
+    _create_issue(hass, "gateway_not_found_1", "entry")
+
+    refresh = hacs_issue_registry.async_begin_issues_refresh(
+        hass, DOMAIN, issue_id_pattern="gateway_not_found_"
+    )
+    refresh.async_cancel()
+    refresh.async_finish()
+
+    assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_1")
 
 
 async def test_refresh_keeps_touched_issues(
