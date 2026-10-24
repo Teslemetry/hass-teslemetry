@@ -35,6 +35,8 @@ RSA_PARENT_KEY = f"{DOMAIN}_rsa_parent"
 ISSUE_GATEWAY_NOT_FOUND = "gateway_not_found"
 ISSUE_LOCAL_CONTROL_FAILED = "local_control_failed"
 ISSUE_GATEWAY_MISMATCH = "gateway_mismatch"
+ISSUE_INSUFFICIENT_CREDITS = "insufficient_credits"
+CREDITS_URL = "https://teslemetry.com/console/credits"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",

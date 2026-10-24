@@ -1,7 +1,7 @@
 """Teslemetry parent entity class."""
 
 from abc import abstractmethod
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
@@ -31,12 +31,16 @@ from .models import (
     TeslemetryVehicleData,
 )
 
+if TYPE_CHECKING:
+    from . import TeslemetryConfigEntry
+
 
 class TeslemetryRootEntity(Entity):
     """Parent class for all Teslemetry entities."""
 
     _attr_has_entity_name = True
     scoped: bool
+    config_entry: TeslemetryConfigEntry
 
     def raise_for_scope(self, scope: Scope) -> None:
         """Raise an error if a scope is not available."""
@@ -71,6 +75,7 @@ class TeslemetryPollingEntity(
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         super().__init__(coordinator)
+        self.config_entry = coordinator.config_entry
         self.key = key
         self._attr_translation_key = self.key
         self._async_update_attrs()
@@ -254,6 +259,7 @@ class TeslemetryEnergyLocalStatusEntity(
 
         assert data.local_status_coordinator
 
+        self.config_entry = data.local_status_coordinator.config_entry
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.id}-{key}"
         self._attr_device_info = data.device
@@ -343,6 +349,7 @@ class TeslemetryVehicleEntity(TeslemetryRootEntity):
     def __init__(self, data: TeslemetryVehicleData, key: str) -> None:
         """Initialize common aspects of a Teslemetry entity."""
         self.vehicle = data
+        self.config_entry = data.coordinator.config_entry
 
         self.api = data.api
         self.vin = data.vin
