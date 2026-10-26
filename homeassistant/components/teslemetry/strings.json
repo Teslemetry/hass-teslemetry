@@ -1006,6 +1006,24 @@
       "hvac_right_temperature_request": {
         "name": "Right temperature request"
       },
+      "island_freq_l1_load": {
+        "name": "Island frequency L1 load"
+      },
+      "island_freq_l1_main": {
+        "name": "Island frequency L1 main"
+      },
+      "island_freq_l2_load": {
+        "name": "Island frequency L2 load"
+      },
+      "island_freq_l2_main": {
+        "name": "Island frequency L2 main"
+      },
+      "island_freq_l3_load": {
+        "name": "Island frequency L3 load"
+      },
+      "island_freq_l3_main": {
+        "name": "Island frequency L3 main"
+      },
       "island_status": {
         "name": "Island status",
         "state": {
@@ -1015,6 +1033,24 @@
           "off_grid_unintentional": "Off-grid unintentional",
           "on_grid": "On-grid"
         }
+      },
+      "island_voltage_l1n_load": {
+        "name": "Island voltage L1-N load"
+      },
+      "island_voltage_l1n_main": {
+        "name": "Island voltage L1-N main"
+      },
+      "island_voltage_l2n_load": {
+        "name": "Island voltage L2-N load"
+      },
+      "island_voltage_l2n_main": {
+        "name": "Island voltage L2-N main"
+      },
+      "island_voltage_l3n_load": {
+        "name": "Island voltage L3-N load"
+      },
+      "island_voltage_l3n_main": {
+        "name": "Island voltage L3-N main"
       },
       "isolation_resistance": {
         "name": "Isolation resistance"
