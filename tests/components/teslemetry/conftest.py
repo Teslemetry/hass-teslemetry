@@ -23,6 +23,7 @@ from .const import (
     METADATA_LEGACY,
     METADATA_OLD_FIRMWARE,
     POWERWALL_COMPONENTS,
+    POWERWALL_CONFIG,
     POWERWALL_STATUS,
     PRODUCTS,
     PRODUCTS_ENERGY,
@@ -534,3 +535,13 @@ def snapshot(snapshot: Any) -> Any:
     from .hacs_snapshot import use_any_device_id  # noqa: PLC0415
 
     return use_any_device_id(snapshot)
+
+
+@pytest.fixture(autouse=True)
+def mock_powerwall_config() -> Generator[AsyncMock]:
+    """Mock the local Powerwall gateway configuration."""
+    with patch(
+        "aiopowerwall.PowerwallClient.get_config",
+        side_effect=lambda: deepcopy(POWERWALL_CONFIG),
+    ) as mock_config:
+        yield mock_config
