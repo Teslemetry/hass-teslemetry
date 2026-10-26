@@ -9,7 +9,7 @@ This repository is the **HACS beta release** of the Teslemetry integration for H
 ./release.sh daily --publish  # publishes the pre-release v<UTC Y.M.D>
 ```
 
-`release.sh` (repo root) **is** the release process and owns the HOW; its header lists the steps. This file owns the WHY and the gotchas. It follows the original single script (`73e316e6680`) and the runbook that replaced it (`1160c4445da`). Keep it that small: add a piece only when a real failure proves it necessary.
+`release.sh` (repo root) **is** the release process and owns the HOW; its header lists the steps. This file owns the WHY and the gotchas. Keep it small: add a piece only when a real failure proves it necessary.
 
 `release.sh` is a **fork-only tracked file at the repo root**, like `.github/workflows/teslemetry-test.yml` and `release.yml`. Core `dev` has no `release.sh`. Do not move it under `script/`: that tree is core's and the name could collide upstream.
 
