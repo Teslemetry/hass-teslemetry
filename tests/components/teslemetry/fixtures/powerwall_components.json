@@ -6,7 +6,7 @@
           {
             "name": "PCH_State",
             "value": null,
-            "textValue": "PCH_STATE_GRID_FOLLOW",
+            "textValue": "Pch_Active",
             "boolValue": null,
             "timestamp": "2026-10-13T00:00:00+10:00"
           },
@@ -142,12 +142,116 @@
             "textValue": null,
             "boolValue": null,
             "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_BatteryPower",
+            "value": 1020,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_AcRealPowerAB",
+            "value": 880,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_AcVoltageAB",
+            "value": 238.4,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_AcVoltageAN",
+            "value": 118.8,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_AcVoltageBN",
+            "value": 119.6,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_AcFrequency",
+            "value": 50.0025,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_appGitHash",
+            "value": null,
+            "textValue": "4f924de839f0c4",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
           }
         ],
         "activeAlerts": []
       }
     ],
-    "pws": [],
+    "pws": [
+      {
+        "activeAlerts": [],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "PWS_SelfTest",
+            "textValue": "SELFTEST_STATE_DONE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "PWS_PeImpTestState",
+            "textValue": "PE_IMPEDANCE_DONE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "PWS_PvIsoTestState",
+            "textValue": "PV_ISOLATION_DONE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "PWS_RelaySelfTest_State",
+            "textValue": "RELAY_SELFTEST_DONE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "PWS_MciTestState",
+            "textValue": "MCI_MODULE_TEST_STANDBY",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "PWS_appGitHash",
+            "textValue": "04d5dd98fb2037",
+            "timestamp": "2026-05-12T20:56:09+10:00",
+            "value": null
+          },
+          {
+            "boolValue": true,
+            "name": "PWS_ProdSwitch_State",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          }
+        ]
+      }
+    ],
     "bms": [
       {
         "activeAlerts": [],

@@ -1859,6 +1859,8 @@ class TeslemetryLocalUnitSensorEntityDescription(SensorEntityDescription):
     """Describes a Teslemetry sensor of one battery unit read from the local gateway."""
 
     value_fn: Callable[[dict[str, Any], int], StateType]
+    # Expansion packs have no PCH or PWS, so those rows are never read at their slot.
+    powerwall_only: bool = False
 
 
 ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
@@ -1904,6 +1906,103 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
         value_fn=lambda data, slot: component_signal(
             data, "hvp", "HVP_appGitHash", slot
         ),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="battery_power",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_BatteryPower", slot
+        ),
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
+        suggested_display_precision=2,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="ac_power",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_AcRealPowerAB", slot
+        ),
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
+        suggested_display_precision=2,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="ac_voltage_ab",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_AcVoltageAB", slot
+        ),
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="ac_voltage_an",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_AcVoltageAN", slot
+        ),
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="ac_voltage_bn",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_AcVoltageBN", slot
+        ),
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="ac_frequency",
+        value_fn=lambda data, slot: component_float(
+            data, "pch", "PCH_AcFrequency", slot
+        ),
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="pch_state",
+        value_fn=lambda data, slot: component_signal(data, "pch", "PCH_State", slot),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        powerwall_only=True,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="pch_firmware",
+        value_fn=lambda data, slot: component_signal(
+            data, "pch", "PCH_appGitHash", slot
+        ),
+        powerwall_only=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="pws_firmware",
+        value_fn=lambda data, slot: component_signal(
+            data, "pws", "PWS_appGitHash", slot
+        ),
+        powerwall_only=True,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
@@ -2448,7 +2547,8 @@ def _local_unit_sensors(
             *ENERGY_LOCAL_UNIT_DESCRIPTIONS,
             *(ENERGY_LOCAL_FOLLOWER_DESCRIPTIONS if unit.role == "follower" else ()),
         )
-        if description.value_fn(coordinator.data, unit.component_slot) is not None
+        if not (description.powerwall_only and unit.role == "expansion")
+        and description.value_fn(coordinator.data, unit.component_slot) is not None
     ]
 
 
