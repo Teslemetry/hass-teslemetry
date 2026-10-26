@@ -119,7 +119,7 @@ run_plan "74 docs-branch needs=fork#48" "48 docs-branch" 58 "49 needs=fork#47" "
 check "plan: completes" 0 "$rc"
 check "plan: fork order and bases" "48 - -|49 fork#47 head-of-pull/47/head|50 core#301 m301|51 core#100 h100|74 fork#48 @fork#48" \
   "$(grep -P '^\d+\t' "$SANDBOX/out" | awk -F'\t' '{ print $1, ($5 == "" ? "-" : $5), ($6 == "" ? "-" : $6) }' | paste -sd'|' -)"
-check "plan: core PRs ascending" 1 "$(grep -c '#100: open Bre77 teslemetry PR on core, composed' "$SANDBOX/out")"
+check "plan: core PRs ascending" "100|300" "$(grep -oP '#\K[0-9]+(?=: open Bre77 teslemetry PR on core, composed)' "$SANDBOX/out" | paste -sd'|' -)"
 check "plan: out of scope logged" 1 "$(grep -c 'fork#58: changes no teslemetry path' "$SANDBOX/out")"
 check "plan: closed non-teslemetry logged" 1 "$(grep -c 'fork#53: closed and changes no teslemetry path' "$SANDBOX/out")"
 check "plan: promoted queue entry carried by its core PR" 1 "$(grep -c 'fork#47: opened upstream as #300, which this build carries (composed)' "$SANDBOX/out")"
