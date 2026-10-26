@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiopowerwall import PowerwallConnectionError
 from freezegun.api import FrozenDateTimeFactory
@@ -41,10 +41,11 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 
 from . import (
+    _TEST_RSA_KEY_PEM,
     SITE_ID,
     assert_entities,
     assert_entities_alt,
@@ -85,6 +86,11 @@ LOCAL_COMPONENTS_KEYS = (
     ),
     "pv_power",
 )
+
+LOCAL_UNIT_KEYS = ("energy_remaining", "full_pack_energy")
+LEADER_DIN = "1707000-30-L--TG10000000000A"
+# Powerwalls are keyed by DIN and expansions by serial number.
+LOCAL_UNIT_IDS = (LEADER_DIN, "TG10000000002C", "TG10000000003D")
 
 # Per-tire TPMS warning objects including the Tesla Semi.
 TPMS_NO_WARNINGS = {
@@ -2113,3 +2119,132 @@ async def test_local_config_sensors_poll_failure(
 
     assert (state := hass.states.get(entity_id))
     assert state.state == "Ergon Energy"
+
+
+def _local_unit_entity_ids(entity_registry: er.EntityRegistry) -> list[str]:
+    """Return the entity ids of the local battery unit sensors."""
+    return [
+        entity_id
+        for unit_id in LOCAL_UNIT_IDS
+        for key in LOCAL_UNIT_KEYS
+        if (
+            entity_id := entity_registry.async_get_entity_id(
+                Platform.SENSOR, DOMAIN, f"{SITE_ID}-{unit_id}-{key}"
+            )
+        )
+    ]
+
+
+async def test_local_unit_sensors(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test a paired energy site creates a device with energy sensors per battery unit."""
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    entity_ids = _local_unit_entity_ids(entity_registry)
+    assert len(entity_ids) == len(LOCAL_UNIT_IDS) * len(LOCAL_UNIT_KEYS)
+    for entity_id in entity_ids:
+        assert entity_registry.async_get(entity_id) == snapshot(
+            name=f"{entity_id}-entry"
+        )
+        assert hass.states.get(entity_id) == snapshot(name=f"{entity_id}-state")
+
+    assert (
+        site := device_registry.async_get_device_by_identifier(
+            (DOMAIN, str(SITE_ID)), entry.entry_id
+        )
+    )
+    for unit_id in LOCAL_UNIT_IDS:
+        assert (
+            device := device_registry.async_get_device_by_identifier(
+                (DOMAIN, f"{SITE_ID}-{unit_id}"), entry.entry_id
+            )
+        )
+        assert device == snapshot(name=f"{unit_id}-device")
+        assert device.via_device_id == site.id
+
+
+async def test_local_unit_sensors_unpaired(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test an energy site without local pairing creates no battery unit sensors."""
+    await setup_platform(hass, [Platform.SENSOR])
+
+    assert not _local_unit_entity_ids(entity_registry)
+
+
+async def test_local_unit_devices_kept_while_gateway_unreachable(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    device_registry: dr.DeviceRegistry,
+    mock_powerwall_components: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test unit devices survive a gateway unreachable at startup and recover."""
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+    entity_ids = _local_unit_entity_ids(entity_registry)
+    assert entity_ids
+
+    mock_powerwall_components.side_effect = PowerwallConnectionError("offline")
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", [Platform.SENSOR]),
+    ):
+        await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert entry.state is ConfigEntryState.LOADED
+        for unit_id in LOCAL_UNIT_IDS:
+            assert device_registry.async_get_device_by_identifier(
+                (DOMAIN, f"{SITE_ID}-{unit_id}"), entry.entry_id
+            )
+        assert _local_unit_entity_ids(entity_registry) == entity_ids
+        assert hass.states.get(entity_ids[0]).state == STATE_UNAVAILABLE
+
+        # The first answer from the gateway matches the units and adds their entities
+        # without a reload.
+        mock_powerwall_components.side_effect = lambda: deepcopy(POWERWALL_COMPONENTS)
+        freezer.tick(LOCAL_COMPONENTS_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+        # Later polls do not add the units again.
+        freezer.tick(LOCAL_COMPONENTS_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get(entity_ids[0]).state == "10.54"
+    assert "does not generate unique IDs" not in caplog.text
+
+
+async def test_local_unit_without_serial_skipped(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_components: AsyncMock,
+) -> None:
+    """Test a battery unit with neither a DIN nor a serial number gets no device."""
+    components = deepcopy(POWERWALL_COMPONENTS)
+    components["components"]["hvp"][2]["serialNumber"] = ""
+    mock_powerwall_components.side_effect = None
+    mock_powerwall_components.return_value = components
+
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    assert [
+        entity.unique_id
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        if entity.unique_id.endswith("-energy_remaining")
+        and entity.unique_id.startswith(f"{SITE_ID}-")
+    ] == [
+        f"{SITE_ID}-{LEADER_DIN}-energy_remaining",
+        f"{SITE_ID}-TG10000000002C-energy_remaining",
+    ]

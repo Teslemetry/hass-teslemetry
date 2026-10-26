@@ -930,6 +930,9 @@
           "off": "[%key:common::state::off%]"
         }
       },
+      "full_pack_energy": {
+        "name": "Full pack energy"
+      },
       "generator_energy_exported": {
         "name": "Generator exported"
       },

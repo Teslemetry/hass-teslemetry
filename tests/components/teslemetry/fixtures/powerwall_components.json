@@ -148,8 +148,277 @@
       }
     ],
     "pws": [],
-    "bms": [],
-    "hvp": [],
-    "baggr": []
+    "bms": [
+      {
+        "activeAlerts": [],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "BMS_nominalEnergyRemaining",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 10.540000000000001
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_nominalFullPackEnergy",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 14.42
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_appGitHash",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "BMS_nominalEnergyRemaining",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 11.83
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_nominalFullPackEnergy",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 14.42
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_appGitHash",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "BMS_nominalEnergyRemaining",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 11.27
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_nominalFullPackEnergy",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 14.38
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_appGitHash",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [
+          {
+            "name": "BMS_a037_SW_NVRAM_Config_Error"
+          },
+          {
+            "name": "BMS_a048_SW_HVP_HVI_Comms"
+          },
+          {
+            "name": "BMS_a083_Nvram_Filecache"
+          }
+        ],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "BMS_nominalEnergyRemaining",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_nominalFullPackEnergy",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BMS_appGitHash",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          }
+        ]
+      }
+    ],
+    "hvp": [
+      {
+        "activeAlerts": [],
+        "partNumber": "1800420-11-F",
+        "serialNumber": "TG10000000001B",
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "HVP_State",
+            "textValue": "HVP_ACTIVE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "HVP_appGitHash",
+            "textValue": "04d5dd98fb2037",
+            "timestamp": "2026-05-12T20:55:58+10:00",
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [],
+        "partNumber": "1807000-20-B",
+        "serialNumber": "TG10000000002C",
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "HVP_State",
+            "textValue": "HVP_ACTIVE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "HVP_appGitHash",
+            "textValue": "04d5dd98fb2037",
+            "timestamp": "2026-05-12T20:56:04+10:00",
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [],
+        "partNumber": "1807000-20-B",
+        "serialNumber": "TG10000000003D",
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "HVP_State",
+            "textValue": "HVP_ACTIVE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "HVP_appGitHash",
+            "textValue": "04d5dd98fb2037",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          }
+        ]
+      },
+      {
+        "activeAlerts": [],
+        "partNumber": "",
+        "serialNumber": "",
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "HVP_State",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "HVP_appGitHash",
+            "textValue": null,
+            "timestamp": null,
+            "value": null
+          }
+        ]
+      }
+    ],
+    "baggr": [
+      {
+        "activeAlerts": [],
+        "signals": [
+          {
+            "boolValue": null,
+            "name": "BAGGR_State",
+            "textValue": "BAGGR_ACTIVE",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_OperationRequest",
+            "textValue": "BAGGR_NORMAL_OPERATION",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_NumBatteriesConnected",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 3
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_NumBatteriesPresent",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 3
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_NumBatteriesExpected",
+            "textValue": null,
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": 3
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_LOG_BattConnectionStatus0",
+            "textValue": "CONNECTED",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_LOG_BattConnectionStatus1",
+            "textValue": "CONNECTED",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_LOG_BattConnectionStatus2",
+            "textValue": "CONNECTED",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          },
+          {
+            "boolValue": null,
+            "name": "BAGGR_LOG_BattConnectionStatus3",
+            "textValue": "NOT_TARGETED_NOT_PRESENT",
+            "timestamp": "2026-05-12T20:56:13+10:00",
+            "value": null
+          }
+        ]
+      }
+    ]
   }
 }
