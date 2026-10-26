@@ -2400,7 +2400,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
     assert issue.translation_key == "gateway_mismatch"
     assert issue.translation_placeholders == {"site": "Energy Site", "host": HOST}
     assert not issue.is_fixable
-    assert issue.config_entry_id == entry.entry_id
+
+    # HACS stable-core compat: removing the entry removes the repair.
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert issue_registry.async_get_issue(DOMAIN, MISMATCH_ISSUE_ID) is None
 
 
 async def test_local_gateway_din_mismatch_repair_cleared_after_match(
