@@ -22,7 +22,6 @@ from tesla_fleet_api.exceptions import (
     BluetoothTransportError,
     EnergyGatewayUnreachable,
     InvalidToken,
-    NotOnWhitelistFault,
     PrivateKeyError,
     SubscriptionRequired,
     TeslaFleetError,
@@ -32,6 +31,7 @@ from tesla_fleet_api.exceptions import (
     WhitelistOperationLocalEntityAuthFailedTimedOutWaitingForTap,
     WhitelistOperationLocalEntityAuthFailedTimedOutWaitingForUIAck,
     WhitelistOperationLocalEntityAuthFailedUIDenied,
+    is_key_rejected,
 )
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
@@ -64,7 +64,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_ADDRESS, CONF_HOST, CONF_PASSWORD
 from homeassistant.core import callback
-from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers import config_entry_oauth2_flow, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import BooleanSelector
 
@@ -75,6 +75,7 @@ from .const import (
     CONF_SITE_ID,
     CONF_VIN,
     DOMAIN,
+    ISSUE_TYPE_BLE_KEY_REJECTED,
     LOGGER,
     POWERWALL_KEY_FILE,
     SUBENTRY_TYPE_ENERGY_SITE,
@@ -322,6 +323,15 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             ),
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Re-run Bluetooth pairing for an already added vehicle."""
+        if not async_scanner_count(self.hass, connectable=True):
+            return self.async_abort(reason="bluetooth_not_available")
+        self._vin = self._get_reconfigure_subentry().data[CONF_VIN]
+        return await self.async_step_scan()
+
     async def async_step_scan(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
@@ -448,9 +458,10 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             assert self._vehicle is not None
         try:
             await self._vehicle.handshakeVehicleSecurity()
-        except NotOnWhitelistFault:
-            return await self.async_step_instructions()
         except (BleakError, TeslaFleetError, TimeoutError) as err:
+            # Re-approval clears every fault is_key_rejected() reports.
+            if is_key_rejected(err):
+                return await self.async_step_instructions()
             LOGGER.error("Bluetooth security handshake failed: %s", err)
             # The scan step owns the form; re-show it so a retry redoes scan and connect.
             # pylint: disable-next=home-assistant-step_id-match-method
@@ -469,6 +480,18 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             assert self._address is not None
             assert self._vin is not None
         self._vehicle = None
+        if self.source == SOURCE_RECONFIGURE:
+            entry = self._get_entry()
+            # The key was just verified, so a reconfigure with an unchanged address
+            # schedules no reload to clear the repair.
+            ir.async_delete_issue(
+                self.hass, DOMAIN, f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{self._vin}"
+            )
+            return self.async_update_and_abort(
+                entry,
+                self._get_reconfigure_subentry(),
+                data_updates={CONF_ADDRESS: self._address},
+            )
         return self.async_create_entry(
             title=self._title or self._vin,
             data={CONF_VIN: self._vin, CONF_ADDRESS: self._address},
