@@ -6,7 +6,12 @@ from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, override
 
-from aiopowerwall import component_float, current_power, pv_string_current
+from aiopowerwall import (
+    component_float,
+    component_signal,
+    current_power,
+    pv_string_current,
+)
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
@@ -1685,6 +1690,20 @@ class TeslemetryLocalSensorEntityDescription(SensorEntityDescription):
 
 PV_STRINGS = ("A", "B", "C", "D", "E", "F")
 
+PV_STRING_STATES = {
+    "Pv_Active": "active",
+    "Pv_Active_Parallel": "active_parallel",
+    "Pv_Standby": "standby",
+}
+
+
+def _pv_string_state(data: dict[str, Any], string: str) -> str | None:
+    """Return the state of a PV string on the leader Powerwall 3."""
+    return PV_STRING_STATES.get(
+        str(component_signal(data, "pch", f"PCH_PvState_{string}"))
+    )
+
+
 ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
     TeslemetryLocalSensorEntityDescription, ...
 ] = (
@@ -1712,6 +1731,24 @@ ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
             suggested_display_precision=2,
         )
         for string in PV_STRINGS
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"pv_string_{string.lower()}_state",
+            value_fn=partial(_pv_string_state, string=string),
+            options=list(PV_STRING_STATES.values()),
+            device_class=SensorDeviceClass.ENUM,
+        )
+        for string in PV_STRINGS
+    ),
+    TeslemetryLocalSensorEntityDescription(
+        key="pv_power",
+        value_fn=partial(component_float, kind="pch", name="PCH_SlowPvPowerSum"),
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
+        suggested_display_precision=2,
     ),
 )
 

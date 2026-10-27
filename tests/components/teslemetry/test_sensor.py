@@ -77,10 +77,13 @@ SITE_MIDNIGHT = "2024-09-18T00:00:00+10:00"
 WALL_CONNECTOR_ENERGY_ENTITY = "sensor.wall_connector_energy_delivered"
 WALL_CONNECTOR_ENERGY_ENTITY_2 = "sensor.wall_connector_energy_delivered_2"
 
-LOCAL_COMPONENTS_KEYS = tuple(
-    f"pv_string_{string}_{measurement}"
-    for string in "abcdef"
-    for measurement in ("voltage", "current")
+LOCAL_COMPONENTS_KEYS = (
+    *(
+        f"pv_string_{string}_{measurement}"
+        for string in "abcdef"
+        for measurement in ("voltage", "current", "state")
+    ),
+    "pv_power",
 )
 
 # Per-tire TPMS warning objects including the Tesla Semi.
@@ -1514,7 +1517,7 @@ async def test_local_sensors(
     snapshot: SnapshotAssertion,
     entity_registry: er.EntityRegistry,
 ) -> None:
-    """Test a paired energy site creates the local PV string sensors."""
+    """Test a paired energy site creates the local PV sensors."""
     await setup_paired_platform(hass, [Platform.SENSOR])
 
     entity_ids = _local_entity_ids(entity_registry)
@@ -1543,6 +1546,8 @@ async def test_local_sensors_unpaired(
     [
         pytest.param("PCH_PvVoltageF", "pv_string_f_voltage", id="voltage"),
         pytest.param("PCH_PvCurrentE", "pv_string_e_current", id="current"),
+        pytest.param("PCH_PvState_D", "pv_string_d_state", id="state"),
+        pytest.param("PCH_SlowPvPowerSum", "pv_power", id="power"),
     ],
 )
 async def test_local_sensors_missing_signal(
