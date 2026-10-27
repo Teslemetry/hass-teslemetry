@@ -77,6 +77,9 @@ ENERGY_TOTALS_NULL = dict.fromkeys(ENERGY_TOTALS)
 # Wh delivered per Wall Connector DIN; a DIN with no session that day is absent.
 WALL_CONNECTOR_TOTALS = {"abd-123": 7250}
 
+# The paired site's `gateway_id` in the products fixture.
+GATEWAY_DIN = "ABC123"
+
 COMMAND_OK = {"response": {"result": True, "reason": ""}}
 COMMAND_REASON = {"response": {"result": False, "reason": "already closed"}}
 COMMAND_IGNORED_REASON = {"response": {"result": False, "reason": "already_set"}}
