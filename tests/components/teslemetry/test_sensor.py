@@ -2302,3 +2302,60 @@ async def test_local_unit_diagnostic_sensors_disabled(
         )
     )
     assert entity.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_local_follower_pv_string_sensors(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_status: AsyncMock,
+    mock_powerwall_components: AsyncMock,
+) -> None:
+    """Test a follower Powerwall 3 gets its own PV string sensors on its device."""
+    follower_din = "1707000-30-L--TG10000000004E"
+    status = deepcopy(POWERWALL_STATUS)
+    status["control"]["batteryBlocks"].append(
+        {"din": follower_din, "disableReasons": []}
+    )
+    status["control"]["systemStatus"]["nominalFullPackEnergyWh"] = 28840
+    # A leader and one follower, each a Powerwall 3 with its own PCH row.
+    components = deepcopy(POWERWALL_COMPONENTS)
+    for kind in ("bms", "hvp"):
+        components["components"][kind] = components["components"][kind][:2]
+    components["components"]["hvp"][1]["partNumber"] = "1707000-30-L"
+    follower_pch = deepcopy(components["components"]["pch"][0])
+    assert follower_pch["signals"][1]["name"] == "PCH_PvVoltageA"
+    follower_pch["signals"][1]["value"] = 401.5
+    components["components"]["pch"].append(follower_pch)
+    mock_powerwall_status.side_effect = None
+    mock_powerwall_status.return_value = status
+    mock_powerwall_components.side_effect = None
+    mock_powerwall_components.return_value = components
+
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    entries = {
+        entity.unique_id: entity
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        if "-pv_string_" in entity.unique_id
+    }
+    keys = [
+        f"pv_string_{string}_{measurement}"
+        for string in "abcdef"
+        for measurement in ("voltage", "current")
+    ]
+    leader_keys = {
+        f"{SITE_ID}-{key}"
+        for key in LOCAL_COMPONENTS_KEYS
+        if key.startswith("pv_string_")
+    }
+    follower_keys = {f"{SITE_ID}-{follower_din}-{key}" for key in keys}
+    assert entries.keys() == leader_keys | follower_keys
+    (subentry_id,) = entry.subentries
+    for unique_id in follower_keys:
+        entity = entries[unique_id]
+        assert entity == snapshot(name=f"{entity.entity_id}-entry")
+        assert entity.config_subentry_id == subentry_id
+        assert hass.states.get(entity.entity_id) == snapshot(
+            name=f"{entity.entity_id}-state"
+        )

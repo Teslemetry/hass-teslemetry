@@ -1910,6 +1910,49 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
 )
 
 
+def _unit_pv_string_voltage(
+    data: dict[str, Any], slot: int, *, string: str
+) -> float | None:
+    """Return the voltage of a PV string on a Powerwall 3 battery unit."""
+    return component_float(data, "pch", f"PCH_PvVoltage{string}", slot)
+
+
+def _unit_pv_string_current(
+    data: dict[str, Any], slot: int, *, string: str
+) -> float | None:
+    """Return the current of a PV string on a Powerwall 3 battery unit."""
+    return pv_string_current(data, string, slot)
+
+
+# The leader's PV strings stay on the energy site device, so only followers use these.
+ENERGY_LOCAL_FOLLOWER_DESCRIPTIONS: tuple[
+    TeslemetryLocalUnitSensorEntityDescription, ...
+] = (
+    *(
+        TeslemetryLocalUnitSensorEntityDescription(
+            key=f"pv_string_{string.lower()}_voltage",
+            value_fn=partial(_unit_pv_string_voltage, string=string),
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=1,
+        )
+        for string in PV_STRINGS
+    ),
+    *(
+        TeslemetryLocalUnitSensorEntityDescription(
+            key=f"pv_string_{string.lower()}_current",
+            value_fn=partial(_unit_pv_string_current, string=string),
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            suggested_display_precision=2,
+        )
+        for string in PV_STRINGS
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
@@ -2404,7 +2447,10 @@ def _local_unit_sensors(
     return [
         TeslemetryEnergyLocalUnitSensorEntity(energysite, unit_id, unit, description)
         for unit_id, unit in energysite.local_battery_units.items()
-        for description in ENERGY_LOCAL_UNIT_DESCRIPTIONS
+        for description in (
+            *ENERGY_LOCAL_UNIT_DESCRIPTIONS,
+            *(ENERGY_LOCAL_FOLLOWER_DESCRIPTIONS if unit.role == "follower" else ()),
+        )
         if description.value_fn(coordinator.data, unit.component_slot) is not None
     ]
 
