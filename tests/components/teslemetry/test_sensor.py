@@ -186,6 +186,34 @@ async def test_energy_percentage_charged_requires_battery(
     assert (state and state.state) == expected
 
 
+@pytest.mark.parametrize(
+    ("grid_services_enabled", "expected"),
+    [
+        pytest.param(True, "0.0", id="grid_services"),
+        pytest.param(False, None, id="no_grid_services"),
+    ],
+)
+async def test_energy_grid_services_power_requires_grid_services(
+    hass: HomeAssistant,
+    mock_live_status: AsyncMock,
+    mock_site_info: AsyncMock,
+    grid_services_enabled: bool,
+    expected: str | None,
+) -> None:
+    """The grid services power sensor is created for enrolled sites even when Tesla omits it outside an event."""
+    live_status = deepcopy(LIVE_STATUS)
+    del live_status["response"]["grid_services_power"]
+    mock_live_status.side_effect = lambda: deepcopy(live_status)
+    site_info = deepcopy(SITE_INFO)
+    site_info["response"]["components"]["grid_services_enabled"] = grid_services_enabled
+    mock_site_info.side_effect = lambda: deepcopy(site_info)
+
+    await setup_platform(hass, [Platform.SENSOR])
+
+    state = hass.states.get("sensor.energy_site_grid_services_power")
+    assert (state and state.state) == expected
+
+
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
 async def test_sensors(
     hass: HomeAssistant,
