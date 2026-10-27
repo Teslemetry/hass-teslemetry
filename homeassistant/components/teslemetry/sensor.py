@@ -50,6 +50,7 @@ from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryEnergyLiveEntity,
     TeslemetryEnergyLocalComponentsEntity,
+    TeslemetryEnergyLocalConfigEntity,
     TeslemetryEnergyLocalStatusEntity,
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
@@ -1786,6 +1787,33 @@ ENERGY_LOCAL_STATUS_DESCRIPTIONS: tuple[TeslemetryLocalSensorEntityDescription, 
 )
 
 
+def _site_info(key: str) -> Callable[[dict[str, Any]], StateType]:
+    """Return a function reading a value from the gateway's site info."""
+    return lambda data: data.get("site_info", {}).get(key)
+
+
+ENERGY_LOCAL_CONFIG_DESCRIPTIONS: tuple[TeslemetryLocalSensorEntityDescription, ...] = (
+    TeslemetryLocalSensorEntityDescription(
+        key="grid_code",
+        value_fn=_site_info("grid_code"),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalSensorEntityDescription(
+        key="country",
+        value_fn=_site_info("country"),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalSensorEntityDescription(
+        key="distributor",
+        value_fn=_site_info("distributor"),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
@@ -1898,6 +1926,16 @@ async def async_setup_entry(
         # Without a first refresh, add every sensor so they recover with the gateway.
         if coordinator.data is None
         or description.value_fn(coordinator.data) is not None
+    )
+
+    entities.extend(
+        TeslemetryEnergyLocalConfigSensorEntity(energysite, description)
+        for energysite in entry.runtime_data.energysites
+        if (config_coordinator := energysite.local_config_coordinator)
+        for description in ENERGY_LOCAL_CONFIG_DESCRIPTIONS
+        # Without a first config, add every sensor so they recover with the gateway.
+        if config_coordinator.data is None
+        or description.value_fn(config_coordinator.data) is not None
     )
 
     if entry.runtime_data.stream is not None:
@@ -2139,6 +2177,29 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
         """Update the attributes of the sensor."""
         self._attr_available = not self.is_none
         self._attr_native_value = self._value
+
+
+class TeslemetryEnergyLocalConfigSensorEntity(
+    TeslemetryEnergyLocalConfigEntity, SensorEntity
+):
+    """Teslemetry energy sensor read from the local gateway configuration."""
+
+    entity_description: TeslemetryLocalSensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetryLocalSensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        super().__init__(data, description.key)
+
+    @property
+    @override
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        return self.entity_description.value_fn(self.coordinator.data)
 
 
 class TeslemetryEnergyHistorySensorEntity(TeslemetryEnergyHistoryEntity, SensorEntity):
