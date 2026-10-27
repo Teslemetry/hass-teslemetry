@@ -2096,6 +2096,456 @@
     'state': '2.84',
   })
 # ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_battery_connection_status-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-1707000-30-L--TG10000000000A')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_battery_connection_status',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Battery connection status',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Battery connection status',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'battery_connection_status',
+    'unique_id': '123456-1707000-30-L--TG10000000000A-battery_connection_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_battery_connection_status-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall Battery connection status',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_battery_connection_status',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'CONNECTED',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_battery_connection_status-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000002C')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_battery_connection_status',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Battery connection status',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Battery connection status',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'battery_connection_status',
+    'unique_id': '123456-TG10000000002C-battery_connection_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_battery_connection_status-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion Battery connection status',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_battery_connection_status',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'CONNECTED',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_battery_connection_status_2-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000003D')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_battery_connection_status_2',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Battery connection status',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Battery connection status',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'battery_connection_status',
+    'unique_id': '123456-TG10000000003D-battery_connection_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_battery_connection_status_2-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion Battery connection status',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_battery_connection_status_2',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'CONNECTED',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_firmware-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000002C')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_firmware',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP firmware',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP firmware',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_firmware',
+    'unique_id': '123456-TG10000000002C-hvp_firmware',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_firmware-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion HVP firmware',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_firmware',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '04d5dd98fb2037',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_firmware_2-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000003D')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_firmware_2',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP firmware',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP firmware',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_firmware',
+    'unique_id': '123456-TG10000000003D-hvp_firmware',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_firmware_2-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion HVP firmware',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_firmware_2',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '04d5dd98fb2037',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_state-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000002C')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_state',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP state',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP state',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_state',
+    'unique_id': '123456-TG10000000002C-hvp_state',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_state-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion HVP state',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_state',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'HVP_ACTIVE',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_state_2-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-TG10000000003D')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_state_2',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP state',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP state',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_state',
+    'unique_id': '123456-TG10000000003D-hvp_state',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_expansion_hvp_state_2-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall expansion HVP state',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_expansion_hvp_state_2',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'HVP_ACTIVE',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_hvp_firmware-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-1707000-30-L--TG10000000000A')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_hvp_firmware',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP firmware',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP firmware',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_firmware',
+    'unique_id': '123456-1707000-30-L--TG10000000000A-hvp_firmware',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_hvp_firmware-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall HVP firmware',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_hvp_firmware',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '04d5dd98fb2037',
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_hvp_state-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <DeviceEntry identifiers=[('teslemetry', '123456-1707000-30-L--TG10000000000A')]>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.powerwall_hvp_state',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'HVP state',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'HVP state',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hvp_state',
+    'unique_id': '123456-1707000-30-L--TG10000000000A-hvp_state',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_local_unit_diagnostic_sensors[sensor.powerwall_hvp_state-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Powerwall HVP state',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.powerwall_hvp_state',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'HVP_ACTIVE',
+  })
+# ---
 # name: test_local_unit_sensors[1707000-30-L--TG10000000000A-device]
   DeviceRegistryEntrySnapshot({
     'area_id': None,
