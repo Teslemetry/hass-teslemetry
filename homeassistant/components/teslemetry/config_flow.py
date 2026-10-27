@@ -487,11 +487,15 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             ir.async_delete_issue(
                 self.hass, DOMAIN, f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{self._vin}"
             )
-            return self.async_update_and_abort(
+            result = self.async_update_and_abort(
                 entry,
                 self._get_reconfigure_subentry(),
                 data_updates={CONF_ADDRESS: self._address},
             )
+            # Reload manually: the update listener only reloads on subentry add or
+            # remove, and async_update_reload_and_abort raises while a listener is set.
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return result
         return self.async_create_entry(
             title=self._title or self._vin,
             data={CONF_VIN: self._vin, CONF_ADDRESS: self._address},
