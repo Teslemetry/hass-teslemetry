@@ -502,7 +502,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     """Skip the tests of core issue ownership on a core release without it."""
     from homeassistant.helpers import issue_registry as ir  # noqa: PLC0415
 
-    if hasattr(ir, "async_begin_issues_refresh"):
+    if hasattr(ir, "async_refresh_issues") or hasattr(ir, "async_begin_issues_refresh"):
         return
     skip = pytest.mark.skip(reason="the pinned core release has no issue ownership")
     for item in items:
