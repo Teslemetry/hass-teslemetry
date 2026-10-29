@@ -9,7 +9,6 @@ from aiopowerwall import (
     PowerwallAuthenticationError,
     PowerwallClient,
     PowerwallCommandError,
-    PowerwallError,
     PowerwallNotSupportedError,
 )
 from tesla_fleet_api.exceptions import TeslaFleetError
@@ -26,6 +25,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import BLE_PARENT_KEY, BLE_PARENT_LOCK_KEY, DOMAIN, LOGGER, VEHICLE_KEY_FILE
 
 GATEWAY_OUT_OF_RANGE = 11
+BATTERY_DISPATCH_COMMANDS = frozenset(
+    {"dispatch_battery_power", "resume_battery_operation"}
+)
 
 
 class PowerwallKeyRejectedError(Exception):
@@ -127,8 +129,18 @@ async def handle_command(command: Awaitable[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
-async def handle_local_command(command: Awaitable[None]) -> None:
-    """Handle a command sent to a local Powerwall gateway."""
+def fail_over_unless_gateway_rejected(
+    err: BaseException | None, backend: Any, method: str
+) -> bool:
+    """Fail over to the cloud unless the gateway rejected a battery dispatch command."""
+    # The cloud sends these commands to the same gateway, so it would reject them too
+    return not (
+        isinstance(err, PowerwallCommandError) and method in BATTERY_DISPATCH_COMMANDS
+    )
+
+
+async def handle_energy_command(command: Awaitable[dict[str, Any]]) -> None:
+    """Handle a command routed to the local Powerwall gateway or the cloud."""
     try:
         await command
     except PowerwallNotSupportedError as e:
@@ -136,24 +148,24 @@ async def handle_local_command(command: Awaitable[None]) -> None:
             translation_domain=DOMAIN,
             translation_key="local_command_not_supported",
         ) from e
-    except PowerwallCommandError as e:
+    except (PowerwallCommandError, TeslaFleetError) as e:
+        detail: object = e
+        if isinstance(e, TeslaFleetError):
+            detail = e.data or e.message
+            translation_key = "energy_command_failed"
+        elif e.code == GATEWAY_OUT_OF_RANGE:
+            translation_key = "local_command_out_of_range"
+        else:
+            translation_key = "local_command_failed"
         # pylint: disable-next=home-assistant-log-and-raise
-        LOGGER.error("Local Powerwall gateway command failed: %s", e)
-        if e.code == GATEWAY_OUT_OF_RANGE:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="local_command_out_of_range",
-            ) from e
+        LOGGER.error("Energy site command failed: %s", detail)
         raise HomeAssistantError(
-            translation_domain=DOMAIN,
-            translation_key="local_command_failed",
+            translation_domain=DOMAIN, translation_key=translation_key
         ) from e
-    except PowerwallError as e:
-        # pylint: disable-next=home-assistant-log-and-raise
-        LOGGER.error("Local Powerwall gateway command failed: %s", e)
+    except (ClientError, TimeoutError) as e:
         raise HomeAssistantError(
             translation_domain=DOMAIN,
-            translation_key="local_command_failed",
+            translation_key="command_connection_error",
         ) from e
 
 
