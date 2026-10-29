@@ -23,6 +23,7 @@ from .const import (
     METADATA_LEGACY,
     METADATA_OLD_FIRMWARE,
     POWERWALL_COMPONENTS,
+    POWERWALL_CONFIG,
     POWERWALL_STATUS,
     PRODUCTS,
     PRODUCTS_ENERGY,
@@ -450,6 +451,16 @@ def mock_powerwall_components() -> Generator[AsyncMock]:
         side_effect=lambda: deepcopy(POWERWALL_COMPONENTS),
     ) as mock_components:
         yield mock_components
+
+
+@pytest.fixture(autouse=True)
+def mock_powerwall_config() -> Generator[AsyncMock]:
+    """Mock the local Powerwall gateway configuration."""
+    with patch(
+        "aiopowerwall.PowerwallClient.get_config",
+        side_effect=lambda: deepcopy(POWERWALL_CONFIG),
+    ) as mock_config:
+        yield mock_config
 
 
 @pytest.fixture(autouse=True)
