@@ -602,6 +602,21 @@
       }
     },
     "sensor": {
+      "ac_frequency": {
+        "name": "AC frequency"
+      },
+      "ac_power": {
+        "name": "AC power"
+      },
+      "ac_voltage_ab": {
+        "name": "AC voltage AB"
+      },
+      "ac_voltage_an": {
+        "name": "AC voltage AN"
+      },
+      "ac_voltage_bn": {
+        "name": "AC voltage BN"
+      },
       "battery_connection_status": {
         "name": "Battery connection status"
       },
@@ -1128,6 +1143,12 @@
       "paired_phone_key_and_key_fob_qty": {
         "name": "Paired phone key and key fob quantity"
       },
+      "pch_firmware": {
+        "name": "PCH firmware"
+      },
+      "pch_state": {
+        "name": "PCH state"
+      },
       "pedal_position": {
         "name": "Pedal position"
       },
@@ -1256,6 +1277,9 @@
       },
       "pv_string_f_voltage": {
         "name": "PV string F voltage"
+      },
+      "pws_firmware": {
+        "name": "PWS firmware"
       },
       "rated_range": {
         "name": "Rated range"
