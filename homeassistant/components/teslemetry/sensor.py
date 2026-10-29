@@ -1865,6 +1865,15 @@ class TeslemetryLocalUnitSensorEntityDescription(SensorEntityDescription):
     powerwall_only: bool = False
 
 
+def _unit_percentage_charged(data: dict[str, Any], slot: int) -> float | None:
+    """Return the unit's remaining energy as a percentage of its full pack energy."""
+    remaining = component_float(data, "bms", "BMS_nominalEnergyRemaining", slot)
+    full = component_float(data, "bms", "BMS_nominalFullPackEnergy", slot)
+    if remaining is None or not full:
+        return None
+    return remaining / full * 100
+
+
 ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
     TeslemetryLocalUnitSensorEntityDescription, ...
 ] = (
@@ -1886,6 +1895,14 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        suggested_display_precision=2,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="percentage_charged",
+        value_fn=_unit_percentage_charged,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=2,
     ),
     TeslemetryLocalUnitSensorEntityDescription(
