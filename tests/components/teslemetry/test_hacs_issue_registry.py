@@ -30,6 +30,14 @@ def test_core_names_pass_through() -> None:
     assert hacs_issue_registry.async_get is ir.async_get
 
 
+def test_old_refresh_name_is_kept() -> None:
+    """The old name of the refresh helper begins the same refresh."""
+    assert (
+        hacs_issue_registry.async_begin_issues_refresh
+        is hacs_issue_registry.async_refresh_issues
+    )
+
+
 async def test_refresh_deletes_stale_issues_of_its_entry(
     hass: HomeAssistant, issue_registry: ir.IssueRegistry
 ) -> None:
@@ -46,7 +54,7 @@ async def test_refresh_deletes_stale_issues_of_its_entry(
         _create_issue(hass, issue_id, entry.entry_id)
     _create_issue(hass, "gateway_not_found_333", other_entry.entry_id)
 
-    with hacs_issue_registry.async_begin_issues_refresh(
+    with hacs_issue_registry.async_refresh_issues(
         hass,
         DOMAIN,
         issue_id_pattern="gateway_not_found_",
@@ -66,7 +74,7 @@ async def test_refresh_deleted_issue_stays_deleted(
     """An issue deleted during a refresh is not created again by it."""
     _create_issue(hass, "gateway_not_found_1", "entry")
 
-    with hacs_issue_registry.async_begin_issues_refresh(
+    with hacs_issue_registry.async_refresh_issues(
         hass, DOMAIN, issue_ids=["gateway_not_found_1"]
     ):
         hacs_issue_registry.async_delete_issue(hass, DOMAIN, "gateway_not_found_1")
@@ -80,7 +88,7 @@ async def test_cancelled_refresh_deletes_nothing(
     """A cancelled refresh, as a failed setup leaves it, deletes nothing."""
     _create_issue(hass, "gateway_not_found_1", "entry")
 
-    refresh = hacs_issue_registry.async_begin_issues_refresh(
+    refresh = hacs_issue_registry.async_refresh_issues(
         hass, DOMAIN, issue_id_pattern="gateway_not_found_"
     )
     refresh.async_cancel()
@@ -97,7 +105,7 @@ async def test_refresh_keeps_touched_issues(
         _create_issue(hass, issue_id, "entry")
     ir.async_ignore_issue(hass, DOMAIN, "gateway_not_found_1", True)
 
-    with hacs_issue_registry.async_begin_issues_refresh(
+    with hacs_issue_registry.async_refresh_issues(
         hass, DOMAIN, issue_id_pattern="gateway_not_found_", config_entry_id="entry"
     ):
         hacs_issue_registry.async_keep_issue(hass, DOMAIN, "gateway_not_found_1")
@@ -117,7 +125,7 @@ async def test_refresh_cancelled_on_exception(
 
     with (
         pytest.raises(RuntimeError),
-        hacs_issue_registry.async_begin_issues_refresh(
+        hacs_issue_registry.async_refresh_issues(
             hass, DOMAIN, issue_ids=["gateway_not_found_1"]
         ),
     ):

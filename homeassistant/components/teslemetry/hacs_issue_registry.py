@@ -2,11 +2,12 @@
 
 The integration imports this module as ``ir`` in place of
 ``homeassistant.helpers.issue_registry``. On a core with issue refreshes, every
-name is core's own. The pinned core release has no ``async_begin_issues_refresh``
+name is core's own. The pinned core release has no ``async_refresh_issues``
 or ``async_keep_issue`` and no ``config_entry_id`` on issues, so this module adds
 a local equivalent: an issue belongs to the config entry its ``data["entry_id"]``
-names. Retire it once the floor reaches the first core release with
-``async_begin_issues_refresh``.
+names. ``async_begin_issues_refresh`` is the old name of ``async_refresh_issues``,
+which core dev renamed before any release had it. Retire it once the floor
+reaches the first core release with ``async_refresh_issues``.
 """
 
 from collections.abc import Iterable
@@ -18,7 +19,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util.hass_dict import HassKey
 
-_CORE_HAS_REFRESH = hasattr(ir, "async_begin_issues_refresh")
+_CORE_HAS_REFRESH = hasattr(ir, "async_refresh_issues")
 _REFRESHES: HassKey[list[IssuesRefresh]] = HassKey("teslemetry_hacs_issue_refreshes")
 
 
@@ -87,7 +88,7 @@ def _async_touch(hass: HomeAssistant, domain: str, issue_id: str) -> None:
 
 
 @callback
-def async_begin_issues_refresh(
+def async_refresh_issues(
     hass: HomeAssistant,
     domain: str,
     *,
@@ -97,7 +98,7 @@ def async_begin_issues_refresh(
 ) -> Any:
     """Begin a refresh of a set of issues."""
     if _CORE_HAS_REFRESH:
-        return ir.async_begin_issues_refresh(
+        return ir.async_refresh_issues(
             hass,
             domain,
             issue_id_pattern=issue_id_pattern,
@@ -118,6 +119,9 @@ def async_begin_issues_refresh(
         )
     }
     return IssuesRefresh(hass, keys)
+
+
+async_begin_issues_refresh = async_refresh_issues
 
 
 @callback
