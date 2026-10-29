@@ -1289,6 +1289,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
     # Setup energy devices with models, versions, and listeners
     for energysite in energysites:
         async_setup_energy_device(hass, entry, energysite, device_registry)
+        current_devices |= _async_local_battery_unit_devices(
+            entry, energysite, device_registry
+        )
 
     # Remove devices that are no longer present
     for device_entry in dr.async_entries_for_config_entry(
@@ -1662,6 +1665,28 @@ def create_handle_vehicle_stream(
             coordinator.async_set_updated_data(coordinator.data)
 
     return handle_vehicle_stream
+
+
+def _async_local_battery_unit_devices(
+    entry: TeslemetryConfigEntry,
+    energysite: TeslemetryEnergyData,
+    device_registry: dr.DeviceRegistry,
+) -> set[tuple[str, str]]:
+    """Return the device identifiers of the battery units of a paired site."""
+    if energysite.local_components_coordinator is None:
+        return set()
+    prefix = f"{energysite.id}-"
+    if (units := energysite.match_battery_units()) is not None:
+        return {(DOMAIN, f"{prefix}{unit_id}") for unit_id in units}
+    # Keep the battery unit devices of a gateway unreachable at startup.
+    return {
+        identifier
+        for device_entry in dr.async_entries_for_config_entry(
+            device_registry, entry.entry_id
+        )
+        for identifier in device_entry.identifiers
+        if identifier[1].startswith(prefix)
+    }
 
 
 def async_setup_energy_device(
