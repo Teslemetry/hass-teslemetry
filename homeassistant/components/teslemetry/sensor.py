@@ -1886,6 +1886,29 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_display_precision=2,
     ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="hvp_state",
+        value_fn=lambda data, slot: component_signal(data, "hvp", "HVP_State", slot),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="battery_connection_status",
+        # The battery aggregator reports one connection status per component slot.
+        value_fn=lambda data, slot: component_signal(
+            data, "baggr", f"BAGGR_LOG_BattConnectionStatus{slot}"
+        ),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="hvp_firmware",
+        value_fn=lambda data, slot: component_signal(
+            data, "hvp", "HVP_appGitHash", slot
+        ),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
 )
 
 
