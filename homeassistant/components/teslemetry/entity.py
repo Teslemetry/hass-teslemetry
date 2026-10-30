@@ -3,6 +3,7 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, override
 
+from aiopowerwall import BatteryUnit
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
@@ -309,6 +310,43 @@ class TeslemetryEnergyLocalConfigEntity(
         self._attr_device_info = data.device
 
         super().__init__(data.local_config_coordinator)
+
+
+class TeslemetryEnergyLocalUnitEntity(
+    TeslemetryRootEntity, CoordinatorEntity[TeslemetryLocalComponentsCoordinator]
+):
+    """Parent class for Teslemetry entities of one battery unit of a paired site."""
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        unit_id: str,
+        unit: BatteryUnit,
+        key: str,
+    ) -> None:
+        """Initialize common aspects of a Teslemetry local battery unit entity."""
+
+        coordinator = data.local_components_coordinator
+        if TYPE_CHECKING:
+            assert coordinator
+
+        self.unit = unit
+        self._attr_translation_key = key
+        self._attr_unique_id = f"{data.id}-{unit_id}-{key}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"{data.id}-{unit_id}")},
+            manufacturer="Tesla",
+            name="Powerwall expansion" if unit.role == "expansion" else "Powerwall",
+            serial_number=unit.serial_number,
+            model_id=unit.part_number,
+            via_device_id=dr.async_get_device_id_by_identifier(
+                coordinator.hass,
+                (DOMAIN, str(data.id)),
+                config_entry_id=coordinator.config_entry.entry_id,
+            ),
+        )
+
+        super().__init__(coordinator)
 
 
 class TeslemetryWallConnectorEntity(TeslemetryPollingEntity):
