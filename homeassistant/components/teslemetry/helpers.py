@@ -67,10 +67,16 @@ def cloud_energy_site(api: EnergySite | EnergySiteRouter) -> TeslemetryEnergySit
 
 
 def create_powerwall_client(
-    hass: HomeAssistant, host: str, password: str, key_pem: bytes
+    hass: HomeAssistant,
+    host: str,
+    password: str,
+    key_pem: bytes,
+    *,
+    legacy_gateway: bool,
 ) -> PowerwallClient:
     """Return a local Powerwall gateway client on the shared HTTP session."""
-    return PowerwallClient(
+    factory = PowerwallClient.legacy_gateway if legacy_gateway else PowerwallClient
+    return factory(
         host=host,
         gateway_password=password,
         rsa_private_key_pem=key_pem,
@@ -79,10 +85,17 @@ def create_powerwall_client(
 
 
 async def async_verify_local_gateway(
-    hass: HomeAssistant, host: str, password: str, key_pem: bytes
+    hass: HomeAssistant,
+    host: str,
+    password: str,
+    key_pem: bytes,
+    *,
+    legacy_gateway: bool,
 ) -> None:
     """Prove the LAN connection and the RSA key against the gateway."""
-    async with create_powerwall_client(hass, host, password, key_pem) as client:
+    async with create_powerwall_client(
+        hass, host, password, key_pem, legacy_gateway=legacy_gateway
+    ) as client:
         await client.connect()
         try:
             # connect() passed the password, so a failure here is key rejection.

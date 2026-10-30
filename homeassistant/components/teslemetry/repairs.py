@@ -40,6 +40,7 @@ from . import TeslemetryConfigEntry, _async_get_rsa_key_pem
 from .const import (
     BLE_DISCONNECT_TIMEOUT,
     BLE_HANDSHAKE_TIMEOUT,
+    CONF_LEGACY_GATEWAY,
     CONF_VIN,
     ISSUE_GATEWAY_NOT_FOUND,
     ISSUE_TYPE_BLE_KEY_REJECTED,
@@ -293,7 +294,11 @@ class GatewayNotFoundRepairFlow(RepairsFlow):
             assert self._subentry is not None
         try:
             await async_verify_local_gateway(
-                self.hass, host, self._subentry.data[CONF_PASSWORD], self._key_pem
+                self.hass,
+                host,
+                self._subentry.data[CONF_PASSWORD],
+                self._key_pem,
+                legacy_gateway=self._subentry.data.get(CONF_LEGACY_GATEWAY, False),
             )
         except PowerwallKeyRejectedError:
             return "key_not_approved"
