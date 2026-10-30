@@ -193,11 +193,13 @@ async def handle_command(
 
 
 async def handle_energy_site_command(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
     command: Awaitable[dict[str, Any]],
 ) -> dict[str, Any]:
     """Handle a command that a paired energy site may send to its local Powerwall gateway."""
     try:
-        return await handle_command(command)
+        return await handle_command(hass, entry, command)
     except PowerwallNotSupportedError as e:
         raise HomeAssistantError(
             translation_domain=DOMAIN,
