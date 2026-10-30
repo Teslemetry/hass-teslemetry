@@ -1,0 +1,34 @@
+diff --git a/homeassistant/components/teslemetry/helpers.py b/homeassistant/components/teslemetry/helpers.py
+index 1186ee0ce57..603cf2351ec 100644
+--- a/homeassistant/components/teslemetry/helpers.py
++++ b/homeassistant/components/teslemetry/helpers.py
+@@ -194,2 +194,4 @@ async def handle_command(
+ async def handle_energy_site_command(
++    hass: HomeAssistant,
++    entry: TeslemetryConfigEntry,
+     command: Awaitable[dict[str, Any]],
+@@ -198,3 +200,3 @@ async def handle_energy_site_command(
+     try:
+-        return await handle_command(command)
++        return await handle_command(hass, entry, command)
+     except PowerwallNotSupportedError as e:
+diff --git a/homeassistant/components/teslemetry/services.py b/homeassistant/components/teslemetry/services.py
+index 68ee7ef8e71..e7ff7cd2f7e 100644
+--- a/homeassistant/components/teslemetry/services.py
++++ b/homeassistant/components/teslemetry/services.py
+@@ -124,3 +124,7 @@ async def async_dispatch_battery_power(call: ServiceCall) -> None:
+     await handle_energy_site_command(
+-        site.api.dispatch_battery_power(call.data[ATTR_POWER], call.data[ATTR_DURATION])
++        call.hass,
++        config,
++        site.api.dispatch_battery_power(
++            call.data[ATTR_POWER], call.data[ATTR_DURATION]
++        ),
+     )
+@@ -133,3 +137,5 @@ async def async_resume_battery_operation(call: ServiceCall) -> None:
+ 
+-    await handle_energy_site_command(site.api.resume_battery_operation())
++    await handle_energy_site_command(
++        call.hass, config, site.api.resume_battery_operation()
++    )
+ 
