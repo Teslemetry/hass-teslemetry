@@ -87,7 +87,7 @@ LOCAL_COMPONENTS_KEYS = (
     "pv_power",
 )
 
-LOCAL_UNIT_KEYS = ("energy_remaining", "full_pack_energy")
+LOCAL_UNIT_KEYS = ("energy_remaining", "full_pack_energy", "percentage_charged")
 LEADER_DIN = "1707000-30-L--TG10000000000A"
 # Powerwalls are keyed by DIN and expansions by serial number.
 LOCAL_UNIT_IDS = (LEADER_DIN, "TG10000000002C", "TG10000000003D")
@@ -2171,6 +2171,47 @@ async def test_local_unit_sensors(
         assert device == snapshot(name=f"{unit_id}-device")
         assert device.config_subentry_id == subentry_id
         assert device.via_device_id == site.id
+
+
+@pytest.mark.parametrize(
+    ("remaining", "full_pack", "expected"),
+    [
+        pytest.param(7.21, 14.42, "50.0", id="half"),
+        pytest.param(None, 14.42, STATE_UNKNOWN, id="remaining_missing"),
+        pytest.param(7.21, None, STATE_UNKNOWN, id="full_pack_missing"),
+        pytest.param(7.21, 0, STATE_UNKNOWN, id="full_pack_zero"),
+        pytest.param(0, 14.42, "0.0", id="empty"),
+    ],
+)
+async def test_local_unit_percentage_charged(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    freezer: FrozenDateTimeFactory,
+    mock_powerwall_components: AsyncMock,
+    remaining: float | None,
+    full_pack: float | None,
+    expected: str,
+) -> None:
+    """Test a unit's percentage charged is its remaining energy over its full pack."""
+    await setup_paired_platform(hass, [Platform.SENSOR])
+    entity_id = entity_registry.async_get_entity_id(
+        Platform.SENSOR, DOMAIN, f"{SITE_ID}-{LEADER_DIN}-percentage_charged"
+    )
+    assert float(hass.states.get(entity_id).state) == pytest.approx(73.0929, abs=1e-4)
+
+    components = deepcopy(POWERWALL_COMPONENTS)
+    for signal in components["components"]["bms"][0]["signals"]:
+        if signal["name"] == "BMS_nominalEnergyRemaining":
+            signal["value"] = remaining
+        elif signal["name"] == "BMS_nominalFullPackEnergy":
+            signal["value"] = full_pack
+    mock_powerwall_components.side_effect = None
+    mock_powerwall_components.return_value = components
+    freezer.tick(LOCAL_COMPONENTS_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert hass.states.get(entity_id).state == expected
 
 
 async def test_local_unit_sensors_unpaired(
