@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 from aiohttp import ClientConnectionError, ClientError, ClientResponseError
 from aiopowerwall import (
     PowerwallAuthenticationError,
+    PowerwallClient,
     PowerwallConnectionError,
     PowerwallError,
     PowerwallProtocolError,
@@ -78,6 +79,7 @@ from homeassistant.components.teslemetry import (
 )
 from homeassistant.components.teslemetry.const import (
     CLIENT_ID,
+    CONF_LEGACY_GATEWAY,
     CONF_SITE_ID,
     CONF_VIN,
     DOMAIN,
@@ -1530,7 +1532,9 @@ _TEST_RSA_KEY_PEM = rsa.generate_private_key(
 )
 
 
-def _entry_with_powerwall() -> MockConfigEntry:
+def _entry_with_powerwall(
+    subentry_data: dict[str, Any] | None = None,
+) -> MockConfigEntry:
     """Return a config entry whose energy site subentry is already paired."""
     entry = mock_config_entry()
     return MockConfigEntry(
@@ -1548,6 +1552,7 @@ def _entry_with_powerwall() -> MockConfigEntry:
                     CONF_SITE_ID: SITE_ID,
                     CONF_HOST: HOST,
                     CONF_PASSWORD: PASSWORD,
+                    **(subentry_data or {}),
                 },
             )
         ],
@@ -2025,6 +2030,31 @@ async def test_local_gateway_rediscovered_through_cloud(
     assert isinstance(router, EnergySiteRouter)
     assert router.primary.powerwall.host == NEW_HOST
     assert issue_registry.async_get_issue(DOMAIN, GATEWAY_ISSUE_ID) is None
+
+
+async def test_gateway_1_connects_with_full_password(
+    hass: HomeAssistant, mock_powerwall_connect: AsyncMock
+) -> None:
+    """A Gateway 1 subentry logs in with its full password, also after rediscovery."""
+    entry = _entry_with_powerwall(
+        {CONF_PASSWORD: "long-wifi-password", CONF_LEGACY_GATEWAY: True}
+    )
+    entry.add_to_hass(hass)
+    mock_powerwall_connect.side_effect = [
+        PowerwallConnectionError("unreachable"),
+        "GATEWAY-DIN",
+    ]
+
+    with patch.object(
+        PowerwallClient, "legacy_gateway", side_effect=PowerwallClient.legacy_gateway
+    ) as mock_legacy_gateway:
+        await _setup_entry_with_powerwall(hass, entry, AsyncMock(return_value=NEW_HOST))
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert [
+        (call.kwargs["host"], call.kwargs["gateway_password"])
+        for call in mock_legacy_gateway.call_args_list
+    ] == [(HOST, "long-wifi-password"), (NEW_HOST, "long-wifi-password")]
 
 
 @pytest.mark.parametrize(
