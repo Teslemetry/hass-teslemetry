@@ -2271,6 +2271,9 @@ async def test_local_unit_diagnostic_sensors(
         f"{SITE_ID}-{unit_id}-{key}"
         for unit_id in LOCAL_UNIT_IDS
         for key in ("hvp_state", "battery_connection_status", "hvp_firmware")
+    ] + [
+        f"{SITE_ID}-{LEADER_DIN}-{key}"
+        for key in ("pch_state", "pch_firmware", "pws_firmware")
     ]
     entries = {
         entity.unique_id: entity
@@ -2362,3 +2365,102 @@ async def test_local_follower_pv_string_sensors(
         assert hass.states.get(entity.entity_id) == snapshot(
             name=f"{entity.entity_id}-state"
         )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_powerwall_3_sensors(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the Powerwall 3 PCH and PWS sensors go on the Powerwall 3 device only."""
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    keys = (
+        "battery_power",
+        "ac_power",
+        "ac_voltage_ab",
+        "ac_voltage_an",
+        "ac_voltage_bn",
+        "ac_frequency",
+        "pch_state",
+        "pch_firmware",
+        "pws_firmware",
+    )
+    entries = {
+        entity.unique_id: entity
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        if entity.unique_id.startswith(
+            tuple(f"{SITE_ID}-{unit_id}-" for unit_id in LOCAL_UNIT_IDS)
+        )
+        and entity.unique_id.endswith(keys)
+    }
+    # Expansions have no PCH, so they get none of these sensors.
+    assert sorted(entries) == sorted(f"{SITE_ID}-{LEADER_DIN}-{key}" for key in keys)
+    (subentry_id,) = entry.subentries
+    for entity in entries.values():
+        assert entity == snapshot(name=f"{entity.entity_id}-entry")
+        assert entity.config_subentry_id == subentry_id
+        assert hass.states.get(entity.entity_id) == snapshot(
+            name=f"{entity.entity_id}-state"
+        )
+
+
+async def test_local_powerwall_3_sensors_enabled_by_default(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test only the Powerwall 3 battery and AC real power are enabled by default."""
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    keys = (
+        "battery_power",
+        "ac_power",
+        "ac_voltage_ab",
+        "ac_voltage_an",
+        "ac_voltage_bn",
+        "ac_frequency",
+        "pch_state",
+        "pch_firmware",
+        "pws_firmware",
+    )
+    assert {
+        entity.unique_id
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        if entity.unique_id.startswith(f"{SITE_ID}-{LEADER_DIN}-")
+        and entity.unique_id.endswith(keys)
+        and not entity.disabled
+    } == {
+        f"{SITE_ID}-{LEADER_DIN}-battery_power",
+        f"{SITE_ID}-{LEADER_DIN}-ac_power",
+    }
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_powerwall_3_sensors_skip_expansion_slot(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_status: AsyncMock,
+    mock_powerwall_components: AsyncMock,
+) -> None:
+    """Test an expansion never reads another Powerwall 3's PCH row at its slot."""
+    status = deepcopy(POWERWALL_STATUS)
+    status["control"]["batteryBlocks"].append(
+        {"din": "1707000-30-L--TG10000000004E", "disableReasons": []}
+    )
+    # A leader, an expansion at slot 1 and a follower, with one PCH row per Powerwall 3.
+    components = deepcopy(POWERWALL_COMPONENTS)
+    components["components"]["pch"].append(deepcopy(components["components"]["pch"][0]))
+    mock_powerwall_status.side_effect = None
+    mock_powerwall_status.return_value = status
+    mock_powerwall_components.side_effect = None
+    mock_powerwall_components.return_value = components
+
+    await setup_paired_platform(hass, [Platform.SENSOR])
+
+    assert entity_registry.async_get_entity_id(
+        Platform.SENSOR, DOMAIN, f"{SITE_ID}-TG10000000002C-energy_remaining"
+    )
+    assert not entity_registry.async_get_entity_id(
+        Platform.SENSOR, DOMAIN, f"{SITE_ID}-TG10000000002C-battery_power"
+    )
