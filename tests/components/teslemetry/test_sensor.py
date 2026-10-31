@@ -2256,3 +2256,52 @@ async def test_local_unit_without_serial_skipped(
         f"{SITE_ID}-{LEADER_DIN}-energy_remaining",
         f"{SITE_ID}-TG10000000002C-energy_remaining",
     ]
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_unit_diagnostic_sensors(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the battery unit diagnostic sensors a paired energy site reports."""
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    expected = [
+        f"{SITE_ID}-{unit_id}-{key}"
+        for unit_id in LOCAL_UNIT_IDS
+        for key in ("hvp_state", "battery_connection_status", "hvp_firmware")
+    ]
+    entries = {
+        entity.unique_id: entity
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        if entity.entity_category is EntityCategory.DIAGNOSTIC
+        and entity.unique_id.startswith(
+            tuple(f"{SITE_ID}-{unit_id}-" for unit_id in LOCAL_UNIT_IDS)
+        )
+    }
+    assert sorted(entries) == sorted(expected)
+    (subentry_id,) = entry.subentries
+    for entity in entries.values():
+        assert entity == snapshot(name=f"{entity.entity_id}-entry")
+        assert entity.config_subentry_id == subentry_id
+        assert hass.states.get(entity.entity_id) == snapshot(
+            name=f"{entity.entity_id}-state"
+        )
+
+
+async def test_local_unit_diagnostic_sensors_disabled(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the battery unit diagnostic sensors are disabled by default."""
+    await setup_paired_platform(hass, [Platform.SENSOR])
+
+    assert (
+        entity := entity_registry.async_get(
+            entity_registry.async_get_entity_id(
+                Platform.SENSOR, DOMAIN, f"{SITE_ID}-{LEADER_DIN}-hvp_state"
+            )
+        )
+    )
+    assert entity.disabled_by is er.RegistryEntryDisabler.INTEGRATION
