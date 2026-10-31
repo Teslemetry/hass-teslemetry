@@ -88,6 +88,7 @@ from .const import (
     CONF_VIN,
     DOMAIN,
     ISSUE_GATEWAY_NOT_FOUND,
+    ISSUE_LOCAL_CONTROL_FAILED,
     ISSUE_TYPE_BLE_KEY_REJECTED,
     LABS_CHARGE_ON_SOLAR_FEATURE,
     LOGGER,
@@ -520,8 +521,10 @@ async def _async_resolve_local_control(
     if not battery:
         return False, None, cloud_energy_site
     subentry_id = _find_energy_subentry_id(entry, site_id)
+    failed_issue_id = f"{ISSUE_LOCAL_CONTROL_FAILED}_{site_id}"
     if subentry_id is None:
         ir.async_delete_issue(hass, DOMAIN, _gateway_issue_id(site_id))
+        ir.async_delete_issue(hass, DOMAIN, failed_issue_id)
         return True, None, cloud_energy_site
     # A local-gateway failure for one site must not tear down the integration.
     try:
@@ -535,9 +538,22 @@ async def _async_resolve_local_control(
             site_id,
             exc_info=True,
         )
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            failed_issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_LOCAL_CONTROL_FAILED,
+            translation_placeholders={
+                "site": entry.subentries[subentry_id].title,
+                "key_file": POWERWALL_KEY_FILE,
+            },
+        )
         # Whether the gateway is found is unknown
         ir.async_keep_issue(hass, DOMAIN, _gateway_issue_id(site_id))
         return True, subentry_id, cloud_energy_site
+    ir.async_delete_issue(hass, DOMAIN, failed_issue_id)
     return True, subentry_id, api
 
 
