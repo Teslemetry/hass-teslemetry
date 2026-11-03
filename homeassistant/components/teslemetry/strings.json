@@ -602,6 +602,9 @@
       }
     },
     "sensor": {
+      "battery_connection_status": {
+        "name": "Battery connection status"
+      },
       "battery_energy_exported": {
         "name": "Battery exported"
       },
@@ -1016,6 +1019,12 @@
       },
       "hvac_right_temperature_request": {
         "name": "Right temperature request"
+      },
+      "hvp_firmware": {
+        "name": "HVP firmware"
+      },
+      "hvp_state": {
+        "name": "HVP state"
       },
       "island_freq_l1_load": {
         "name": "Island frequency L1 load"
