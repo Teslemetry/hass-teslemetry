@@ -93,6 +93,55 @@
             "textValue": null,
             "boolValue": null,
             "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_A",
+            "value": null,
+            "textValue": "Pv_Active",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_B",
+            "value": null,
+            "textValue": "Pv_Active",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_C",
+            "value": null,
+            "textValue": "Pv_Standby",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_D",
+            "value": null,
+            "textValue": "Pv_Standby",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_E",
+            "value": null,
+            "textValue": "Pv_Standby",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_PvState_F",
+            "value": null,
+            "textValue": "Pv_Standby",
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
+          },
+          {
+            "name": "PCH_SlowPvPowerSum",
+            "value": 4868.0,
+            "textValue": null,
+            "boolValue": null,
+            "timestamp": "2026-10-13T00:00:00+10:00"
           }
         ],
         "activeAlerts": []
