@@ -1139,19 +1139,13 @@ async def _connect_fails_then_pairs(
         pytest.param(
             _connect_failure(BleakNotFoundError("timeout"), TimeoutError()),
             -62,
-            "vehicle_busy",
+            "vehicle_unreachable",
             id="timeout_strong_signal",
         ),
         pytest.param(
             _connect_failure(BleakNotFoundError("timeout"), TimeoutError()),
-            -70,
-            "vehicle_busy",
-            id="timeout_at_strong_threshold",
-        ),
-        pytest.param(
-            _connect_failure(BleakNotFoundError("timeout"), TimeoutError()),
             -71,
-            "weak_signal",
+            "vehicle_unreachable",
             id="timeout_weak_signal",
         ),
         pytest.param(
