@@ -27,6 +27,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfFrequency,
     UnitOfLength,
     UnitOfPower,
     UnitOfPressure,
@@ -1715,6 +1716,20 @@ ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
 )
 
 
+def _islander_measurement(field: str) -> Callable[[dict[str, Any]], float | None]:
+    """Return a function reading an islander AC measurement from the gateway status."""
+
+    def value_fn(data: dict[str, Any]) -> float | None:
+        value: Any = data
+        for key in ("esCan", "bus", "ISLANDER", "ISLAND_AcMeasurements", field):
+            if not isinstance(value, dict):
+                return None
+            value = value.get(key)
+        return value if isinstance(value, int | float) else None
+
+    return value_fn
+
+
 def _meter_power(location: str) -> Callable[[dict[str, Any]], StateType]:
     """Return a function reading a meter location's power from the gateway status."""
 
@@ -1744,6 +1759,31 @@ ENERGY_LOCAL_STATUS_DESCRIPTIONS: tuple[TeslemetryLocalSensorEntityDescription, 
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"island_freq_l{phase}_{side.lower()}",
+            value_fn=_islander_measurement(f"ISLAND_FreqL{phase}_{side}"),
+            device_class=SensorDeviceClass.FREQUENCY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfFrequency.HERTZ,
+            entity_registry_enabled_default=False,
+        )
+        for phase in (1, 2, 3)
+        for side in ("Load", "Main")
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"island_voltage_l{phase}n_{side.lower()}",
+            value_fn=_islander_measurement(f"ISLAND_VL{phase}N_{side}"),
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            # Single phase sites report near zero on L2 and L3.
+            entity_registry_enabled_default=phase == 1,
+        )
+        for phase in (1, 2, 3)
+        for side in ("Load", "Main")
     ),
 )
 
