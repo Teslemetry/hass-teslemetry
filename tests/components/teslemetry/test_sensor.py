@@ -23,6 +23,7 @@ from homeassistant.components.homeassistant import (
 from homeassistant.components.teslemetry.const import DOMAIN, ENERGY_HISTORY_FIELDS
 from homeassistant.components.teslemetry.coordinator import (
     LOCAL_COMPONENTS_INTERVAL,
+    LOCAL_CONFIG_INTERVAL,
     LOCAL_STATUS_INTERVAL,
     VEHICLE_INTERVAL,
 )
@@ -52,6 +53,7 @@ from .const import (
     LIVE_STATUS,
     METADATA,
     POWERWALL_COMPONENTS,
+    POWERWALL_CONFIG,
     POWERWALL_STATUS,
     PRODUCTS,
     SITE_INFO,
@@ -1911,3 +1913,160 @@ async def test_local_islander_sensors_poll_failure(
 
     assert (state := hass.states.get(entity_id))
     assert state.state == "0.0"
+
+
+LOCAL_CONFIG_KEYS = ("country", "distributor", "grid_code")
+
+
+def _local_config_entity_ids(entity_registry: er.EntityRegistry) -> dict[str, str]:
+    """Return the entity ids of the local config sensors by key."""
+    return {
+        key: entity_id
+        for key in LOCAL_CONFIG_KEYS
+        if (
+            entity_id := entity_registry.async_get_entity_id(
+                Platform.SENSOR, DOMAIN, f"{SITE_ID}-{key}"
+            )
+        )
+    }
+
+
+def _config_without(key: str) -> dict[str, Any]:
+    """Return the gateway config without a site info key."""
+    data = deepcopy(POWERWALL_CONFIG)
+    del data["site_info"][key]
+    return data
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_config_sensors(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test a paired energy site creates the local config sensors."""
+    await setup_paired_platform(hass, [Platform.SENSOR])
+
+    entity_ids = _local_config_entity_ids(entity_registry)
+    assert entity_ids.keys() == set(LOCAL_CONFIG_KEYS)
+    for entity_id in entity_ids.values():
+        assert entity_registry.async_get(entity_id) == snapshot(
+            name=f"{entity_id}-entry"
+        )
+        assert hass.states.get(entity_id) == snapshot(name=f"{entity_id}-state")
+
+
+async def test_local_config_sensors_disabled_by_default(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the local config sensors are disabled by default."""
+    await setup_paired_platform(hass, [Platform.SENSOR])
+
+    entity_ids = _local_config_entity_ids(entity_registry)
+    assert entity_ids.keys() == set(LOCAL_CONFIG_KEYS)
+    for entity_id in entity_ids.values():
+        assert (entry := entity_registry.async_get(entity_id))
+        assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_local_config_sensors_unpaired(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_config: AsyncMock,
+) -> None:
+    """Test an energy site without local pairing creates no local config sensors."""
+    await setup_platform(hass, [Platform.SENSOR])
+
+    mock_powerwall_config.assert_not_called()
+    assert not _local_config_entity_ids(entity_registry)
+
+
+@pytest.mark.parametrize(
+    ("config", "missing"),
+    [
+        pytest.param(_config_without("grid_code"), {"grid_code"}, id="grid_code"),
+        pytest.param(_config_without("country"), {"country"}, id="country"),
+        pytest.param(_config_without("distributor"), {"distributor"}, id="distributor"),
+        pytest.param({}, set(LOCAL_CONFIG_KEYS), id="site_info"),
+    ],
+)
+async def test_local_config_sensors_missing_signal(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_config: AsyncMock,
+    config: dict[str, Any],
+    missing: set[str],
+) -> None:
+    """Test a value absent from the first refresh skips its sensor."""
+    mock_powerwall_config.side_effect = None
+    mock_powerwall_config.return_value = config
+
+    await setup_paired_platform(hass, [Platform.SENSOR])
+
+    assert (
+        _local_config_entity_ids(entity_registry).keys()
+        == set(LOCAL_CONFIG_KEYS) - missing
+    )
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_config_sensors_first_refresh_failure(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_config: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test sensors from a failed first local refresh recover without a reload."""
+    mock_powerwall_config.side_effect = PowerwallConnectionError("offline")
+
+    entry = await setup_paired_platform(hass, [Platform.SENSOR])
+
+    assert entry.state is ConfigEntryState.LOADED
+    entity_ids = _local_config_entity_ids(entity_registry)
+    assert entity_ids.keys() == set(LOCAL_CONFIG_KEYS)
+    for entity_id in entity_ids.values():
+        assert (state := hass.states.get(entity_id))
+        assert state.state == STATE_UNAVAILABLE
+
+    mock_powerwall_config.side_effect = None
+    mock_powerwall_config.return_value = POWERWALL_CONFIG
+    freezer.tick(LOCAL_CONFIG_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert (state := hass.states.get(entity_ids["country"]))
+    assert state.state == "Australia"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_local_config_sensors_poll_failure(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_powerwall_config: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test a failed local poll makes the sensors unavailable until it recovers."""
+    await setup_paired_platform(hass, [Platform.SENSOR])
+    entity_id = _local_config_entity_ids(entity_registry)["distributor"]
+    assert (state := hass.states.get(entity_id))
+    assert state.state == "Energex"
+
+    mock_powerwall_config.side_effect = PowerwallConnectionError("offline")
+    freezer.tick(LOCAL_CONFIG_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert (state := hass.states.get(entity_id))
+    assert state.state == STATE_UNAVAILABLE
+
+    config = deepcopy(POWERWALL_CONFIG)
+    config["site_info"]["distributor"] = "Ergon Energy"
+    mock_powerwall_config.side_effect = None
+    mock_powerwall_config.return_value = config
+    freezer.tick(LOCAL_CONFIG_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert (state := hass.states.get(entity_id))
+    assert state.state == "Ergon Energy"
