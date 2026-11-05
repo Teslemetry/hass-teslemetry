@@ -143,7 +143,9 @@ class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
         """Set the climate state to on."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await handle_vehicle_command(self.api.auto_conditioning_start())
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.auto_conditioning_start()
+        )
 
         self._attr_hvac_mode = HVACMode.HEAT_COOL
         self.async_write_ha_state()
@@ -153,7 +155,9 @@ class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
         """Set the climate state to off."""
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-        await handle_vehicle_command(self.api.auto_conditioning_stop())
+        await handle_vehicle_command(
+            self.hass, self.config_entry, self.api.auto_conditioning_stop()
+        )
 
         self._attr_hvac_mode = HVACMode.OFF
         self._attr_preset_mode = self._attr_preset_modes[0]
@@ -168,10 +172,12 @@ class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
             self.raise_for_scope(Scope.VEHICLE_CMDS)
 
             await handle_vehicle_command(
+                self.hass,
+                self.config_entry,
                 self.api.set_temps(
                     driver_temp=temp,
                     passenger_temp=temp,
-                )
+                ),
             )
             self._attr_target_temperature = temp
 
@@ -195,9 +201,11 @@ class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
         await handle_vehicle_command(
+            self.hass,
+            self.config_entry,
             self.api.set_climate_keeper_mode(
                 climate_keeper_mode=self._attr_preset_modes.index(preset_mode)
-            )
+            ),
         )
         self._attr_preset_mode = preset_mode
         if preset_mode == self._attr_preset_modes[0]:
@@ -212,10 +220,12 @@ class TeslemetryClimateEntity(TeslemetryRootEntity, ClimateEntity):
         self.raise_for_scope(Scope.VEHICLE_CMDS)
 
         await handle_vehicle_command(
+            self.hass,
+            self.config_entry,
             self.api.set_bioweapon_mode(
                 on=(fan_mode != "off"),
                 manual_override=True,
-            )
+            ),
         )
         self._attr_fan_mode = fan_mode
         if fan_mode == self._attr_fan_modes[1]:
@@ -461,7 +471,11 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryRootEntity, ClimateEntit
             level = min(COP_TEMPERATURES, key=lambda t: abs(t - temp))
             self.raise_for_scope(Scope.VEHICLE_CMDS)
 
-            await handle_vehicle_command(self.api.set_cop_temp(COP_TEMPERATURES[level]))
+            await handle_vehicle_command(
+                self.hass,
+                self.config_entry,
+                self.api.set_cop_temp(COP_TEMPERATURES[level]),
+            )
             self._attr_target_temperature = level
 
         if mode := kwargs.get(ATTR_HVAC_MODE):
@@ -477,15 +491,21 @@ class TeslemetryCabinOverheatProtectionEntity(TeslemetryRootEntity, ClimateEntit
 
         if hvac_mode == HVACMode.OFF:
             await handle_vehicle_command(
-                self.api.set_cabin_overheat_protection(on=False, fan_only=False)
+                self.hass,
+                self.config_entry,
+                self.api.set_cabin_overheat_protection(on=False, fan_only=False),
             )
         elif hvac_mode == HVACMode.COOL:
             await handle_vehicle_command(
-                self.api.set_cabin_overheat_protection(on=True, fan_only=False)
+                self.hass,
+                self.config_entry,
+                self.api.set_cabin_overheat_protection(on=True, fan_only=False),
             )
         elif hvac_mode == HVACMode.FAN_ONLY:
             await handle_vehicle_command(
-                self.api.set_cabin_overheat_protection(on=True, fan_only=True)
+                self.hass,
+                self.config_entry,
+                self.api.set_cabin_overheat_protection(on=True, fan_only=True),
             )
 
         self._attr_hvac_mode = hvac_mode
