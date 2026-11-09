@@ -144,8 +144,9 @@ run_touches() {
   # shellcheck disable=SC2016,SC2329
   bash -c '
     source "$1"
+    calls=$2.calls
     gh() {
-      echo "$*" >>"$2.calls"
+      echo "$*" >>"$calls"
       case "$*" in
         *pulls/59/files*) seq 1 150 | sed "s|^|core/f|"; echo "$TESTS/test_a.py" ;;
         *pulls/61/files*) echo "$INTEGRATION/a" ;;
