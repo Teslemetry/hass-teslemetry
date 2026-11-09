@@ -506,6 +506,11 @@ _TESTS_NEEDING_CORE_ISSUE_OWNERSHIP = {
     "test_stale_gateway_repairs_deleted_on_setup",
     "test_gateway_repairs_refresh_cancelled_on_setup_failure",
     "test_stale_repair_issues_deleted_on_setup",
+    "test_gateway_repair_deleted_with_subentry",
+    "test_gateway_repair_not_linked_to_subentry_removed_during_setup",
+    "test_gateway_repairs_per_entry_for_shared_site",
+    "test_local_gateway_repair_cleared_without_subentry",
+    "test_repair_issues_per_entry_for_shared_vehicle",
 }
 
 

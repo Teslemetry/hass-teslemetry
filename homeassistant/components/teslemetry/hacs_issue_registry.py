@@ -3,9 +3,9 @@
 The integration imports this module as ``ir`` in place of
 ``homeassistant.helpers.issue_registry``. On a core with issue refreshes, every
 name is core's own. The pinned core release has no ``async_refresh_issues``
-or ``async_keep_issue`` and no ``config_entry_id`` on issues, so this module adds
-a local equivalent: an issue belongs to the config entry its ``data["entry_id"]``
-names. ``async_begin_issues_refresh`` is the old name of ``async_refresh_issues``,
+or ``async_keep_issue`` and no ``config_entry_id`` or ``config_subentry_id`` on
+issues, so this module adds a local equivalent: an issue belongs to the config
+entry its ``data["entry_id"]`` names. ``async_begin_issues_refresh`` is the old name of ``async_refresh_issues``,
 which core dev renamed before any release had it. Retire it once the floor
 reaches the first core release with ``async_refresh_issues``.
 """
@@ -140,12 +140,18 @@ def async_create_issue(
     issue_id: str,
     *,
     config_entry_id: str | None = None,
+    config_subentry_id: str | None = None,
     **kwargs: Any,
 ) -> None:
     """Create an issue, or replace an existing one."""
     if _CORE_HAS_REFRESH:
         ir.async_create_issue(
-            hass, domain, issue_id, config_entry_id=config_entry_id, **kwargs
+            hass,
+            domain,
+            issue_id,
+            config_entry_id=config_entry_id,
+            config_subentry_id=config_subentry_id,
+            **kwargs,
         )
         return
     ir.async_create_issue(hass, domain, issue_id, **kwargs)
