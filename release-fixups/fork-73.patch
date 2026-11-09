@@ -1,22 +1,77 @@
 diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
-index e60b0431e4b..3ae00286dc4 100644
+index 184954155e9..b1a0098fc9f 100644
 --- a/homeassistant/components/teslemetry/__init__.py
 +++ b/homeassistant/components/teslemetry/__init__.py
-@@ -125,2 +125,3 @@ from .helpers import (
+@@ -123,6 +123,7 @@ from .helpers import (
+     create_powerwall_client,
+     flatten,
      gateway_issue_id,
 +    insufficient_credits_issue_id,
  )
-@@ -1655,2 +1656,5 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+ from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
+ from .models import (
+@@ -1660,6 +1661,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+                 hass, DOMAIN, _gateway_mismatch_issue_id(int(subentry.unique_id))
+             )
      await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
 +    # HACS stable-core compat: the pinned core release cannot tie an issue to a
 +    # config entry, so the insufficient credits repair is removed with it here.
 +    ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
  
+ 
+ async def async_migrate_entry(
 diff --git a/homeassistant/components/teslemetry/helpers.py b/homeassistant/components/teslemetry/helpers.py
-index a30a3a226cb..cfe2571fbb9 100644
+index c3478738a42..858adbde033 100644
 --- a/homeassistant/components/teslemetry/helpers.py
 +++ b/homeassistant/components/teslemetry/helpers.py
-@@ -162,3 +162,2 @@ async def handle_command(
+@@ -160,7 +160,6 @@ async def handle_command(
+             hass,
+             DOMAIN,
              insufficient_credits_issue_id(entry),
 -            config_entry_id=entry.entry_id,
              is_fixable=False,
+             # Setup does not check credits, so nothing would raise it again
+             # after a restart while the account is still short.
+@@ -199,11 +198,13 @@ async def handle_command(
+ 
+ 
+ async def handle_energy_site_command(
++    hass: HomeAssistant,
++    entry: TeslemetryConfigEntry,
+     command: Awaitable[dict[str, Any]],
+ ) -> dict[str, Any]:
+     """Handle a command that a paired energy site may send to its local Powerwall gateway."""
+     try:
+-        return await handle_command(command)
++        return await handle_command(hass, entry, command)
+     except PowerwallNotSupportedError as e:
+         raise HomeAssistantError(
+             translation_domain=DOMAIN,
+diff --git a/homeassistant/components/teslemetry/services.py b/homeassistant/components/teslemetry/services.py
+index 68ee7ef8e71..e7ff7cd2f7e 100644
+--- a/homeassistant/components/teslemetry/services.py
++++ b/homeassistant/components/teslemetry/services.py
+@@ -122,7 +122,11 @@ async def async_dispatch_battery_power(call: ServiceCall) -> None:
+     site = async_get_energy_site_for_entry(call.hass, device, config)
+ 
+     await handle_energy_site_command(
+-        site.api.dispatch_battery_power(call.data[ATTR_POWER], call.data[ATTR_DURATION])
++        call.hass,
++        config,
++        site.api.dispatch_battery_power(
++            call.data[ATTR_POWER], call.data[ATTR_DURATION]
++        ),
+     )
+ 
+ 
+@@ -131,7 +135,9 @@ async def async_resume_battery_operation(call: ServiceCall) -> None:
+     device, config = async_get_device_and_config_for_service_call(call.hass, call)
+     site = async_get_energy_site_for_entry(call.hass, device, config)
+ 
+-    await handle_energy_site_command(site.api.resume_battery_operation())
++    await handle_energy_site_command(
++        call.hass, config, site.api.resume_battery_operation()
++    )
+ 
+ 
+ @callback
