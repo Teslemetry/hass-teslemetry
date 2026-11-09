@@ -363,7 +363,14 @@ read_promote_queue() {
 # Whether PR JSON $1 changes the integration or its tests.
 touches_teslemetry() {
   jq -e --arg i "$INTEGRATION/" --arg t "$TESTS/" \
-    'any(.files[]?.path; startswith($i) or startswith($t))' <<<"$1" >/dev/null
+    'any(.files[]?.path; startswith($i) or startswith($t))' <<<"$1" >/dev/null && return 0
+  # gh pr list returns at most 100 files per PR; read the full list from REST.
+  [ "$(jq '.files | length' <<<"$1")" -ge 100 ] || return 1
+  local num files
+  num=$(jq .number <<<"$1")
+  files=$(gh api "repos/$STAGING_REPO/pulls/$num/files?per_page=100" --paginate --jq '.[].filename') \
+    || die "could not read the files of $STAGING_REPO pull $num"
+  grep -qE "^($INTEGRATION|$TESTS)/" <<<"$files"
 }
 
 # Print the core PR ha-promoter opened fork PR $1 as (its "opened upstream as
