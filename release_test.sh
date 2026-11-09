@@ -136,6 +136,34 @@ check "stop: unreadable queue entry" 3:1 "$(STOP="queued fork#99 .* cannot be re
 check "die: needs= cycle" 1:1 "$(STOP="need each other in a cycle" stops "46 needs=fork#50" "50 needs=fork#46")"
 check "die: malformed queue line" 1:1 "$(STOP="bad queue entry" stops "48 a b needs=fork#1")"
 
+# --- touches_teslemetry past gh's 100-file limit ------------------------------
+# gh pr list lists at most 100 files per PR. fork#59 lists 100 non-teslemetry
+# files and has teslemetry files past them (REST); fork#61 lists 99 and is
+# skipped without a REST call; fork#62's REST read fails.
+run_touches() {
+  # shellcheck disable=SC2016,SC2329
+  bash -c '
+    source "$1"
+    gh() {
+      echo "$*" >>"$2.calls"
+      case "$*" in
+        *pulls/59/files*) seq 1 150 | sed "s|^|core/f|"; echo "$TESTS/test_a.py" ;;
+        *pulls/61/files*) echo "$INTEGRATION/a" ;;
+        *) return 1 ;;
+      esac
+    }
+    pr=$(jq -n --argjson n "$3" --argjson c "$4" "{number: \$n, files: [range(\$c) | {path: \"core/f\(.)\"}]}")
+    touches_teslemetry "$pr" && echo yes || echo no' _ "$ROOT/release.sh" "$SANDBOX/touches" "$1" "$2" >"$SANDBOX/out" 2>&1
+}
+: >"$SANDBOX/touches.calls"
+run_touches 59 100
+check "touches: teslemetry files past the first 100 count" yes "$(tail -1 "$SANDBOX/out")"
+run_touches 61 99
+check "touches: under 100 non-teslemetry files is skipped" no "$(tail -1 "$SANDBOX/out")"
+check "touches: under 100 files makes no REST call" 0 "$(grep -c 'pulls/61/' "$SANDBOX/touches.calls")"
+run_touches 62 100; rc=$?
+check "touches: unreadable full file list dies" 1:1 "$rc:$(grep -c 'could not read the files of .* pull 62' "$SANDBOX/out")"
+
 # --- apply_prs with needs= ----------------------------------------------------
 # fork#48 branches from fork#47, which creates a file, and fork#47 gains a
 # commit afterwards. Applied after fork#47, fork#48 applies only its own change;
