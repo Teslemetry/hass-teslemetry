@@ -84,6 +84,20 @@ run_sync; rc=$?
 check "sync: empty resolved sync completes" 0 "$rc"
 check "sync: empty resolved sync commits the marker" "Sync teslemetry from dev $(git -C "$SANDBOX/seed" rev-parse dev)" "$(work log -1 --format=%s)"
 check "sync: empty resolved sync changes no file" "" "$(work diff "$before" HEAD --name-only)"
+# advance_main pushes the sync commit to origin main only with --publish.
+run_advance() {
+  (
+    cd "$SANDBOX/work" || exit 1
+    source "$ROOT/release.sh"
+    PUBLISH=$1 SYNC=$(git rev-parse HEAD)
+    advance_main
+  ) >"$SANDBOX/out" 2>&1
+}
+run_sync
+run_advance 0; rc=$?
+check "advance_main: dry run leaves origin main" "no" "$([ "$(git -C "$SANDBOX/origin.git" rev-parse main)" = "$(work rev-parse HEAD)" ] && echo yes || echo no)"
+run_advance 1; rc=$?
+check "advance_main: publish moves origin main to the sync commit" "$(work rev-parse HEAD)" "$(git -C "$SANDBOX/origin.git" rev-parse main)"
 make_sync_sandbox five
 run_sync; rc=$?
 check "sync: conflict with a HACS patch stops" 3 "$rc"
