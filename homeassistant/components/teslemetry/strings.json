@@ -1158,8 +1158,19 @@
           "none": "None"
         }
       },
+      "pv_power": {
+        "name": "PV power"
+      },
       "pv_string_a_current": {
         "name": "PV string A current"
+      },
+      "pv_string_a_state": {
+        "name": "PV string A state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "Active (parallel)",
+          "standby": "[%key:common::state::standby%]"
+        }
       },
       "pv_string_a_voltage": {
         "name": "PV string A voltage"
@@ -1167,11 +1178,27 @@
       "pv_string_b_current": {
         "name": "PV string B current"
       },
+      "pv_string_b_state": {
+        "name": "PV string B state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "[%key:component::teslemetry::entity::sensor::pv_string_a_state::state::active_parallel%]",
+          "standby": "[%key:common::state::standby%]"
+        }
+      },
       "pv_string_b_voltage": {
         "name": "PV string B voltage"
       },
       "pv_string_c_current": {
         "name": "PV string C current"
+      },
+      "pv_string_c_state": {
+        "name": "PV string C state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "[%key:component::teslemetry::entity::sensor::pv_string_a_state::state::active_parallel%]",
+          "standby": "[%key:common::state::standby%]"
+        }
       },
       "pv_string_c_voltage": {
         "name": "PV string C voltage"
@@ -1179,17 +1206,41 @@
       "pv_string_d_current": {
         "name": "PV string D current"
       },
+      "pv_string_d_state": {
+        "name": "PV string D state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "[%key:component::teslemetry::entity::sensor::pv_string_a_state::state::active_parallel%]",
+          "standby": "[%key:common::state::standby%]"
+        }
+      },
       "pv_string_d_voltage": {
         "name": "PV string D voltage"
       },
       "pv_string_e_current": {
         "name": "PV string E current"
       },
+      "pv_string_e_state": {
+        "name": "PV string E state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "[%key:component::teslemetry::entity::sensor::pv_string_a_state::state::active_parallel%]",
+          "standby": "[%key:common::state::standby%]"
+        }
+      },
       "pv_string_e_voltage": {
         "name": "PV string E voltage"
       },
       "pv_string_f_current": {
         "name": "PV string F current"
+      },
+      "pv_string_f_state": {
+        "name": "PV string F state",
+        "state": {
+          "active": "[%key:common::state::active%]",
+          "active_parallel": "[%key:component::teslemetry::entity::sensor::pv_string_a_state::state::active_parallel%]",
+          "standby": "[%key:common::state::standby%]"
+        }
       },
       "pv_string_f_voltage": {
         "name": "PV string F voltage"
