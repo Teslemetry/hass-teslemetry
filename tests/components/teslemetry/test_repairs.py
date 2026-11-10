@@ -8,11 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from aiohttp import ClientError
 from aiohttp.test_utils import TestClient
-from aiopowerwall import (
-    PowerwallAuthenticationError,
-    PowerwallConnectionError,
-    PowerwallError,
-)
 from bleak.exc import BleakError
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -42,6 +37,11 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetMessageFaultUnknownKeyId,
 )
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.powerwall import (
+    PowerwallAuthenticationError,
+    PowerwallConnectionError,
+    PowerwallError,
+)
 
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
 from homeassistant.components.repairs import ConfirmRepairFlow, FlowType
