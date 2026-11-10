@@ -1846,7 +1846,9 @@ async def async_setup_stream(
             hass,
             DOMAIN,
             f"{ISSUE_STREAMING_ALLOWANCE}_{vehicle.vin}",
+            # HACS stable-core compat: the floor finds an entry's issues by data.
             config_entry_id=entry.entry_id,
+            data={"entry_id": entry.entry_id},
             is_fixable=False,
             learn_more_url=f"https://teslemetry.com/console/vehicle/{vehicle.vin}/fields",
             severity=ir.IssueSeverity.WARNING,
