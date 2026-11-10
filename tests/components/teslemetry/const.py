@@ -74,6 +74,9 @@ ENERGY_TOTALS = {
 # An empty or malformed day: every field comes back null.
 ENERGY_TOTALS_NULL = dict.fromkeys(ENERGY_TOTALS)
 
+# The paired site's `gateway_id` in the products fixture.
+GATEWAY_DIN = "ABC123"
+
 # Wh delivered per Wall Connector DIN; a DIN with no session that day is absent.
 WALL_CONNECTOR_TOTALS = {"abd-123": 7250}
 
