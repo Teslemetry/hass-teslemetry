@@ -17,6 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import TeslemetryConfigEntry
+from .const import STEERING_WHEEL_HEAT_UNSUPPORTED_CAR_TYPES
 from .entity import (
     TeslemetryEnergyInfoEntity,
     TeslemetryRootEntity,
@@ -172,6 +173,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySelectEntityDescription, ...] = (
             level
         ),
         streaming_listener=lambda x, y: x.listen_HvacSteeringWheelHeatLevel(y),
+        # Older Model S and X never report the level and reject the command.
+        supported_fn=lambda data: (
+            data.get("car_type") not in STEERING_WHEEL_HEAT_UNSUPPORTED_CAR_TYPES
+        ),
         options=[
             OFF,
             LOW,

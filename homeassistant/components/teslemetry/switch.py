@@ -21,7 +21,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 
 from . import TeslemetryConfigEntry
-from .const import CHARGE_ON_SOLAR_SWITCH_KEY
+from .const import CHARGE_ON_SOLAR_SWITCH_KEY, STEERING_WHEEL_HEAT_UNSUPPORTED_CAR_TYPES
 from .entity import (
     TeslemetryChargeOnSolarEntity,
     TeslemetryEnergyInfoEntity,
@@ -49,6 +49,7 @@ class TeslemetrySwitchEntityDescription(SwitchEntityDescription):
         Callable[[], None],
     ]
     streaming_firmware: str = "2024.26"
+    supported_fn: Callable[[dict], bool] = lambda _: True
     unique_id: str | None = None
 
 
@@ -114,6 +115,10 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetrySwitchEntityDescription, ...] = (
         off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
             on=False
         ),
+        # Older Model S and X reject the auto steering wheel heat command.
+        supported_fn=lambda data: (
+            data.get("car_type") not in STEERING_WHEEL_HEAT_UNSUPPORTED_CAR_TYPES
+        ),
         scopes=[Scope.VEHICLE_CMDS],
     ),
     TeslemetrySwitchEntityDescription(
@@ -167,10 +172,15 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Teslemetry Switch platform from a config entry."""
 
+    vehicles_metadata = entry.runtime_data.metadata_coordinator.data.get("vehicles", {})
     entities: list[SwitchEntity] = []
 
     for vehicle in entry.runtime_data.vehicles:
         for description in VEHICLE_DESCRIPTIONS:
+            if not description.supported_fn(
+                vehicles_metadata.get(vehicle.vin, {}).get("config", {})
+            ):
+                continue
             if vehicle.poll or not firmware_at_least(
                 vehicle.firmware, description.streaming_firmware
             ):
