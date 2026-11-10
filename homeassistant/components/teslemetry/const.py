@@ -40,6 +40,8 @@ ISSUE_INSUFFICIENT_CREDITS = "insufficient_credits"
 CREDITS_URL = "https://teslemetry.com/console/credits"
 # Gateway 1 part number; early units log in with the full gateway password.
 GATEWAY_1_PART_NUMBER = "1118431-"
+ISSUE_STREAMING_ALLOWANCE = "streaming_allowance"
+STREAMING_ALLOWANCE_EXCEEDED = "streaming_allowance_exceeded"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
