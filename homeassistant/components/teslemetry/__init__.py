@@ -1702,6 +1702,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Remove the stored charge-on-solar settings."""
+    # HACS stable-core compat: the pinned core release cannot tie an issue to a
+    # config entry, so the gateway mismatch repairs are removed with it here.
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type == SUBENTRY_TYPE_ENERGY_SITE and subentry.unique_id:
+            ir.async_delete_issue(
+                hass,
+                DOMAIN,
+                _gateway_mismatch_issue_id(entry.entry_id, int(subentry.unique_id)),
+            )
     await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
 
 
