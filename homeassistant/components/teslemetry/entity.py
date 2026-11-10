@@ -3,10 +3,10 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, override
 
-from aiopowerwall import BatteryUnit
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
+from tesla_fleet_api.tesla.powerwall import BatteryUnit
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 
 from homeassistant.core import callback
