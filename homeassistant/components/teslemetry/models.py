@@ -14,7 +14,7 @@ from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.storage import Store
 
@@ -44,6 +44,29 @@ class TeslemetryData:
     stream: TeslemetryStream | None
     metadata_coordinator: TeslemetryMetadataCoordinator
     charge_on_solar_store: TeslemetryChargeOnSolarStore | None
+    roadster: TeslemetryRoadsterData | None
+
+
+@dataclass
+class TeslemetryRoadsterData:
+    """In-memory state of the virtual Tesla Roadster vacuum Labs easter egg."""
+
+    device: DeviceInfo
+    battery_level: int = 100
+    _listeners: list[CALLBACK_TYPE] = field(default_factory=list)
+
+    @callback
+    def async_add_listener(self, update_callback: CALLBACK_TYPE) -> CALLBACK_TYPE:
+        """Listen for battery level changes."""
+        self._listeners.append(update_callback)
+        return lambda: self._listeners.remove(update_callback)
+
+    @callback
+    def async_set_battery_level(self, battery_level: int) -> None:
+        """Set the battery level and notify listeners."""
+        self.battery_level = battery_level
+        for update_callback in self._listeners:
+            update_callback()
 
 
 @dataclass
