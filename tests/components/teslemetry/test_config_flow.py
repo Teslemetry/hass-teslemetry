@@ -3988,6 +3988,7 @@ async def test_dhcp_discovery_adds_energy_site(
         CONF_SITE_ID: SITE_ID,
         CONF_HOST: HOST,
         CONF_PASSWORD: PASSWORD,
+        CONF_LEGACY_GATEWAY: False,
     }
     mock_reload.assert_called_once_with(entry.entry_id)
 
