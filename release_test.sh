@@ -76,6 +76,14 @@ check "sync: second sync applies only the new dev change" "one dev|two|three dev
 run_sync; rc=$?
 check "sync: nothing new in dev makes no commit" "Sync teslemetry from dev $(git -C "$SANDBOX/seed" rev-parse dev)" "$(work log -1 --format=%s)"
 check "sync: nothing new in dev says so" 1 "$(grep -c 'no integration change in core dev' "$SANDBOX/out")"
+# A dev change main already carries resolves to no diff, but the sync still
+# commits so the next run starts from this dev commit.
+( cd "$SANDBOX/seed" && sed -i 's/^five$/five hacs/' "$INTEG_DIR/x.py" && git_ commit -qam "dev change 3" && git push -q "$SANDBOX/up.git" dev )
+before=$(work rev-parse HEAD)
+run_sync; rc=$?
+check "sync: empty resolved sync completes" 0 "$rc"
+check "sync: empty resolved sync commits the marker" "Sync teslemetry from dev $(git -C "$SANDBOX/seed" rev-parse dev)" "$(work log -1 --format=%s)"
+check "sync: empty resolved sync changes no file" "" "$(work diff "$before" HEAD --name-only)"
 make_sync_sandbox five
 run_sync; rc=$?
 check "sync: conflict with a HACS patch stops" 3 "$rc"

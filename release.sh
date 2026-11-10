@@ -310,7 +310,8 @@ sync_dev() {
   git diff --full-index --binary --no-renames "$from" "$DEV" -- "$INTEGRATION" "$TESTS" | apply_3way \
     || stop_conflict "core dev's integration changes ${from:0:10}..${DEV:0:10} conflict with main"
   git add -A -- "$INTEGRATION" "$TESTS"
-  git commit -q -m "Sync teslemetry from dev $DEV" --no-verify
+  # --allow-empty: a resolution that leaves no diff must still move the marker
+  git commit -q --allow-empty -m "Sync teslemetry from dev $DEV" --no-verify
   assert_no_conflict_markers
   SYNC=$(git rev-parse HEAD)
   info "synced from ${from:0:10} to dev ${DEV:0:10}"
