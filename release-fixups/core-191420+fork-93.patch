@@ -1,5 +1,5 @@
 diff --git a/tests/components/teslemetry/test_repairs.py b/tests/components/teslemetry/test_repairs.py
-index 47717bcd2cf..dae9cb34c17 100644
+index 3631782a6c..d2fc1490d6 100644
 --- a/tests/components/teslemetry/test_repairs.py
 +++ b/tests/components/teslemetry/test_repairs.py
 @@ -3,6 +3,7 @@
@@ -22,10 +22,10 @@ index 47717bcd2cf..dae9cb34c17 100644
  from homeassistant.components.teslemetry.repairs import (
      BluetoothKeyRepairFlow,
      async_create_fix_flow,
-@@ -98,6 +96,8 @@ NEW_HOST = "192.168.91.2"
- PASSWORD = "abcde"
+@@ -98,6 +96,8 @@ PASSWORD = "abcde"
  ENTRY_ID = "01JTESLEMETRYENTRY00000000"
  GATEWAY_ISSUE_ID = f"gateway_not_found_{ENTRY_ID}_{SITE_ID}"
+ BLE_KEY_ISSUE_ID = f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{ENTRY_ID}_{VEHICLE_VIN}"
 +# Any tick works: vehicle data is no longer polled on an interval.
 +VEHICLE_INTERVAL = timedelta(seconds=60)
  FIND_GATEWAY_ADDRESS = (

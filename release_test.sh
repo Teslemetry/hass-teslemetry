@@ -235,5 +235,21 @@ check "needs compose: both changes" "new dependent|base p47 p47 later" \
 run_compose "$(printf '47\tbase\tfalse\t%s\t\t\n48\tdependent\tfalse\t%s\t\t\n' "$H47" "$H48")"; rc=$?
 check "needs compose: without needs= the net diff stops" 3 "$rc"
 
+# --- pin_integration_requirements --------------------------------------------
+rm -rf "$SANDBOX/pin" && mkdir -p "$SANDBOX/pin/$INTEG_DIR"
+echo '{"requirements": ["Kept-Pkg==2.0", "new-pkg==1.0"]}' > "$SANDBOX/pin/$INTEG_DIR/manifest.json"
+printf '%s\n' "# homeassistant.components.teslemetry" "dropped-pkg==1.0" "" \
+  "# homeassistant.components.other" "# homeassistant.components.teslemetry" "shared-pkg==1.0" "" \
+  "# homeassistant.components.teslemetry" "kept_pkg==1.0" > "$SANDBOX/pin/requirements_all.txt"
+(
+  cd "$SANDBOX/pin" || exit 1
+  # shellcheck source=release.sh
+  source "$ROOT/release.sh"
+  pin_integration_requirements
+)
+check "pin: drops an unlisted teslemetry-only package, keeps a shared one, pins and appends" \
+  "# homeassistant.components.other|# homeassistant.components.teslemetry|shared-pkg==1.0||# homeassistant.components.teslemetry|Kept-Pkg==2.0||# homeassistant.components.teslemetry|new-pkg==1.0" \
+  "$(paste -sd'|' "$SANDBOX/pin/requirements_all.txt")"
+
 [ "$FAILED" = 0 ] && echo "all passed"
 exit "$FAILED"
