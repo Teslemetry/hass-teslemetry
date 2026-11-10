@@ -608,6 +608,15 @@ apply_fixups() {
   done
 }
 
+# --publish: fast-forward main to the sync commit so the next run's sync
+# starts from this dev commit, also when nothing is published.
+advance_main() {
+  [ "$PUBLISH" = 1 ] && [ -n "$SYNC" ] || return 0
+  git push origin "$SYNC:refs/heads/main" \
+    || die "main moved since this run fetched it - nothing published. Rerun."
+  info "main fast-forwarded to the sync commit ${SYNC:0:10}"
+}
+
 # Exit 0 when the composed integration, which is all the zip ships, equals the
 # newest daily build's (manifest version ignored): nothing new to publish.
 skip_if_unchanged() {
@@ -617,6 +626,7 @@ skip_if_unchanged() {
   if git diff --quiet "$last" HEAD -- "$INTEGRATION" ":(exclude)$manifest" \
      && cmp -s <(git show "$last:$manifest" | jq -S 'del(.version)') <(jq -S 'del(.version)' "$manifest"); then
     log "Composed integration is identical to $last - nothing published"
+    advance_main
     exit 0
   fi
   info "composed integration differs from $last"
@@ -751,11 +761,7 @@ publish() {
     exit 0
   fi
   log "Step 7: publish"
-  if [ -n "$SYNC" ]; then
-    git push origin "$SYNC:refs/heads/main" \
-      || die "main moved since this run fetched it - nothing published. Rerun."
-    info "main fast-forwarded to the sync commit ${SYNC:0:10}"
-  fi
+  advance_main
   git tag -a "v$VERSION" -m "Pre-release $VERSION"
   git push origin "v$VERSION"
   rm -f teslemetry.zip
