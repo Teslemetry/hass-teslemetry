@@ -1,0 +1,27 @@
+diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
+index 41e09ad28bb..4609335b046 100644
+--- a/homeassistant/components/teslemetry/__init__.py
++++ b/homeassistant/components/teslemetry/__init__.py
+@@ -1846,7 +1846,9 @@ async def async_setup_stream(
+             hass,
+             DOMAIN,
+             f"{ISSUE_STREAMING_ALLOWANCE}_{vehicle.vin}",
++            # HACS stable-core compat: the floor finds an entry's issues by data.
+             config_entry_id=entry.entry_id,
++            data={"entry_id": entry.entry_id},
+             is_fixable=False,
+             learn_more_url=f"https://teslemetry.com/console/vehicle/{vehicle.vin}/fields",
+             severity=ir.IssueSeverity.WARNING,
+diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
+index 635d02b954e..2e267304df5 100644
+--- a/tests/components/teslemetry/test_init.py
++++ b/tests/components/teslemetry/test_init.py
+@@ -914,7 +914,7 @@ async def test_streaming_allowance_repair_cleared_on_reload(
+         hass,
+         DOMAIN,
+         "streaming_allowance_LRW3F7EK4NC799999",
+-        config_entry_id=entry.entry_id,
++        data={"entry_id": entry.entry_id},
+         is_fixable=False,
+         severity=ir.IssueSeverity.WARNING,
+         translation_key="streaming_allowance",

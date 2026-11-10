@@ -38,5 +38,10 @@ LABS_PREVIEW_FEATURES = {
             "learn_more_url": "https://www.home-assistant.io/integrations/teslemetry",
             "report_issue_url": "https://github.com/home-assistant/core/issues/new?template=bug_report.yml&integration_link=https://www.home-assistant.io/integrations/teslemetry&integration_name=Teslemetry",
         },
+        "roadster_vacuum": {
+            "feedback_url": "",
+            "learn_more_url": "",
+            "report_issue_url": "",
+        },
     },
 }

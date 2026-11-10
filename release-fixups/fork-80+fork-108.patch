@@ -1,0 +1,24 @@
+diff --git a/homeassistant/components/teslemetry/config_flow.py b/homeassistant/components/teslemetry/config_flow.py
+index f39f71ff993..df2aee41b46 100644
+--- a/homeassistant/components/teslemetry/config_flow.py
++++ b/homeassistant/components/teslemetry/config_flow.py
+@@ -1105,6 +1105,7 @@ class OAuth2FlowHandler(
+                         CONF_SITE_ID: self._site_id,
+                         CONF_HOST: host,
+                         CONF_PASSWORD: password,
++                        CONF_LEGACY_GATEWAY: self._legacy_gateway,
+                     }
+                 ),
+                 subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+diff --git a/tests/components/teslemetry/test_config_flow.py b/tests/components/teslemetry/test_config_flow.py
+index d715cd787cd..1a8b5c1861a 100644
+--- a/tests/components/teslemetry/test_config_flow.py
++++ b/tests/components/teslemetry/test_config_flow.py
+@@ -3988,6 +3988,7 @@ async def test_dhcp_discovery_adds_energy_site(
+         CONF_SITE_ID: SITE_ID,
+         CONF_HOST: HOST,
+         CONF_PASSWORD: PASSWORD,
++        CONF_LEGACY_GATEWAY: False,
+     }
+     mock_reload.assert_called_once_with(entry.entry_id)
+ 

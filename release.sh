@@ -198,15 +198,26 @@ EOF
 }
 
 # In requirements_all.txt, replace the line of each package the integration's
-# manifest requires with the manifest's pin, and append a pin no line has.
-# Package names compare as pip does: case-insensitive, with - _ . the same.
+# manifest requires with the manifest's pin, drop a package only the
+# integration required that the manifest no longer lists, and append a pin no
+# line has. Package names compare as pip does: case-insensitive, with - _ . the
+# same.
 pin_integration_requirements() {
   local out
   out=$(jq -r '.requirements[]' "$INTEGRATION/manifest.json" | awk '
     function norm(r) { r = tolower(r); sub(/[=<>!~\[;[:space:]].*/, "", r); gsub(/[-_.]+/, "-", r); return r }
     FNR == NR { pin[norm($0)] = $0; next }
-    /^[^#[:space:]]/ && (norm($0) in pin) { print pin[norm($0)]; used[norm($0)] = 1; next }
-    { print }
+    # The "# homeassistant.components.<domain>" lines above a package name the
+    # integrations that require it.
+    /^# homeassistant\.components\./ {
+      owners = owners $0 "\n"
+      if ($0 != "# homeassistant.components.teslemetry") shared = 1
+      next
+    }
+    /^[^#[:space:]]/ && (norm($0) in pin) { printf "%s", owners; print pin[norm($0)]; used[norm($0)] = 1; owners = ""; shared = 0; next }
+    /^[^#[:space:]]/ && owners != "" && !shared { owners = ""; dropped = 1; next }
+    dropped && /^$/ { dropped = 0; next }
+    { printf "%s", owners; print; owners = ""; shared = 0; dropped = 0 }
     END {
       for (p in pin) if (!(p in used)) {
         if (!header++) print "\n# homeassistant.components.teslemetry"

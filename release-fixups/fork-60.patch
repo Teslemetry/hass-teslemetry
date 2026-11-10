@@ -1,16 +1,8 @@
 diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
-index d2711ee66b..ead3bc8447 100644
+index a0eeb68192a..e5663381237 100644
 --- a/homeassistant/components/teslemetry/__init__.py
 +++ b/homeassistant/components/teslemetry/__init__.py
-@@ -613,7 +613,6 @@ def _async_check_gateway_din(
-         severity=ir.IssueSeverity.WARNING,
-         translation_key=ISSUE_GATEWAY_MISMATCH,
-         translation_placeholders={"site": subentry.title, "host": client.host},
--        config_entry_id=entry.entry_id,
-     )
-     return False
- 
-@@ -1577,6 +1576,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+@@ -1702,6 +1702,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
  
  async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
      """Remove the stored charge-on-solar settings."""
@@ -19,16 +11,18 @@ index d2711ee66b..ead3bc8447 100644
 +    for subentry in entry.subentries.values():
 +        if subentry.subentry_type == SUBENTRY_TYPE_ENERGY_SITE and subentry.unique_id:
 +            ir.async_delete_issue(
-+                hass, DOMAIN, _gateway_mismatch_issue_id(int(subentry.unique_id))
++                hass,
++                DOMAIN,
++                _gateway_mismatch_issue_id(entry.entry_id, int(subentry.unique_id)),
 +            )
      await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
  
  
 diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
-index 91dc540cbd..5dc4821c9c 100644
+index b8d3d2e1c2a..635d02b954e 100644
 --- a/tests/components/teslemetry/test_init.py
 +++ b/tests/components/teslemetry/test_init.py
-@@ -2400,7 +2400,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
+@@ -2671,7 +2671,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
      assert issue.translation_key == "gateway_mismatch"
      assert issue.translation_placeholders == {"site": "Energy Site", "host": HOST}
      assert not issue.is_fixable
@@ -41,3 +35,11 @@ index 91dc540cbd..5dc4821c9c 100644
  
  
  async def test_local_gateway_din_mismatch_repair_cleared_after_match(
+@@ -2805,7 +2809,6 @@ async def test_local_gateway_mismatch_repair_cleared_without_subentry(
+         hass,
+         DOMAIN,
+         issue_id,
+-        config_entry_id=entry.entry_id,
+         is_fixable=False,
+         severity=ir.IssueSeverity.WARNING,
+         translation_key="gateway_mismatch",

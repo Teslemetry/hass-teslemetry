@@ -1,0 +1,33 @@
+diff --git a/homeassistant/components/teslemetry/entity.py b/homeassistant/components/teslemetry/entity.py
+index d79e58596dd..8afb1255c70 100644
+--- a/homeassistant/components/teslemetry/entity.py
++++ b/homeassistant/components/teslemetry/entity.py
+@@ -3,10 +3,10 @@
+ from abc import abstractmethod
+ from typing import TYPE_CHECKING, Any, override
+ 
+-from aiopowerwall import BatteryUnit
+ from tesla_fleet_api.const import Scope
+ from tesla_fleet_api.router import VehicleRouter
+ from tesla_fleet_api.tesla import EnergySiteRouter
++from tesla_fleet_api.tesla.powerwall import BatteryUnit
+ from tesla_fleet_api.teslemetry import EnergySite, Vehicle
+ 
+ from homeassistant.core import callback
+diff --git a/homeassistant/components/teslemetry/models.py b/homeassistant/components/teslemetry/models.py
+index e93ac3eb684..b93e36c4e2d 100644
+--- a/homeassistant/components/teslemetry/models.py
++++ b/homeassistant/components/teslemetry/models.py
+@@ -4,11 +4,11 @@ import asyncio
+ from dataclasses import dataclass, field
+ from typing import TYPE_CHECKING, Any
+ 
+-from aiopowerwall import BatteryUnit, battery_units
+ from tesla_fleet_api import firmware_at_least
+ from tesla_fleet_api.const import Scope
+ from tesla_fleet_api.router import VehicleRouter
+ from tesla_fleet_api.tesla import EnergySiteRouter
++from tesla_fleet_api.tesla.powerwall import BatteryUnit, battery_units
+ from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
+ from tesla_fleet_api.teslemetry import EnergySite, Vehicle
+ from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
