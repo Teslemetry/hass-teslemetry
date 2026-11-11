@@ -1,13 +1,54 @@
 {
   "domain": "teslemetry",
   "name": "Teslemetry",
-  "codeowners": ["@Bre77"],
+  "categories": [
+    "vehicles_transport.cars_evs",
+    "energy.solar_batteries"
+  ],
+  "codeowners": [
+    "@Bre77"
+  ],
   "config_flow": true,
-  "dependencies": ["application_credentials"],
+  "connectivity": [
+    "bluetooth",
+    "cloud",
+    "network"
+  ],
+  "dependencies": [
+    "application_credentials",
+    "bluetooth_adapters"
+  ],
+  "dhcp": [
+    {
+      "hostname": "1118431-*"
+    },
+    {
+      "hostname": "1232100-*"
+    },
+    {
+      "hostname": "teslapw_*"
+    }
+  ],
   "documentation": "https://www.home-assistant.io/integrations/teslemetry",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Teslemetry/hass-teslemetry/issues",
-  "loggers": ["tesla-fleet-api"],
-  "requirements": ["tesla-fleet-api==1.3.0", "teslemetry-stream==0.8.2"]
+  "loggers": [
+    "tesla_fleet_api",
+    "teslemetry_stream"
+  ],
+  "preview_features": {
+    "charge_on_solar": {
+      "feedback_url": "https://community.home-assistant.io",
+      "learn_more_url": "https://www.home-assistant.io/integrations/teslemetry",
+      "report_issue_url": "https://github.com/home-assistant/core/issues/new?template=bug_report.yml&integration_link=https://www.home-assistant.io/integrations/teslemetry&integration_name=Teslemetry"
+    },
+    "roadster_vacuum": {}
+  },
+  "quality_scale": "platinum",
+  "requirements": [
+    "tesla-fleet-api==1.23.0",
+    "teslemetry-stream==1.5.0"
+  ],
+  "version": "2026.11.11"
 }
