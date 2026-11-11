@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Mapping
 import logging
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast, override
 
 from aiohttp import ClientError
@@ -56,6 +57,7 @@ from homeassistant.config_entries import (
     SOURCE_RECONFIGURE,
     ConfigEntryState,
     ConfigFlowResult,
+    ConfigSubentry,
     ConfigSubentryFlow,
     OptionsFlow,
     SubentryFlowResult,
@@ -65,7 +67,9 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowHandler, FlowResult
 from homeassistant.helpers import config_entry_oauth2_flow, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import BooleanSelector
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
 from . import _BLE_KEY_ERRORS
 from .const import (
@@ -99,170 +103,6 @@ class PowerwallSetupError(Exception):
 
 class PowerwallLookupError(Exception):
     """Signal that the authorized-client lookup failed for a non-retryable reason."""
-
-
-class OAuth2FlowHandler(
-    config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
-):
-    """Config flow to handle Teslemetry OAuth2 authentication."""
-
-    DOMAIN = DOMAIN
-    VERSION = 2
-
-    def __init__(self) -> None:
-        """Initialize config flow."""
-        super().__init__()
-        self.data: dict[str, Any] = {}
-        self.uid: str | None = None
-
-    @staticmethod
-    @callback
-    @override
-    def async_get_options_flow(config_entry: TeslemetryConfigEntry) -> OptionsFlow:
-        """Get the options flow for this handler."""
-        return TeslemetryOptionsFlowHandler()
-
-    @property
-    @override
-    def logger(self) -> logging.Logger:
-        """Return logger."""
-        return LOGGER
-
-    @classmethod
-    @callback
-    @override
-    def async_get_supported_subentry_types(
-        cls, config_entry: TeslemetryConfigEntry
-    ) -> dict[str, type[ConfigSubentryFlow]]:
-        """Return the subentry types supported by this integration."""
-        return {
-            SUBENTRY_TYPE_VEHICLE: VehicleSubentryFlowHandler,
-            SUBENTRY_TYPE_ENERGY_SITE: EnergySiteSubentryFlowHandler,
-        }
-
-    @override
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle a flow start."""
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
-        return await super().async_step_user()
-
-    @override
-    async def async_oauth_create_entry(
-        self,
-        data: dict[str, Any],
-    ) -> ConfigFlowResult:
-        """Handle OAuth completion and create config entry."""
-        self.data = data
-
-        # Test the connection with the OAuth token
-        errors = await self.async_test_connection(data)
-        if errors:
-            return self.async_abort(reason="oauth_error")
-
-        await self.async_set_unique_id(self.uid)
-        if self.source == SOURCE_REAUTH:
-            self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
-            return self._async_apply_token(self._get_reauth_entry(), data)
-        if self.source == SOURCE_RECONFIGURE:
-            self._abort_if_unique_id_mismatch(reason="reconfigure_account_mismatch")
-            return self._async_apply_token(self._get_reconfigure_entry(), data)
-        self._abort_if_unique_id_configured()
-
-        return self.async_create_entry(
-            title="Teslemetry",
-            data=data,
-        )
-
-    def _async_apply_token(
-        self, entry: TeslemetryConfigEntry, data: dict[str, Any]
-    ) -> ConfigFlowResult:
-        """Store the refreshed token and reload the entry exactly once."""
-        if entry.state is not ConfigEntryState.LOADED:
-            # Unloaded entries have no update listener, so no paired-reload warning.
-            return self.async_update_reload_and_abort(entry, data=data)
-        # Reload manually: async_update_reload_and_abort would warn (listener present).
-        result = self.async_update_and_abort(entry, data=data)
-        self.hass.config_entries.async_schedule_reload(entry.entry_id)
-        return result
-
-    async def async_test_connection(self, token_data: dict[str, Any]) -> dict[str, str]:
-        """Test the connection with OAuth token."""
-        access_token = token_data["token"]["access_token"]
-
-        teslemetry = Teslemetry(
-            session=async_get_clientsession(self.hass),
-            access_token=access_token,
-        )
-
-        try:
-            metadata = await teslemetry.metadata()
-        except InvalidToken:
-            return {"base": "invalid_access_token"}
-        except SubscriptionRequired:
-            return {"base": "subscription_required"}
-        except ClientError:
-            return {"base": "cannot_connect"}
-        except TeslaFleetError as e:
-            LOGGER.error("Teslemetry API error: %s", e)
-            return {"base": "unknown"}
-
-        self.uid = metadata["uid"]
-        return {}
-
-    async def async_step_reauth(
-        self, entry_data: Mapping[str, Any]
-    ) -> ConfigFlowResult:
-        """Handle reauth on failure."""
-        return await self.async_step_reauth_confirm()
-
-    async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm reauth dialog."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id="reauth_confirm",
-                description_placeholders={"name": "Teslemetry"},
-            )
-
-        return await super().async_step_user()
-
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle reconfiguration."""
-        return await self.async_step_user()
-
-
-class TeslemetryOptionsFlowHandler(OptionsFlow):
-    """Options flow for the Teslemetry integration (HACS-only)."""
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Manage the durable ClickStack log shipping opt-in."""
-        if user_input is not None:
-            return self.async_create_entry(data=user_input)
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Optional(
-                        CONF_SHIP_LOGS_TO_CLICKSTACK,
-                        default=self.config_entry.options.get(
-                            CONF_SHIP_LOGS_TO_CLICKSTACK, False
-                        ),
-                    ): BooleanSelector(),
-                }
-            ),
-        )
 
 
 class VehiclePairingFlow[_ResultT: FlowResult[Any, Any]](
@@ -1016,4 +856,259 @@ class EnergySiteSubentryFlowHandler(
                 CONF_LEGACY_GATEWAY: self._legacy_gateway,
             },
             unique_id=str(self._site_id),
+        )
+
+
+class OAuth2FlowHandler(
+    EnergySitePairingFlow[ConfigFlowResult],
+    config_entry_oauth2_flow.AbstractOAuth2FlowHandler,
+    domain=DOMAIN,
+):
+    """Config flow to handle Teslemetry OAuth2 authentication."""
+
+    DOMAIN = DOMAIN
+    VERSION = 2
+
+    def __init__(self) -> None:
+        """Initialize config flow."""
+        super().__init__()
+        self.data: dict[str, Any] = {}
+        self.uid: str | None = None
+        self._entry: TeslemetryConfigEntry | None = None
+        self._energy_data: TeslemetryEnergyData | None = None
+
+    @staticmethod
+    @callback
+    @override
+    def async_get_options_flow(config_entry: TeslemetryConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return TeslemetryOptionsFlowHandler()
+
+    @property
+    @override
+    def logger(self) -> logging.Logger:
+        """Return logger."""
+        return LOGGER
+
+    @classmethod
+    @callback
+    @override
+    def async_get_supported_subentry_types(
+        cls, config_entry: TeslemetryConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Return the subentry types supported by this integration."""
+        return {
+            SUBENTRY_TYPE_VEHICLE: VehicleSubentryFlowHandler,
+            SUBENTRY_TYPE_ENERGY_SITE: EnergySiteSubentryFlowHandler,
+        }
+
+    @override
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle a flow start."""
+        await async_import_client_credential(
+            self.hass,
+            DOMAIN,
+            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
+        )
+        return await super().async_step_user()
+
+    @override
+    async def async_oauth_create_entry(
+        self,
+        data: dict[str, Any],
+    ) -> ConfigFlowResult:
+        """Handle OAuth completion and create config entry."""
+        self.data = data
+
+        # Test the connection with the OAuth token
+        errors = await self.async_test_connection(data)
+        if errors:
+            return self.async_abort(reason="oauth_error")
+
+        await self.async_set_unique_id(self.uid)
+        if self.source == SOURCE_REAUTH:
+            self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
+            return self._async_apply_token(self._get_reauth_entry(), data)
+        if self.source == SOURCE_RECONFIGURE:
+            self._abort_if_unique_id_mismatch(reason="reconfigure_account_mismatch")
+            return self._async_apply_token(self._get_reconfigure_entry(), data)
+        self._abort_if_unique_id_configured()
+
+        return self.async_create_entry(
+            title="Teslemetry",
+            data=data,
+        )
+
+    def _async_apply_token(
+        self, entry: TeslemetryConfigEntry, data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Store the refreshed token and reload the entry exactly once."""
+        if entry.state is not ConfigEntryState.LOADED:
+            # Unloaded entries have no update listener, so no paired-reload warning.
+            return self.async_update_reload_and_abort(entry, data=data)
+        # Reload manually: async_update_reload_and_abort would warn (listener present).
+        result = self.async_update_and_abort(entry, data=data)
+        self.hass.config_entries.async_schedule_reload(entry.entry_id)
+        return result
+
+    async def async_test_connection(self, token_data: dict[str, Any]) -> dict[str, str]:
+        """Test the connection with OAuth token."""
+        access_token = token_data["token"]["access_token"]
+
+        teslemetry = Teslemetry(
+            session=async_get_clientsession(self.hass),
+            access_token=access_token,
+        )
+
+        try:
+            metadata = await teslemetry.metadata()
+        except InvalidToken:
+            return {"base": "invalid_access_token"}
+        except SubscriptionRequired:
+            return {"base": "subscription_required"}
+        except ClientError:
+            return {"base": "cannot_connect"}
+        except TeslaFleetError as e:
+            LOGGER.error("Teslemetry API error: %s", e)
+            return {"base": "unknown"}
+
+        self.uid = metadata["uid"]
+        return {}
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle reauth on failure."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm reauth dialog."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                description_placeholders={"name": "Teslemetry"},
+            )
+
+        return await super().async_step_user()
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration."""
+        return await self.async_step_user()
+
+    @override
+    async def async_step_dhcp(
+        self, discovery_info: DhcpServiceInfo
+    ) -> ConfigFlowResult:
+        """Offer local control when a loaded account's own gateway is discovered."""
+        await self.async_set_unique_id(format_mac(discovery_info.macaddress))
+        self._abort_if_unique_id_configured()
+
+        for entry in self.hass.config_entries.async_loaded_entries(DOMAIN):
+            added_site_ids = {
+                subentry.unique_id
+                for subentry in entry.subentries.values()
+                if subentry.subentry_type == SUBENTRY_TYPE_ENERGY_SITE
+            }
+            for energy_data in entry.runtime_data.energysites:
+                if (
+                    not energy_data.can_local_control
+                    or str(energy_data.id) in added_site_ids
+                ):
+                    continue
+                try:
+                    host = await cloud_energy_site(
+                        energy_data.api
+                    ).find_gateway_address()
+                except (ClientError, TeslaFleetError) as err:
+                    LOGGER.debug(
+                        "Gateway address lookup for site %s failed: %s",
+                        energy_data.id,
+                        err,
+                    )
+                    continue
+                # Powerwall 3 hostnames do not carry the DIN, so match on the address.
+                if host == discovery_info.ip:
+                    self._entry = entry
+                    self._energy_data = energy_data
+                    self._site_id = energy_data.id
+                    self._site_name = _energy_site_name(energy_data) or "Energy Site"
+                    self.context["title_placeholders"] = {"name": self._site_name}
+                    return await self.async_step_dhcp_confirm()
+
+        return self.async_abort(reason="no_matching_site")
+
+    async def async_step_dhcp_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm local control of the discovered gateway, then pair it."""
+        if TYPE_CHECKING:
+            assert self._energy_data is not None
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                await self._prepare_energy_site(self._energy_data)
+                return await self._async_begin_pairing()
+            except EnergyGatewayUnreachable:
+                errors["base"] = "powerwall_unreachable"
+            except PowerwallSetupError:
+                errors["base"] = "cannot_connect"
+
+        return self.async_show_form(
+            step_id="dhcp_confirm",
+            description_placeholders={"name": self._site_name},
+            errors=errors,
+        )
+
+    @callback
+    @override
+    def _async_save_credentials(self, host: str, password: str) -> ConfigFlowResult:
+        """Add the verified gateway to the account as an energy site subentry."""
+        if TYPE_CHECKING:
+            assert self._entry is not None
+        self.hass.config_entries.async_add_subentry(
+            self._entry,
+            ConfigSubentry(
+                data=MappingProxyType(
+                    {
+                        CONF_SITE_ID: self._site_id,
+                        CONF_HOST: host,
+                        CONF_PASSWORD: password,
+                    }
+                ),
+                subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
+                title=self._site_name,
+                unique_id=str(self._site_id),
+            ),
+        )
+        return self.async_abort(reason="local_control_successful")
+
+
+class TeslemetryOptionsFlowHandler(OptionsFlow):
+    """Options flow for the Teslemetry integration (HACS-only)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the durable ClickStack log shipping opt-in."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Optional(
+                        CONF_SHIP_LOGS_TO_CLICKSTACK,
+                        default=self.config_entry.options.get(
+                            CONF_SHIP_LOGS_TO_CLICKSTACK, False
+                        ),
+                    ): BooleanSelector(),
+                }
+            ),
         )

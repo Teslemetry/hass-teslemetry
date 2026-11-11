@@ -85,8 +85,11 @@ from homeassistant.components.teslemetry.const import (
 )
 from homeassistant.components.teslemetry.coordinator import METADATA_INTERVAL
 from homeassistant.config_entries import (
+    SOURCE_DHCP,
+    SOURCE_IGNORE,
     SOURCE_USER,
     ConfigEntryState,
+    ConfigFlowResult,
     ConfigSubentry,
     ConfigSubentryData,
     SubentryFlowResult,
@@ -105,6 +108,7 @@ from homeassistant.helpers import (
     device_registry as dr,
     entity_registry as er,
 )
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.setup import async_setup_component
 
 from . import mock_config_entry, setup_platform
@@ -3926,3 +3930,187 @@ async def test_reconfigure_registers_key_via_cloud_not_local_gateway(
     assert result["step_id"] == "pair"
     cloud_add.assert_awaited_once()
     local_add.assert_not_awaited()
+
+
+DHCP_DISCOVERY = DhcpServiceInfo(
+    ip=HOST, hostname="teslapw_abcdef", macaddress="009b08a3c371"
+)
+
+
+async def _start_dhcp_flow(hass: HomeAssistant) -> ConfigFlowResult:
+    """Start a flow for the gateway discovered by DHCP."""
+    return await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_DHCP}, data=DHCP_DISCOVERY
+    )
+
+
+@pytest.mark.usefixtures("mock_rsa_key")
+async def test_dhcp_discovery_adds_energy_site(
+    hass: HomeAssistant, mock_gateway_discovery: AsyncMock
+) -> None:
+    """A loaded account's own discovered gateway is paired into a subentry."""
+    entry = await _setup_account_no_subentry(hass)
+    mock_gateway_discovery.return_value = HOST
+
+    result = await _start_dhcp_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "dhcp_confirm"
+
+    with (
+        patch(
+            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
+            new=AsyncMock(
+                return_value=_own_key_clients(AuthorizedClientState.VERIFIED)
+            ),
+        ),
+        patch(
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
+            return_value=_mock_powerwall_client(),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
+    ):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "credentials"
+        assert _credentials_host_default(result) == HOST
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: HOST, CONF_PASSWORD: PASSWORD}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "local_control_successful"
+    subentry = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0]
+    assert subentry.unique_id == str(SITE_ID)
+    assert subentry.title == "Energy Site"
+    assert dict(subentry.data) == {
+        CONF_SITE_ID: SITE_ID,
+        CONF_HOST: HOST,
+        CONF_PASSWORD: PASSWORD,
+    }
+    mock_reload.assert_called_once_with(entry.entry_id)
+
+
+@pytest.mark.parametrize(
+    "lookup",
+    [
+        pytest.param({"return_value": "192.168.91.2"}, id="other_gateway"),
+        pytest.param({"return_value": None}, id="no_address"),
+        pytest.param({"side_effect": ClientError}, id="client_error"),
+        pytest.param({"side_effect": TeslaFleetError}, id="fleet_error"),
+    ],
+)
+async def test_dhcp_discovery_gateway_not_on_account(
+    hass: HomeAssistant, mock_gateway_discovery: AsyncMock, lookup: dict[str, Any]
+) -> None:
+    """A gateway the account's sites do not report is not offered."""
+    await _setup_account_no_subentry(hass)
+    mock_gateway_discovery.configure_mock(**lookup)
+
+    result = await _start_dhcp_flow(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "no_matching_site"
+    # Only the battery site can be controlled locally, so only it is looked up.
+    mock_gateway_discovery.assert_awaited_once()
+
+
+async def test_dhcp_discovery_without_loaded_account(
+    hass: HomeAssistant, mock_gateway_discovery: AsyncMock
+) -> None:
+    """Nothing is offered unless a Teslemetry account is loaded."""
+    mock_config_entry().add_to_hass(hass)
+    mock_gateway_discovery.return_value = HOST
+
+    result = await _start_dhcp_flow(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "no_matching_site"
+    mock_gateway_discovery.assert_not_awaited()
+
+
+async def test_dhcp_discovery_site_already_added(
+    hass: HomeAssistant, mock_gateway_discovery: AsyncMock
+) -> None:
+    """A site that already has local control is not offered again."""
+    await _setup_paired_account(hass)
+    mock_gateway_discovery.reset_mock()
+    mock_gateway_discovery.return_value = HOST
+
+    result = await _start_dhcp_flow(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "no_matching_site"
+    mock_gateway_discovery.assert_not_awaited()
+
+
+async def test_dhcp_discovery_ignored_gateway(
+    hass: HomeAssistant, mock_gateway_discovery: AsyncMock
+) -> None:
+    """A gateway the user ignored is not offered again."""
+    MockConfigEntry(
+        domain=DOMAIN, source=SOURCE_IGNORE, unique_id="00:9b:08:a3:c3:71"
+    ).add_to_hass(hass)
+    await _setup_account_no_subentry(hass)
+    mock_gateway_discovery.return_value = HOST
+
+    result = await _start_dhcp_flow(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    mock_gateway_discovery.assert_not_awaited()
+
+
+@pytest.mark.usefixtures("mock_rsa_key")
+@pytest.mark.parametrize(
+    ("side_effect", "error"),
+    [
+        pytest.param(
+            EnergyGatewayUnreachable, "powerwall_unreachable", id="unreachable"
+        ),
+        pytest.param(TeslaFleetError, "cannot_connect", id="lookup_failed"),
+    ],
+)
+async def test_dhcp_confirm_pairing_error(
+    hass: HomeAssistant,
+    mock_gateway_discovery: AsyncMock,
+    side_effect: type[Exception],
+    error: str,
+) -> None:
+    """A failure to start pairing keeps the confirm form open to retry."""
+    entry = await _setup_account_no_subentry(hass)
+    mock_gateway_discovery.return_value = HOST
+    result = await _start_dhcp_flow(hass)
+
+    with (
+        patch(
+            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
+            new=AsyncMock(
+                side_effect=[
+                    side_effect,
+                    _own_key_clients(AuthorizedClientState.VERIFIED),
+                ]
+            ),
+        ),
+        patch(
+            "homeassistant.components.teslemetry.helpers.PowerwallClient",
+            return_value=_mock_powerwall_client(),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload"),
+    ):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "dhcp_confirm"
+        assert result["errors"] == {"base": error}
+
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        assert result["step_id"] == "credentials"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: HOST, CONF_PASSWORD: PASSWORD}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "local_control_successful"
+    assert entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)
