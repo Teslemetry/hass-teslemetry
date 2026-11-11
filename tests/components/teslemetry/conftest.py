@@ -459,7 +459,7 @@ def mock_powerwall_components() -> Generator[AsyncMock]:
 def mock_powerwall_config() -> Generator[AsyncMock]:
     """Mock the local Powerwall gateway configuration."""
     with patch(
-        "aiopowerwall.PowerwallClient.get_config",
+        "tesla_fleet_api.tesla.powerwall.PowerwallClient.get_config",
         side_effect=lambda: deepcopy(POWERWALL_CONFIG),
     ) as mock_config:
         yield mock_config
