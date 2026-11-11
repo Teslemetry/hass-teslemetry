@@ -27,7 +27,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util.unit_conversion import TemperatureConverter
 
-from . import TeslemetryConfigEntry
 from .const import TeslemetryClimateSide
 from .entity import (
     TeslemetryRootEntity,
@@ -35,7 +34,7 @@ from .entity import (
     TeslemetryVehicleStreamEntity,
 )
 from .helpers import handle_vehicle_command
-from .models import TeslemetryVehicleData
+from .models import TeslemetryConfigEntry, TeslemetryVehicleData
 
 DEFAULT_MIN_TEMP = 15
 DEFAULT_MAX_TEMP = 28
