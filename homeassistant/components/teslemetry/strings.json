@@ -728,6 +728,9 @@
       "consumer_energy_imported_from_solar": {
         "name": "Consumer imported from solar"
       },
+      "country": {
+        "name": "Country"
+      },
       "credit_balance": {
         "name": "Teslemetry command credits",
         "unit_of_measurement": "credits"
@@ -880,6 +883,9 @@
       "di_vbat_rer": {
         "name": "Rear right drive inverter battery voltage"
       },
+      "distributor": {
+        "name": "Distributor"
+      },
       "drive_state_active_route_destination": {
         "name": "Destination"
       },
@@ -933,6 +939,9 @@
       },
       "gps_heading": {
         "name": "GPS heading"
+      },
+      "grid_code": {
+        "name": "Grid code"
       },
       "grid_energy_exported_from_battery": {
         "name": "Grid exported from battery"
