@@ -1079,6 +1079,7 @@ class OAuth2FlowHandler(
                         CONF_SITE_ID: self._site_id,
                         CONF_HOST: host,
                         CONF_PASSWORD: password,
+                        CONF_LEGACY_GATEWAY: self._legacy_gateway,
                     }
                 ),
                 subentry_type=SUBENTRY_TYPE_ENERGY_SITE,
