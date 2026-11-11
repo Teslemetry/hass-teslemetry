@@ -4,7 +4,6 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientError
-from aiopowerwall import PowerwallAuthenticationError, PowerwallError
 from bleak.exc import BleakError
 import probatio
 from tesla_fleet_api.exceptions import (
@@ -18,6 +17,7 @@ from tesla_fleet_api.exceptions import (
     is_key_rejected,
 )
 from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.tesla.powerwall import PowerwallAuthenticationError, PowerwallError
 
 from homeassistant.components.bluetooth import async_scanner_count
 from homeassistant.components.repairs import (
