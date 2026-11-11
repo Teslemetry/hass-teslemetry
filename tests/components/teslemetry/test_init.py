@@ -131,6 +131,7 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
+from homeassistant.helpers.update_coordinator import REQUEST_REFRESH_DEFAULT_COOLDOWN
 from homeassistant.setup import async_setup_component
 from homeassistant.util.json import JsonObjectType
 
@@ -1440,9 +1441,7 @@ async def test_vehicle_data_missing_scopes_repair(
     issue_id = f"missing_scopes_{entry.entry_id}"
 
     mock_vehicle_data.side_effect = Forbidden
-    freezer.tick(VEHICLE_INTERVAL)
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await refresh_entity(hass, BATTERY_LEVEL_ENTITY_ID)
 
     assert entry.state is ConfigEntryState.LOADED
     assert hass.states.get("sensor.test_battery_level").state == STATE_UNAVAILABLE
@@ -1453,9 +1452,10 @@ async def test_vehicle_data_missing_scopes_repair(
     )
 
     mock_vehicle_data.side_effect = None
-    freezer.tick(VEHICLE_INTERVAL)
+    # Past the refresh debouncer's cooldown, so this refresh runs.
+    freezer.tick(timedelta(seconds=REQUEST_REFRESH_DEFAULT_COOLDOWN))
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await refresh_entity(hass, BATTERY_LEVEL_ENTITY_ID)
 
     assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
 
