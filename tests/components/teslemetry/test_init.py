@@ -4077,6 +4077,8 @@ _LOCAL_LIVE_STATUS = {
 # Expected entity states once _LOCAL_LIVE_STATUS is merged over the cloud fixture.
 _LOCAL_LIVE_STATES = {
     "sensor.energy_site_solar_power": "2.0",
+    "sensor.energy_site_energy_left": "20.0",
+    "sensor.energy_site_total_pack_energy": "40.0",
     "sensor.energy_site_percentage_charged": "80.0",
     "sensor.energy_site_battery_power": "3.0",
     "sensor.energy_site_load_power": "4.0",
@@ -4146,6 +4148,8 @@ async def test_paired_site_live_reads_merge_over_cloud(
 
     # Before the first LAN poll the merge base is the cloud cold read.
     assert hass.states.get("sensor.energy_site_solar_power").state == "1.185"
+    # The cloud does not report battery energy, so it waits for the gateway.
+    assert hass.states.get("sensor.energy_site_energy_left").state == STATE_UNAVAILABLE
 
     await _tick_local_live(hass, freezer, 1)
 
@@ -4780,7 +4784,7 @@ async def test_paired_site_live_read_failure_falls_back_and_recovers(
     freezer: FrozenDateTimeFactory,
     mock_powerwall_live_status: AsyncMock,
 ) -> None:
-    """A failed local live poll shows cloud values (never unavailable) and recovers."""
+    """A failed local live poll falls back to cloud values and recovers."""
     mock_powerwall_live_status.side_effect = lambda: deepcopy(_LOCAL_LIVE_STATUS)
     entry = _entry_with_powerwall()
     await _setup_energy_site_entry(hass, entry, [Platform.SENSOR])
@@ -4793,6 +4797,8 @@ async def test_paired_site_live_read_failure_falls_back_and_recovers(
     await _tick_local_live(hass, freezer, 1)
     assert mock_powerwall_live_status.await_count == 2
     assert hass.states.get("sensor.energy_site_solar_power").state == "1.185"
+    # Only the gateway reports battery energy, so it has no cloud fallback.
+    assert hass.states.get("sensor.energy_site_energy_left").state == STATE_UNAVAILABLE
 
     # The next poll, backed off to two intervals, succeeds.
     mock_powerwall_live_status.side_effect = lambda: deepcopy(_LOCAL_LIVE_STATUS)
@@ -4800,6 +4806,7 @@ async def test_paired_site_live_read_failure_falls_back_and_recovers(
 
     assert mock_powerwall_live_status.await_count == 3
     assert hass.states.get("sensor.energy_site_solar_power").state == "2.0"
+    assert hass.states.get("sensor.energy_site_energy_left").state == "20.0"
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -4916,6 +4923,8 @@ async def test_unpaired_site_reads_cloud_only(
     assert mock_powerwall_live_status.await_count == 0
     assert mock_powerwall_local_config.await_count == 0
     assert hass.states.get("sensor.energy_site_solar_power").state == "1.185"
+    assert hass.states.get("sensor.energy_site_energy_left") is None
+    assert hass.states.get("sensor.energy_site_total_pack_energy") is None
     assert (
         hass.states.get("select.energy_site_operation_mode").state == "self_consumption"
     )
