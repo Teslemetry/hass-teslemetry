@@ -259,3 +259,15 @@ PRODUCTS_ENERGY = load_json_object_fixture("products.json", DOMAIN)
 PRODUCTS_ENERGY["response"] = [
     product for product in PRODUCTS_ENERGY["response"] if "energy_site_id" in product
 ]
+
+CONFIG_JSON_APPLIED = {
+    "response": {
+        "min_site_meter_power_ac": -5.0,
+        "max_site_meter_power_ac": 14.0,
+        "on_grid_solar_curtailment_enabled": True,
+        "applied": True,
+    }
+}
+CONFIG_JSON_NOT_APPLIED = {
+    "response": {**CONFIG_JSON_APPLIED["response"], "applied": False}
+}

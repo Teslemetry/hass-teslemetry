@@ -538,6 +538,12 @@
       "charge_state_charge_limit_soc": {
         "name": "Charge limit"
       },
+      "max_site_meter_power_ac": {
+        "name": "Grid import limit"
+      },
+      "min_site_meter_power_ac": {
+        "name": "Grid export limit"
+      },
       "off_grid_vehicle_charging_reserve_percent": {
         "name": "Off-grid reserve"
       }
@@ -1477,6 +1483,9 @@
       "guest_mode_enabled": {
         "name": "Guest mode"
       },
+      "on_grid_solar_curtailment_enabled": {
+        "name": "Solar curtailment"
+      },
       "user_settings_storm_mode_enabled": {
         "name": "Storm watch"
       },
@@ -1540,6 +1549,9 @@
     },
     "command_reason": {
       "message": "Command was rejected: {reason}"
+    },
+    "config_not_applied": {
+      "message": "The Powerwall gateway configuration changed while the setting was being saved, try again"
     },
     "driver_temperature_unknown": {
       "message": "The driver temperature is not known yet, wait for the vehicle to report it and try again"

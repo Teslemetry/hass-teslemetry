@@ -259,8 +259,19 @@ def _setup_dynamic_discovery(
     known_vins: set[str],
     known_site_ids: set[str],
     polling_vins: set[str],
+    energysites: list[TeslemetryEnergyData],
 ) -> None:
     """Set up reloads for subscription changes and vehicles able to stream."""
+
+    def _signed_site_ids(data: dict[str, Any]) -> set[int]:
+        """Return the energy sites signed commands can reach."""
+        return {
+            energysite.id
+            for energysite in energysites
+            if energysite.signed_commands_available(data)
+        }
+
+    known_signed_site_ids = _signed_site_ids(metadata_coordinator.data)
 
     @callback
     def _handle_metadata_update() -> None:
@@ -303,6 +314,13 @@ def _setup_dynamic_discovery(
                 streamable_vins or "none",
             )
             polling_vins.difference_update(streamable_vins)
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+        elif _signed_site_ids(data) != known_signed_site_ids:
+            # Entities for commands Teslemetry signs exist only while it can send them.
+            LOGGER.info(
+                "Teslemetry pairing with an energy gateway changed, "
+                "reloading integration"
+            )
             hass.config_entries.async_schedule_reload(entry.entry_id)
 
     entry.async_on_unload(
@@ -1453,6 +1471,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             for vehicle in vehicles
             if vehicle_metadata[vehicle.vin].get("polling")
         },
+        energysites,
     )
 
     _setup_vehicle_repairs(

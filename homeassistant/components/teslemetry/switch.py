@@ -16,6 +16,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -29,7 +30,12 @@ from .entity import (
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
 )
-from .helpers import async_set_charge_on_solar, handle_command, handle_vehicle_command
+from .helpers import (
+    async_set_charge_on_solar,
+    handle_command,
+    handle_config_json_command,
+    handle_vehicle_command,
+)
 from .models import TeslemetryConfigEntry, TeslemetryEnergyData, TeslemetryVehicleData
 
 PARALLEL_UPDATES = 0
@@ -210,6 +216,16 @@ async def async_setup_entry(
         TeslemetryStormModeSwitchEntity(energysite, entry.runtime_data.scopes)
         for energysite in entry.runtime_data.energysites
         if energysite.info_coordinator.data.get("components_storm_mode_capable")
+    )
+    entities.extend(
+        TeslemetryOnGridSolarCurtailmentSwitchEntity(
+            energysite, entry.runtime_data.scopes
+        )
+        for energysite in entry.runtime_data.energysites
+        if energysite.info_coordinator.data.get("components_solar")
+        and energysite.signed_commands_available(
+            entry.runtime_data.metadata_coordinator.data
+        )
     )
 
     if (store := entry.runtime_data.charge_on_solar_store) is not None:
@@ -420,6 +436,50 @@ class TeslemetryStormModeSwitchEntity(TeslemetryEnergyInfoEntity, SwitchEntity):
         self._attr_is_on = False
         self.coordinator.async_set_command_value(self.key, False)
         self.async_write_ha_state()
+
+
+class TeslemetryOnGridSolarCurtailmentSwitchEntity(
+    TeslemetryEnergyInfoEntity, SwitchEntity
+):
+    """Entity class for the on-grid solar curtailment switch."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the Switch."""
+        super().__init__(data, "on_grid_solar_curtailment_enabled")
+        self.scoped = Scope.ENERGY_CMDS in scopes
+
+    @override
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the switch."""
+        # Cloud site_info does not carry this setting, so it is unknown until read locally.
+        self._attr_is_on = self._value
+
+    async def _async_set_curtailment(self, enabled: bool) -> None:
+        """Allow or stop on-grid solar curtailment."""
+        self.raise_for_scope(Scope.ENERGY_CMDS)
+        await handle_config_json_command(
+            self.api.set_on_grid_solar_curtailment(enabled)
+        )
+        self._attr_is_on = enabled
+        self.coordinator.async_set_command_value(self.key, enabled)
+        self.async_write_ha_state()
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the Switch."""
+        await self._async_set_curtailment(True)
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the Switch."""
+        await self._async_set_curtailment(False)
 
 
 class TeslemetryChargeOnSolarSwitchEntity(TeslemetryChargeOnSolarEntity, SwitchEntity):
