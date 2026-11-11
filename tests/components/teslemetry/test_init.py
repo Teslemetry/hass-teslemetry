@@ -2441,7 +2441,6 @@ async def test_local_control_repair_cleared_without_subentry(
         hass,
         DOMAIN,
         issue_id,
-        config_entry_id=entry.entry_id,
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
         translation_key="local_control_failed",
