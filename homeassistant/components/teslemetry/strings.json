@@ -1451,6 +1451,20 @@
       "vehicle_state_software_update_status": {
         "name": "[%key:component::update::title%]"
       }
+    },
+    "vacuum": {
+      "roadster": {
+        "state_attributes": {
+          "fan_speed": {
+            "state": {
+              "gentle_breeze": "Gentle breeze",
+              "ludicrous": "Ludicrous",
+              "standard": "Standard",
+              "upside_down": "Upside down"
+            }
+          }
+        }
+      }
     }
   },
   "exceptions": {
@@ -1522,6 +1536,15 @@
     },
     "rear_trunk_state_unknown": {
       "message": "The rear trunk state is unknown, try again once the vehicle reports it"
+    },
+    "roadster_invalid_fan_speed": {
+      "message": "The Roadster has no {fan_speed} fan speed. Choose one of: {fan_speeds}."
+    },
+    "roadster_low_battery": {
+      "message": "The Roadster does not have enough battery for that. Return it to the Supercharger first."
+    },
+    "roadster_unknown_trick": {
+      "message": "The Roadster does not know the {command} trick. Try one of: {commands}."
     },
     "set_scheduled_charging_time": {
       "message": "Scheduled charging time is required when enabling"
@@ -1669,6 +1692,12 @@
       "disable_confirmation": "The charge-on-solar switch and lower limit will be removed from your Teslemetry vehicles.",
       "enable_confirmation": "The charge-on-solar switch and lower limit will be added to your Teslemetry vehicles.",
       "name": "Charge on solar"
+    },
+    "roadster_vacuum": {
+      "description": "Adds a Tesla Roadster that cleans your floors. Fan suction holds it to the ceiling for upside-down cleaning, and cold-air thrusters let it fly, hover and barrel roll over the dust.\n\nThis is an easter egg: the Roadster is imaginary and lives only in Home Assistant, so every command succeeds instantly and nothing is sent to Tesla or Teslemetry.",
+      "disable_confirmation": "The Tesla Roadster vacuum will fly back to the future and be removed from Home Assistant.",
+      "enable_confirmation": "A Tesla Roadster vacuum will be added to each Teslemetry account. It is not a real vehicle and does not connect to anything.",
+      "name": "Tesla Roadster vacuum"
     }
   },
   "selector": {
