@@ -1614,7 +1614,8 @@ async def test_energy_site_repair_issue_created(
 
     issue = issue_registry.async_get_issue(DOMAIN, _energy_issue_id(entry))
     assert issue is not None
-    assert issue.config_entry_id == entry.entry_id
+    # HACS stable-core compat: the pinned core ties an issue to its entry by data.
+    assert issue.data["entry_id"] == entry.entry_id
     assert issue.translation_key == "energy_site_not_paired"
     assert issue.translation_placeholders == {
         "site": "Energy Site",
