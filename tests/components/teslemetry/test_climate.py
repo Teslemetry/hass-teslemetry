@@ -1,7 +1,7 @@
 """Test the Teslemetry climate platform."""
 
 from copy import deepcopy
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, _Call, call, patch
 
 import pytest
 from pytest_homeassistant.common import mock_restore_cache_with_extra_data
@@ -33,7 +33,11 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, State
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import (
+    HomeAssistantError,
+    ServiceNotSupported,
+    ServiceValidationError,
+)
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util.unit_system import (
     METRIC_SYSTEM,
@@ -756,3 +760,363 @@ async def test_climate_streaming_hvac_power(
     await hass.async_block_till_done()
 
     assert hass.states.get("climate.test_climate").state == expected
+
+
+PASSENGER_ENTITY_ID = "climate.test_passenger_climate"
+PASSENGER_SYNC_FEATURES = (
+    ClimateEntityFeature.TURN_ON
+    | ClimateEntityFeature.TURN_OFF
+    | ClimateEntityFeature.PRESET_MODE
+)
+PASSENGER_SPLIT_FEATURES = (
+    PASSENGER_SYNC_FEATURES | ClimateEntityFeature.TARGET_TEMPERATURE
+)
+
+
+def send_set_points(
+    mock_add_listener: AsyncMock, left: float | None, right: float | None
+) -> None:
+    """Send the front set points as streamed by the vehicle."""
+    mock_add_listener.send(
+        {
+            "vin": VIN,
+            "data": {
+                Signal.HVAC_LEFT_TEMPERATURE_REQUEST: left,
+                Signal.HVAC_RIGHT_TEMPERATURE_REQUEST: right,
+            },
+            "createdAt": "2024-10-04T10:45:17.537Z",
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("rhd", "left", "right", "preset_mode", "supported_features", "temperature"),
+    [
+        pytest.param(
+            False, 22, 22, "sync", PASSENGER_SYNC_FEATURES, None, id="lhd_sync"
+        ),
+        pytest.param(
+            False, 22, 24, "split", PASSENGER_SPLIT_FEATURES, 24, id="lhd_split"
+        ),
+        pytest.param(
+            True, 24, 22, "split", PASSENGER_SPLIT_FEATURES, 24, id="rhd_split"
+        ),
+        pytest.param(
+            False, None, 24, None, PASSENGER_SYNC_FEATURES, None, id="driver_unknown"
+        ),
+    ],
+)
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_streaming_preset(
+    hass: HomeAssistant,
+    mock_metadata: AsyncMock,
+    mock_add_listener: AsyncMock,
+    rhd: bool,
+    left: float | None,
+    right: float | None,
+    preset_mode: str | None,
+    supported_features: ClimateEntityFeature,
+    temperature: float | None,
+) -> None:
+    """Test the passenger preset follows the set points and gates the temperature."""
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VIN]["config"] = {"rhd": rhd}
+    mock_metadata.return_value = metadata
+
+    await setup_platform(hass, [Platform.CLIMATE])
+    send_set_points(mock_add_listener, left, right)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PASSENGER_ENTITY_ID)
+    assert state.attributes[ATTR_PRESET_MODE] == preset_mode
+    assert state.attributes[ATTR_SUPPORTED_FEATURES] == supported_features
+    assert state.attributes.get(ATTR_TEMPERATURE) == temperature
+
+
+@pytest.mark.parametrize(
+    ("driver_setting", "passenger_setting", "preset_mode", "supported_features"),
+    [
+        pytest.param(22, 22, "sync", PASSENGER_SYNC_FEATURES, id="sync"),
+        pytest.param(22, 24, "split", PASSENGER_SPLIT_FEATURES, id="split"),
+        pytest.param(None, 24, None, PASSENGER_SYNC_FEATURES, id="driver_unknown"),
+    ],
+)
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_polling_preset(
+    hass: HomeAssistant,
+    mock_metadata: AsyncMock,
+    mock_vehicle_data: AsyncMock,
+    driver_setting: float | None,
+    passenger_setting: float,
+    preset_mode: str | None,
+    supported_features: ClimateEntityFeature,
+) -> None:
+    """Test the polling passenger preset follows the vehicle_data set points."""
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VIN]["polling"] = True
+    mock_metadata.return_value = metadata
+
+    data = deepcopy(VEHICLE_DATA_ALT)
+    data["response"]["climate_state"]["driver_temp_setting"] = driver_setting
+    data["response"]["climate_state"]["passenger_temp_setting"] = passenger_setting
+    mock_vehicle_data.return_value = data
+
+    await setup_platform(hass, [Platform.CLIMATE])
+
+    state = hass.states.get(PASSENGER_ENTITY_ID)
+    assert state.attributes[ATTR_PRESET_MODE] == preset_mode
+    assert state.attributes[ATTR_SUPPORTED_FEATURES] == supported_features
+
+
+@pytest.mark.parametrize(
+    ("service_data", "expected_calls", "hvac_state"),
+    [
+        pytest.param({}, [], STATE_UNKNOWN, id="temperature"),
+        pytest.param(
+            {ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
+            [call()],
+            HVACMode.HEAT_COOL,
+            id="temperature_and_hvac_mode",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_set_temperature(
+    hass: HomeAssistant,
+    mock_add_listener: AsyncMock,
+    service_data: dict[str, HVACMode],
+    expected_calls: list[_Call],
+    hvac_state: str,
+) -> None:
+    """Test a split passenger temperature is sent with the driver temperature kept."""
+    await setup_platform(hass, [Platform.CLIMATE])
+    send_set_points(mock_add_listener, 22, 24)
+    await hass.async_block_till_done()
+
+    with (
+        patch(
+            "tesla_fleet_api.teslemetry.Vehicle.set_temps", return_value=COMMAND_OK
+        ) as mock_set_temps,
+        patch(
+            "tesla_fleet_api.teslemetry.Vehicle.auto_conditioning_start",
+            return_value=COMMAND_OK,
+        ) as mock_start,
+    ):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {
+                ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID],
+                ATTR_TEMPERATURE: 20,
+                **service_data,
+            },
+            blocking=True,
+        )
+    mock_set_temps.assert_called_once_with(driver_temp=22, passenger_temp=20)
+    assert mock_start.call_args_list == expected_calls
+
+    state = hass.states.get(PASSENGER_ENTITY_ID)
+    assert state.state == hvac_state
+    assert state.attributes[ATTR_TEMPERATURE] == 20
+    assert state.attributes[ATTR_PRESET_MODE] == "split"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_set_temperature_sync(
+    hass: HomeAssistant,
+    mock_add_listener: AsyncMock,
+) -> None:
+    """Test a synced passenger temperature cannot be set."""
+    await setup_platform(hass, [Platform.CLIMATE])
+    send_set_points(mock_add_listener, 22, 22)
+    await hass.async_block_till_done()
+
+    with (
+        patch("tesla_fleet_api.teslemetry.Vehicle.set_temps") as mock_set_temps,
+        pytest.raises(ServiceNotSupported),
+    ):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_TEMPERATURE: 20},
+            blocking=True,
+        )
+    mock_set_temps.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    (
+        "passenger_set_point",
+        "preset_mode",
+        "expected_calls",
+        "supported_features",
+        "temperature",
+    ),
+    [
+        pytest.param(
+            24,
+            "sync",
+            [call(driver_temp=22, passenger_temp=22)],
+            PASSENGER_SYNC_FEATURES,
+            None,
+            id="sync",
+        ),
+        pytest.param(22, "split", [], PASSENGER_SPLIT_FEATURES, 22, id="split"),
+    ],
+)
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_set_preset_mode(
+    hass: HomeAssistant,
+    mock_add_listener: AsyncMock,
+    passenger_set_point: float,
+    preset_mode: str,
+    expected_calls: list[_Call],
+    supported_features: ClimateEntityFeature,
+    temperature: float | None,
+) -> None:
+    """Test sync sends the driver temperature to both seats and split unlocks the temperature."""
+    await setup_platform(hass, [Platform.CLIMATE])
+    send_set_points(mock_add_listener, 22, passenger_set_point)
+    await hass.async_block_till_done()
+
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.set_temps", return_value=COMMAND_OK
+    ) as mock_set_temps:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_PRESET_MODE,
+            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: preset_mode},
+            blocking=True,
+        )
+    assert mock_set_temps.call_args_list == expected_calls
+
+    state = hass.states.get(PASSENGER_ENTITY_ID)
+    assert state.attributes[ATTR_PRESET_MODE] == preset_mode
+    assert state.attributes[ATTR_SUPPORTED_FEATURES] == supported_features
+    assert state.attributes.get(ATTR_TEMPERATURE) == temperature
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_set_preset_mode_driver_unknown(
+    hass: HomeAssistant,
+) -> None:
+    """Test the preset cannot change before the driver set point is known."""
+    await setup_platform(hass, [Platform.CLIMATE])
+
+    with (
+        patch("tesla_fleet_api.teslemetry.Vehicle.set_temps") as mock_set_temps,
+        pytest.raises(HomeAssistantError) as error,
+    ):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_PRESET_MODE,
+            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: "sync"},
+            blocking=True,
+        )
+    assert error.value.translation_key == "driver_temperature_unknown"
+    mock_set_temps.assert_not_called()
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_passenger_climate_turn_on_off(hass: HomeAssistant) -> None:
+    """Test the passenger climate turns the cabin climate on and off."""
+    await setup_platform(hass, [Platform.CLIMATE])
+
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.auto_conditioning_stop",
+        return_value=COMMAND_OK,
+    ) as mock_stop:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
+            blocking=True,
+        )
+    mock_stop.assert_called_once()
+    assert hass.states.get(PASSENGER_ENTITY_ID).state == HVACMode.OFF
+
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.auto_conditioning_start",
+        return_value=COMMAND_OK,
+    ) as mock_start:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
+            blocking=True,
+        )
+    mock_start.assert_called_once()
+    assert hass.states.get(PASSENGER_ENTITY_ID).state == HVACMode.HEAT_COOL
+
+
+@pytest.mark.parametrize(
+    ("passenger_set_point", "passenger_temp"),
+    [
+        pytest.param(24, 24, id="split"),
+        pytest.param(22, 20, id="sync"),
+        pytest.param(None, 20, id="passenger_unknown"),
+    ],
+)
+async def test_climate_streaming_set_temperature_passenger(
+    hass: HomeAssistant,
+    mock_add_listener: AsyncMock,
+    passenger_set_point: float | None,
+    passenger_temp: float,
+) -> None:
+    """Test the driver temperature keeps a split passenger temperature."""
+    await setup_platform(hass, [Platform.CLIMATE])
+    send_set_points(mock_add_listener, 22, passenger_set_point)
+    await hass.async_block_till_done()
+
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.set_temps", return_value=COMMAND_OK
+    ) as mock_set_temps:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
+            blocking=True,
+        )
+    mock_set_temps.assert_called_once_with(
+        driver_temp=20, passenger_temp=passenger_temp
+    )
+
+
+@pytest.mark.parametrize(
+    ("passenger_setting", "passenger_temp"),
+    [
+        pytest.param(24, 24, id="split"),
+        pytest.param(22, 20, id="sync"),
+    ],
+)
+async def test_climate_polling_set_temperature_passenger(
+    hass: HomeAssistant,
+    mock_metadata: AsyncMock,
+    mock_vehicle_data: AsyncMock,
+    passenger_setting: float,
+    passenger_temp: float,
+) -> None:
+    """Test the polling driver temperature keeps a split passenger temperature."""
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VIN]["polling"] = True
+    mock_metadata.return_value = metadata
+
+    data = deepcopy(VEHICLE_DATA_ALT)
+    data["response"]["climate_state"]["driver_temp_setting"] = 22
+    data["response"]["climate_state"]["passenger_temp_setting"] = passenger_setting
+    mock_vehicle_data.return_value = data
+
+    await setup_platform(hass, [Platform.CLIMATE])
+
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.set_temps", return_value=COMMAND_OK
+    ) as mock_set_temps:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
+            blocking=True,
+        )
+    mock_set_temps.assert_called_once_with(
+        driver_temp=20, passenger_temp=passenger_temp
+    )
