@@ -1,0 +1,52 @@
+diff --git a/homeassistant/components/teslemetry/helpers.py b/homeassistant/components/teslemetry/helpers.py
+index 1b8d9b0ffc..fa70db3ab9 100644
+--- a/homeassistant/components/teslemetry/helpers.py
++++ b/homeassistant/components/teslemetry/helpers.py
+@@ -231,9 +231,13 @@ async def handle_energy_site_command(
+         ) from e
+ 
+ 
+-async def handle_config_json_command(command: Awaitable[dict[str, Any]]) -> None:
++async def handle_config_json_command(
++    hass: HomeAssistant,
++    entry: TeslemetryConfigEntry,
++    command: Awaitable[dict[str, Any]],
++) -> None:
+     """Handle a gateway config.json write, which is not applied if the file changed meanwhile."""
+-    result = await handle_energy_site_command(command)
++    result = await handle_energy_site_command(hass, entry, command)
+     if not result["response"]["applied"]:
+         raise HomeAssistantError(
+             translation_domain=DOMAIN,
+diff --git a/homeassistant/components/teslemetry/number.py b/homeassistant/components/teslemetry/number.py
+index 41dad692cf..531fa8e5ec 100644
+--- a/homeassistant/components/teslemetry/number.py
++++ b/homeassistant/components/teslemetry/number.py
+@@ -429,7 +429,11 @@ class TeslemetryEnergyGridLimitNumberEntity(TeslemetryEnergyInfoEntity, NumberEn
+     async def async_set_native_value(self, value: float) -> None:
+         """Set new value."""
+         self.raise_for_scope(Scope.ENERGY_CMDS)
+-        await handle_config_json_command(self.entity_description.func(self.api, value))
++        await handle_config_json_command(
++            self.hass,
++            self.config_entry,
++            self.entity_description.func(self.api, value),
++        )
+         self._attr_native_value = value
+         self.coordinator.async_set_command_value(
+             self.key, value * self.entity_description.site_info_sign
+diff --git a/homeassistant/components/teslemetry/switch.py b/homeassistant/components/teslemetry/switch.py
+index a02d60515c..c2c3e14840 100644
+--- a/homeassistant/components/teslemetry/switch.py
++++ b/homeassistant/components/teslemetry/switch.py
+@@ -465,7 +465,9 @@ class TeslemetryOnGridSolarCurtailmentSwitchEntity(
+         """Allow or stop on-grid solar curtailment."""
+         self.raise_for_scope(Scope.ENERGY_CMDS)
+         await handle_config_json_command(
+-            self.api.set_on_grid_solar_curtailment(enabled)
++            self.hass,
++            self.config_entry,
++            self.api.set_on_grid_solar_curtailment(enabled),
+         )
+         self._attr_is_on = enabled
+         self.coordinator.async_set_command_value(self.key, enabled)
