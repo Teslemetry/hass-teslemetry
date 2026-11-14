@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -55,10 +56,7 @@ from homeassistant.components.teslemetry.const import (
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
 )
-from homeassistant.components.teslemetry.coordinator import (
-    METADATA_INTERVAL,
-    VEHICLE_INTERVAL,
-)
+from homeassistant.components.teslemetry.coordinator import METADATA_INTERVAL
 from homeassistant.components.teslemetry.repairs import (
     BluetoothKeyRepairFlow,
     async_create_fix_flow,
@@ -98,6 +96,8 @@ PASSWORD = "abcde"
 ENTRY_ID = "01JTESLEMETRYENTRY00000000"
 GATEWAY_ISSUE_ID = f"gateway_not_found_{ENTRY_ID}_{SITE_ID}"
 BLE_KEY_ISSUE_ID = f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{ENTRY_ID}_{VEHICLE_VIN}"
+# Any tick works: vehicle data is no longer polled on an interval.
+VEHICLE_INTERVAL = timedelta(seconds=60)
 FIND_GATEWAY_ADDRESS = (
     "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_gateway_address"
 )
