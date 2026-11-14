@@ -124,10 +124,12 @@ async def async_dispatch_battery_power(call: ServiceCall) -> None:
     site = async_get_energy_site_for_entry(call.hass, device, config)
 
     await handle_energy_site_command(
+        call.hass,
+        config,
         site.api.dispatch_battery_power(
             call.data[TeslemetryServiceArgument.POWER],
             call.data[TeslemetryServiceArgument.DURATION],
-        )
+        ),
     )
 
 
@@ -136,7 +138,9 @@ async def async_resume_battery_operation(call: ServiceCall) -> None:
     device, config = async_get_device_and_config_for_service_call(call.hass, call)
     site = async_get_energy_site_for_entry(call.hass, device, config)
 
-    await handle_energy_site_command(site.api.resume_battery_operation())
+    await handle_energy_site_command(
+        call.hass, config, site.api.resume_battery_operation()
+    )
 
 
 @callback
@@ -149,11 +153,13 @@ def async_setup_services(hass: HomeAssistant) -> None:
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.navigation_gps_request(
                 lat=call.data[TeslemetryServiceArgument.GPS][CONF_LATITUDE],
                 lon=call.data[TeslemetryServiceArgument.GPS][CONF_LONGITUDE],
                 order=call.data.get(TeslemetryServiceArgument.ORDER, 0),
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -192,9 +198,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
             time = 0
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.set_scheduled_charging(
                 enable=call.data[TeslemetryServiceArgument.ENABLE], time=time
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -261,6 +269,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
             end_off_peak_time = 0
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.set_scheduled_departure(
                 enable,
                 preconditioning_enabled,
@@ -269,7 +279,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 off_peak_charging_enabled,
                 off_peak_charging_weekdays_only,
                 end_off_peak_time,
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -304,10 +314,12 @@ def async_setup_services(hass: HomeAssistant) -> None:
         vehicle = async_get_vehicle_for_entry(hass, device, config)
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.set_valet_mode(
                 call.data[TeslemetryServiceArgument.ENABLE],
                 call.data[TeslemetryServiceArgument.PIN],
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -333,15 +345,19 @@ def async_setup_services(hass: HomeAssistant) -> None:
         enable = call.data[TeslemetryServiceArgument.ENABLE]
         if enable is True:
             await handle_vehicle_command(
+                hass,
+                config,
                 vehicle.api.speed_limit_activate(
                     call.data[TeslemetryServiceArgument.PIN]
-                )
+                ),
             )
         elif enable is False:
             await handle_vehicle_command(
+                hass,
+                config,
                 vehicle.api.speed_limit_deactivate(
                     call.data[TeslemetryServiceArgument.PIN]
-                )
+                ),
             )
 
     hass.services.async_register(
@@ -369,7 +385,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         if "tariff_content_v2" in tou_settings:
             tou_settings = tou_settings["tariff_content_v2"]
 
-        resp = await handle_command(site.api.time_of_use_settings(tou_settings))
+        resp = await handle_command(
+            hass, config, site.api.time_of_use_settings(tou_settings)
+        )
         if "error" in resp:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -430,6 +448,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         name = call.data.get(TeslemetryServiceArgument.NAME)
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.add_charge_schedule(
                 days_of_week=days_of_week,
                 enabled=enabled,
@@ -440,7 +460,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 one_time=one_time,
                 id=schedule_id,
                 name=name,
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -476,9 +496,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
         schedule_id = call.data[TeslemetryServiceArgument.ID]
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.remove_charge_schedule(
                 id=schedule_id,
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -525,6 +547,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         name = call.data.get(TeslemetryServiceArgument.NAME)
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.add_precondition_schedule(
                 days_of_week=days_of_week,
                 enabled=enabled,
@@ -534,7 +558,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 id=schedule_id,
                 one_time=one_time,
                 name=name,
-            )
+            ),
         )
 
     hass.services.async_register(
@@ -569,9 +593,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
         schedule_id = call.data[TeslemetryServiceArgument.ID]
 
         await handle_vehicle_command(
+            hass,
+            config,
             vehicle.api.remove_precondition_schedule(
                 id=schedule_id,
-            )
+            ),
         )
 
     hass.services.async_register(
