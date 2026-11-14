@@ -466,7 +466,9 @@ class TeslemetryRearTrunkEntity(TeslemetryRootEntity, CoverEntity):
         )
         if directional:
             await handle_vehicle_command(
-                self.api.close_rear_trunk() if closed else self.api.open_rear_trunk()
+                self.hass,
+                self.config_entry,
+                self.api.close_rear_trunk() if closed else self.api.open_rear_trunk(),
             )
         elif self.is_closed is None:
             # actuate_trunk is a toggle, so it cannot reach a set position from an unknown one.
@@ -475,7 +477,9 @@ class TeslemetryRearTrunkEntity(TeslemetryRootEntity, CoverEntity):
                 translation_key="rear_trunk_state_unknown",
             )
         elif self.is_closed is not closed:
-            await handle_vehicle_command(self.api.actuate_trunk(Trunk.REAR))
+            await handle_vehicle_command(
+                self.hass, self.config_entry, self.api.actuate_trunk(Trunk.REAR)
+            )
         else:
             return
         self._attr_is_closed = closed
