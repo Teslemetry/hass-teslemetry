@@ -97,6 +97,7 @@ from .const import (
     ISSUE_STREAMING_ALLOWANCE,
     ISSUE_TYPE_BLE_KEY_REJECTED,
     LABS_CHARGE_ON_SOLAR_FEATURE,
+    LABS_ROADSTER_VACUUM_FEATURE,
     LOGGER,
     POWERWALL_KEY_FILE,
     RSA_PARENT_KEY,
@@ -132,6 +133,7 @@ from .models import (
     TeslemetryConfigEntry,
     TeslemetryData,
     TeslemetryEnergyData,
+    TeslemetryRoadsterData,
     TeslemetryVehicleData,
 )
 from .services import async_setup_services
@@ -150,6 +152,7 @@ PLATFORMS: Final = [
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
+    Platform.VACUUM,
 ]
 _VEHICLE_ISSUE_ID_PATTERN = re.compile(
     f"({'|'.join(map(re.escape, VEHICLE_ISSUE_LEARN_MORE))})_"
@@ -818,16 +821,36 @@ async def _async_setup_charge_on_solar(
 
 
 @callback
-def _async_subscribe_charge_on_solar_labs(
-    hass: HomeAssistant, entry: TeslemetryConfigEntry
+def _async_subscribe_labs(
+    hass: HomeAssistant, entry: TeslemetryConfigEntry, preview_feature: str
 ) -> CALLBACK_TYPE:
-    """Reload the entry so the charge-on-solar entities follow the Labs toggle."""
+    """Reload the entry so the preview feature's entities follow the Labs toggle."""
 
     async def _async_handle_labs_update(_event_data: EventLabsUpdatedData) -> None:
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
     return async_subscribe_preview_feature(
-        hass, DOMAIN, LABS_CHARGE_ON_SOLAR_FEATURE, _async_handle_labs_update
+        hass, DOMAIN, preview_feature, _async_handle_labs_update
+    )
+
+
+def _setup_roadster(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
+    current_devices: set[tuple[str, str]],
+) -> TeslemetryRoadsterData | None:
+    """Create the virtual Roadster vacuum when its Labs preview feature is enabled."""
+    if not async_is_preview_feature_enabled(hass, DOMAIN, LABS_ROADSTER_VACUUM_FEATURE):
+        return None
+    identifier = (DOMAIN, f"{entry.entry_id}_roadster")
+    current_devices.add(identifier)
+    return TeslemetryRoadsterData(
+        device=DeviceInfo(
+            identifiers={identifier},
+            manufacturer="Tesla",
+            model="Roadster (vacuum edition)",
+            name="Tesla Roadster",
+        )
     )
 
 
@@ -1338,6 +1361,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             entry, energysite, device_registry
         )
 
+    roadster = _setup_roadster(hass, entry, current_devices)
+
     # Remove devices that are no longer present
     for device_entry in dr.async_entries_for_config_entry(
         device_registry, entry.entry_id
@@ -1361,6 +1386,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         stream=stream,
         metadata_coordinator=metadata_coordinator,
         charge_on_solar_store=charge_on_solar_store,
+        roadster=roadster,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -1387,7 +1413,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
         vehicle_metadata,
     )
 
-    entry.async_on_unload(_async_subscribe_charge_on_solar_labs(hass, entry))
+    entry.async_on_unload(
+        _async_subscribe_labs(hass, entry, LABS_CHARGE_ON_SOLAR_FEATURE)
+    )
+    entry.async_on_unload(
+        _async_subscribe_labs(hass, entry, LABS_ROADSTER_VACUUM_FEATURE)
+    )
 
     if stream:
         entry.async_on_unload(stream.close)

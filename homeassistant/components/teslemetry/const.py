@@ -5,6 +5,7 @@ import logging
 
 DOMAIN = "teslemetry"
 LABS_CHARGE_ON_SOLAR_FEATURE = "charge_on_solar"
+LABS_ROADSTER_VACUUM_FEATURE = "roadster_vacuum"
 CHARGE_ON_SOLAR_SWITCH_KEY = "charge_on_solar"
 CHARGE_ON_SOLAR_LOWER_LIMIT_KEY = "charge_on_solar_lower_limit"
 CHARGE_ON_SOLAR_LOWER_LIMIT_DEFAULT = 20
