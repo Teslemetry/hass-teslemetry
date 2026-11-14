@@ -915,7 +915,7 @@ async def test_streaming_allowance_repair_cleared_on_reload(
         hass,
         DOMAIN,
         "streaming_allowance_LRW3F7EK4NC799999",
-        config_entry_id=entry.entry_id,
+        data={"entry_id": entry.entry_id},
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
         translation_key="streaming_allowance",
