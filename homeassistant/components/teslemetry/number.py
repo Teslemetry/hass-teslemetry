@@ -9,6 +9,7 @@ from typing import Any, override
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
+from tesla_fleet_api.tesla.energysite import CONFIG_JSON_BOUNDS
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStreamVehicle
 
@@ -25,7 +26,9 @@ from homeassistant.const import (
     PRECISION_WHOLE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    EntityCategory,
     UnitOfElectricCurrent,
+    UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -38,7 +41,12 @@ from .entity import (
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
 )
-from .helpers import async_set_charge_on_solar, handle_command, handle_vehicle_command
+from .helpers import (
+    async_set_charge_on_solar,
+    handle_command,
+    handle_config_json_command,
+    handle_vehicle_command,
+)
 from .models import (
     TeslemetryChargeOnSolarStore,
     TeslemetryConfigEntry,
@@ -147,6 +155,28 @@ ENERGY_INFO_DESCRIPTIONS: tuple[TeslemetryNumberBatteryEntityDescription, ...] =
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class TeslemetryGridLimitNumberEntityDescription(NumberEntityDescription):
+    """Describes a Teslemetry energy site grid limit number entity."""
+
+    func: Callable[[EnergySite | EnergySiteRouter, float], Awaitable[Any]]
+    # site_info holds the export limit as negative site-meter power.
+    site_info_sign: int = 1
+
+
+GRID_LIMIT_DESCRIPTIONS: tuple[TeslemetryGridLimitNumberEntityDescription, ...] = (
+    TeslemetryGridLimitNumberEntityDescription(
+        key="min_site_meter_power_ac",
+        func=lambda api, value: api.set_export_limit(value),
+        site_info_sign=-1,
+    ),
+    TeslemetryGridLimitNumberEntityDescription(
+        key="max_site_meter_power_ac",
+        func=lambda api, value: api.set_import_limit(value),
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
@@ -183,6 +213,16 @@ async def async_setup_entry(
                 for description in ENERGY_INFO_DESCRIPTIONS
                 if description.requires is None
                 or energysite.info_coordinator.data.get(description.requires)
+            ),
+            (
+                TeslemetryEnergyGridLimitNumberEntity(
+                    energysite, description, entry.runtime_data.scopes
+                )
+                for energysite in entry.runtime_data.energysites
+                if energysite.signed_commands_available(
+                    entry.runtime_data.metadata_coordinator.data
+                )
+                for description in GRID_LIMIT_DESCRIPTIONS
             ),
         )
     )
@@ -354,6 +394,46 @@ class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberE
         )
         self._attr_native_value = value
         self.coordinator.async_set_command_value(self.key, value)
+        self.async_write_ha_state()
+
+
+class TeslemetryEnergyGridLimitNumberEntity(TeslemetryEnergyInfoEntity, NumberEntity):
+    """Number entity for an energy site grid power limit."""
+
+    entity_description: TeslemetryGridLimitNumberEntityDescription
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_device_class = NumberDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
+    _attr_native_min_value = 0
+    _attr_native_max_value = CONFIG_JSON_BOUNDS["max_site_meter_power_ac"][1]
+    _attr_native_step = 0.1
+    _attr_mode = NumberMode.BOX
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: TeslemetryGridLimitNumberEntityDescription,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the number entity."""
+        self.scoped = Scope.ENERGY_CMDS in scopes
+        self.entity_description = description
+        super().__init__(data, description.key)
+
+    @override
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the entity."""
+        self._attr_native_value = None if self._value is None else abs(self._value)
+
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        self.raise_for_scope(Scope.ENERGY_CMDS)
+        await handle_config_json_command(self.entity_description.func(self.api, value))
+        self._attr_native_value = value
+        self.coordinator.async_set_command_value(
+            self.key, value * self.entity_description.site_info_sign
+        )
         self.async_write_ha_state()
 
 

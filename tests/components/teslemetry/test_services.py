@@ -919,7 +919,9 @@ async def test_battery_services_signed_command_available(
     assert device
 
     with (
-        patch(f"aiopowerwall.PowerwallClient.{method}") as mock_local,
+        patch(
+            f"tesla_fleet_api.tesla.powerwall.PowerwallClient.{method}"
+        ) as mock_local,
         patch(
             f"tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.{method}",
             return_value=COMMAND_OK,
