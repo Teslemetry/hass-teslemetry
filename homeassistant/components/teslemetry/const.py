@@ -87,3 +87,7 @@ class TeslemetryClimateSide(StrEnum):
 
     DRIVER = "driver_temp"
     PASSENGER = "passenger_temp"
+
+
+# Pre-refresh Model S and X reject the steering wheel heat commands.
+STEERING_WHEEL_HEAT_UNSUPPORTED_CAR_TYPES = ("models", "models2", "modelx")

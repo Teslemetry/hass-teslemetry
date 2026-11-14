@@ -123,6 +123,41 @@ async def test_rear_seat_heater_configurations(
     assert (created & ALL_REAR_KEYS) == expected
 
 
+@pytest.mark.parametrize(
+    ("config", "created"),
+    [
+        pytest.param({"car_type": "models"}, False, id="models"),
+        pytest.param({"car_type": "models2"}, False, id="models2"),
+        pytest.param({"car_type": "modelx"}, False, id="modelx"),
+        pytest.param({"car_type": "model3"}, True, id="model3"),
+        pytest.param({"car_type": "tamarind"}, True, id="tamarind"),
+        pytest.param({}, True, id="missing"),
+    ],
+)
+async def test_steering_wheel_heat_level_car_type(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_metadata: AsyncMock,
+    config: dict[str, str],
+    created: bool,
+) -> None:
+    """Older Model S and X never report the steering wheel heat level."""
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VEHICLE_VIN]["config"] = config
+    mock_metadata.return_value = metadata
+
+    await setup_platform(hass, [Platform.SELECT])
+
+    assert (
+        entity_registry.async_get_entity_id(
+            SELECT_DOMAIN,
+            "teslemetry",
+            f"{VEHICLE_VIN}-climate_state_steering_wheel_heat_level",
+        )
+        is not None
+    ) is created
+
+
 async def test_select_services(hass: HomeAssistant, mock_vehicle_data) -> None:
     """Tests that the select services work."""
     mock_vehicle_data.return_value = VEHICLE_DATA_ALT
