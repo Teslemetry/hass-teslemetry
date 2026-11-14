@@ -190,7 +190,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.hass,
                 DOMAIN,
                 f"{ISSUE_MISSING_SCOPES}_{self.config_entry.entry_id}",
-                config_entry_id=self.config_entry.entry_id,
                 is_fixable=False,
                 severity=ir.IssueSeverity.ERROR,
                 translation_key=ISSUE_MISSING_SCOPES,
