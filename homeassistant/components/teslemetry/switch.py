@@ -465,7 +465,9 @@ class TeslemetryOnGridSolarCurtailmentSwitchEntity(
         """Allow or stop on-grid solar curtailment."""
         self.raise_for_scope(Scope.ENERGY_CMDS)
         await handle_config_json_command(
-            self.api.set_on_grid_solar_curtailment(enabled)
+            self.hass,
+            self.config_entry,
+            self.api.set_on_grid_solar_curtailment(enabled),
         )
         self._attr_is_on = enabled
         self.coordinator.async_set_command_value(self.key, enabled)
