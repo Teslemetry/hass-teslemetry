@@ -28,16 +28,45 @@
   "config": {
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
+      "local_control_successful": "Local control has been set up for your Powerwall system.",
+      "no_matching_site": "This Powerwall system does not belong to an energy site on a loaded Teslemetry account that still needs local control.",
       "reauth_account_mismatch": "The reauthentication account does not match the original account",
       "reconfigure_account_mismatch": "The reconfiguration account does not match the original account"
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_access_token": "[%key:common::config_flow::error::invalid_access_token%]",
+      "invalid_password": "[%key:common::config_flow::error::invalid_auth%]",
+      "key_expired": "[%key:component::teslemetry::config_subentries::energy_site::error::key_expired%]",
+      "key_not_approved": "[%key:component::teslemetry::config_subentries::energy_site::error::key_not_approved%]",
+      "key_not_registered": "[%key:component::teslemetry::config_subentries::energy_site::error::key_not_registered%]",
+      "key_pending": "[%key:component::teslemetry::config_subentries::energy_site::error::key_pending%]",
+      "powerwall_unreachable": "[%key:component::teslemetry::config_subentries::energy_site::abort::powerwall_unreachable%]",
       "subscription_required": "Subscription required, please visit {short_url}",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
+    "flow_title": "{name}",
     "step": {
+      "credentials": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        },
+        "data_description": {
+          "host": "The address of your Powerwall system on your local network.",
+          "password": "Your Powerwall system's Wi-Fi password, or just its last 5 characters."
+        },
+        "description": "[%key:component::teslemetry::config_subentries::energy_site::step::credentials::description%]",
+        "title": "[%key:component::teslemetry::config_subentries::energy_site::step::credentials::title%]"
+      },
+      "dhcp_confirm": {
+        "description": "Teslemetry found the Powerwall system for {name} on your local network. Set it up for local control so Home Assistant can talk to it directly over your local network.",
+        "title": "Set up local control"
+      },
+      "pair": {
+        "description": "[%key:component::teslemetry::config_subentries::energy_site::step::pair::description%]",
+        "title": "[%key:component::teslemetry::config_subentries::energy_site::step::pair::title%]"
+      },
       "reauth_confirm": {
         "description": "The {name} integration needs to re-authenticate your account",
         "title": "[%key:common::config_flow::title::reauth%]"
