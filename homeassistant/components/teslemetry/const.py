@@ -43,6 +43,7 @@ CREDITS_URL = "https://teslemetry.com/console/credits"
 GATEWAY_1_PART_NUMBER = "1118431-"
 ISSUE_STREAMING_ALLOWANCE = "streaming_allowance"
 STREAMING_ALLOWANCE_EXCEEDED = "streaming_allowance_exceeded"
+ISSUE_ENERGY_SITE_NOT_PAIRED = "energy_site_not_paired"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
