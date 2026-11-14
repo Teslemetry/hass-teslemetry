@@ -2607,7 +2607,7 @@ async def _setup_entry_with_gateway_din(
             return_value=_TEST_RSA_KEY_PEM,
         ),
         patch(
-            "aiopowerwall.PowerwallClient.din",
+            "tesla_fleet_api.tesla.powerwall.PowerwallClient.din",
             new_callable=PropertyMock,
             return_value=din,
         ),
@@ -2622,7 +2622,10 @@ async def _set_backup_reserve(hass: HomeAssistant) -> tuple[AsyncMock, AsyncMock
     local = AsyncMock(return_value=COMMAND_OK)
     cloud = AsyncMock(return_value=COMMAND_OK)
     with (
-        patch("aiopowerwall.energysite.PowerwallEnergySite.backup", new=local),
+        patch(
+            "tesla_fleet_api.tesla.powerwall.energysite.PowerwallEnergySite.backup",
+            new=local,
+        ),
         patch(
             "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.backup",
             new=cloud,
@@ -2678,7 +2681,11 @@ async def test_local_gateway_din_mismatch_raises_repair(
     assert issue.translation_key == "gateway_mismatch"
     assert issue.translation_placeholders == {"site": "Energy Site", "host": HOST}
     assert not issue.is_fixable
-    assert issue.config_entry_id == entry.entry_id
+
+    # HACS stable-core compat: removing the entry removes the repair.
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert issue_registry.async_get_issue(DOMAIN, MISMATCH_ISSUE_ID) is None
 
 
 async def test_local_gateway_din_mismatch_repair_cleared_after_match(
@@ -2812,7 +2819,6 @@ async def test_local_gateway_mismatch_repair_cleared_without_subentry(
         hass,
         DOMAIN,
         issue_id,
-        config_entry_id=entry.entry_id,
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
         translation_key="gateway_mismatch",
