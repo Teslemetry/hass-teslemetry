@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
+from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.tesla.powerwall import (
     BatteryUnit,
     component_float,
@@ -1544,6 +1545,8 @@ class TeslemetryEnergySensorEntityDescription(SensorEntityDescription):
     """Describes Teslemetry Sensor entity."""
 
     value_fn: Callable[[StateType], StateType | datetime] = lambda x: x
+    # The cloud live status no longer reports this, only a paired local gateway.
+    local_only: bool = False
 
 
 ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = (
@@ -1554,6 +1557,27 @@ ENERGY_LIVE_DESCRIPTIONS: tuple[TeslemetryEnergySensorEntityDescription, ...] = 
         suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
+    ),
+    TeslemetryEnergySensorEntityDescription(
+        key="energy_left",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        suggested_display_precision=2,
+        device_class=SensorDeviceClass.ENERGY_STORAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        local_only=True,
+    ),
+    TeslemetryEnergySensorEntityDescription(
+        key="total_pack_energy",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        suggested_display_precision=2,
+        device_class=SensorDeviceClass.ENERGY_STORAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        local_only=True,
     ),
     TeslemetryEnergySensorEntityDescription(
         key="percentage_charged",
@@ -2126,6 +2150,7 @@ async def async_setup_entry(
             description.key == "grid_services_power"
             and energysite.info_coordinator.data.get("components_grid_services_enabled")
         )
+        or (description.local_only and isinstance(energysite.api, EnergySiteRouter))
     )
 
     entities.extend(
@@ -2382,7 +2407,11 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
     @override
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_available = not self.is_none
+        self._attr_available = (
+            self._value is not None
+            if self.entity_description.local_only
+            else not self.is_none
+        )
         self._attr_native_value = self.entity_description.value_fn(self._value)
 
 
