@@ -1,0 +1,12 @@
+diff --git a/tests/components/teslemetry/test_repairs.py b/tests/components/teslemetry/test_repairs.py
+index 49d42038ccb..7d3c05e8cb1 100644
+--- a/tests/components/teslemetry/test_repairs.py
++++ b/tests/components/teslemetry/test_repairs.py
+@@ -1414,6 +1414,7 @@ async def test_gateway_repair_verifies_gateway_1_with_full_password(
+         client = await hass_client()
+ 
+         gateway.connect.side_effect = None
++        gateway.connect.return_value = GATEWAY_DIN
+         with (
+             patch(FIND_GATEWAY_ADDRESS, new=AsyncMock(return_value=NEW_HOST)),
+             patch.object(hass.config_entries, "async_schedule_reload"),

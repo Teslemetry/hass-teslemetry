@@ -1,0 +1,38 @@
+diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
+index 493367a5691..5f42a571871 100644
+--- a/tests/components/teslemetry/test_init.py
++++ b/tests/components/teslemetry/test_init.py
+@@ -137,6 +137,7 @@ from homeassistant.helpers import (
+     issue_registry as ir,
+ )
+ from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
++from homeassistant.helpers.update_coordinator import REQUEST_REFRESH_DEFAULT_COOLDOWN
+ from homeassistant.setup import async_setup_component
+ from homeassistant.util.json import JsonObjectType
+ 
+@@ -1319,12 +1320,10 @@ async def test_vehicle_data_missing_scopes_repair(
+     issue_id = f"missing_scopes_{entry.entry_id}"
+ 
+     mock_vehicle_data.side_effect = Forbidden
+-    freezer.tick(VEHICLE_INTERVAL)
+-    async_fire_time_changed(hass)
+-    await hass.async_block_till_done()
++    await refresh_entity(hass, BATTERY_LEVEL_ENTITY_ID)
+ 
+     assert entry.state is ConfigEntryState.LOADED
+-    assert hass.states.get("sensor.test_battery_level").state == STATE_UNAVAILABLE
++    assert hass.states.get(BATTERY_LEVEL_ENTITY_ID).state == STATE_UNAVAILABLE
+     issue = issue_registry.async_get_issue(DOMAIN, issue_id)
+     assert issue is not None
+     assert (
+@@ -1332,7 +1331,9 @@ async def test_vehicle_data_missing_scopes_repair(
+     )
+ 
+     mock_vehicle_data.side_effect = None
+-    freezer.tick(VEHICLE_INTERVAL)
++    await refresh_entity(hass, BATTERY_LEVEL_ENTITY_ID)
++    # The refresh debouncer runs a refresh inside its cooldown when it ends.
++    freezer.tick(REQUEST_REFRESH_DEFAULT_COOLDOWN + 1)
+     async_fire_time_changed(hass)
+     await hass.async_block_till_done()
+ 
