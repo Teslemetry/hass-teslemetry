@@ -146,6 +146,7 @@ restore_core_base() {
     ":(exclude)$INTEGRATION" ":(exclude)$TESTS" ":(exclude)homeassistant/generated"
   pin_integration_requirements
   alias_pytest_homeassistant "$tag"
+  floor_compat_enums
   info "core paths outside the integration match core $tag; requirements_all.txt has the integration's pins"
 }
 
@@ -195,6 +196,91 @@ class _TestsAlias(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 sys.meta_path.insert(0, _TestsAlias())
 EOF
   info "core $1 has no pytest_homeassistant package: aliased it to tests (untracked, see alias_pytest_homeassistant)"
+}
+
+# TEMPORARY. Core dev's teslemetry tests import key enums (ClimateService,
+# CoverService, TargetKey, ...) that the floor release predates. Write an
+# untracked conftest.py at the repo root that, before pytest collects a test
+# module, adds each enum the floor's module lacks with dev's members. Test-only:
+# the integration never imports them. Add an enum here when dev's tests start
+# importing a new one; delete this function and its call once the floor has
+# them all.
+floor_compat_enums() {
+  cat > conftest.py <<'EOF'
+"""Key enums core dev's teslemetry tests import, for a core release before them.
+
+Written by release.sh's floor_compat_enums; never committed.
+"""
+
+from enum import StrEnum
+import importlib
+
+_ENUMS = {
+    "homeassistant.const": {
+        "TargetKey": {
+            "ENTITY_ID": "entity_id",
+            "DEVICE_ID": "device_id",
+            "AREA_ID": "area_id",
+            "FLOOR_ID": "floor_id",
+            "LABEL_ID": "label_id",
+        },
+    },
+    "homeassistant.components.climate": {
+        "ClimateService": {
+            "SET_FAN_MODE": "set_fan_mode",
+            "SET_HUMIDITY": "set_humidity",
+            "SET_HVAC_MODE": "set_hvac_mode",
+            "SET_PRESET_MODE": "set_preset_mode",
+            "SET_SWING_HORIZONTAL_MODE": "set_swing_horizontal_mode",
+            "SET_SWING_MODE": "set_swing_mode",
+            "SET_TEMPERATURE": "set_temperature",
+            "TOGGLE": "toggle",
+            "TURN_OFF": "turn_off",
+            "TURN_ON": "turn_on",
+        },
+        "ClimateServiceArgument": {
+            "FAN_MODE": "fan_mode",
+            "HUMIDITY": "humidity",
+            "HVAC_MODE": "hvac_mode",
+            "PRESET_MODE": "preset_mode",
+            "SWING_HORIZONTAL_MODE": "swing_horizontal_mode",
+            "SWING_MODE": "swing_mode",
+            "TARGET_TEMP_HIGH": "target_temp_high",
+            "TARGET_TEMP_LOW": "target_temp_low",
+            "TEMPERATURE": "temperature",
+        },
+    },
+    "homeassistant.components.cover": {
+        "CoverService": {
+            "CLOSE": "close_cover",
+            "CLOSE_TILT": "close_cover_tilt",
+            "OPEN": "open_cover",
+            "OPEN_TILT": "open_cover_tilt",
+            "SET_POSITION": "set_cover_position",
+            "SET_TILT_POSITION": "set_cover_tilt_position",
+            "STOP": "stop_cover",
+            "STOP_TILT": "stop_cover_tilt",
+            "TOGGLE": "toggle",
+            "TOGGLE_TILT": "toggle_cover_tilt",
+        },
+        "CoverServiceArgument": {
+            "POSITION": "position",
+            "SPEED": "speed",
+            "TILT_POSITION": "tilt_position",
+        },
+    },
+}
+
+
+def pytest_configure(config):
+    """Add each enum its module lacks, before any test module imports it."""
+    for module_name, enums in _ENUMS.items():
+        module = importlib.import_module(module_name)
+        for name, members in enums.items():
+            if not hasattr(module, name):
+                setattr(module, name, StrEnum(name, members))
+EOF
+  info "wrote conftest.py: dev's key enums for the floor release (untracked, see floor_compat_enums)"
 }
 
 # In requirements_all.txt, replace the line of each package the integration's
