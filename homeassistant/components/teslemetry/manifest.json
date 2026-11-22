@@ -5,7 +5,7 @@
   "codeowners": ["@Bre77"],
   "config_flow": true,
   "connectivity": ["bluetooth", "cloud", "network"],
-  "dependencies": ["application_credentials", "bluetooth_adapters"],
+  "dependencies": ["application_credentials", "bluetooth_adapters", "network"],
   "dhcp": [
     {
       "hostname": "1118431-*"
