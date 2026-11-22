@@ -37,6 +37,8 @@ ISSUE_STREAMING_ALLOWANCE = "streaming_allowance"
 STREAMING_ALLOWANCE_EXCEEDED = "streaming_allowance_exceeded"
 ISSUE_LOCAL_CONTROL_FAILED = "local_control_failed"
 ISSUE_GATEWAY_MISMATCH = "gateway_mismatch"
+ISSUE_INSUFFICIENT_CREDITS = "insufficient_credits"
+CREDITS_URL = "https://teslemetry.com/console/credits"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
