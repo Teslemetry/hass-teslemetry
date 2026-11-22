@@ -232,6 +232,16 @@ async def handle_energy_site_command(
         ) from e
 
 
+async def handle_config_json_command(command: Awaitable[dict[str, Any]]) -> None:
+    """Handle a gateway config.json write, which is not applied if the file changed meanwhile."""
+    result = await handle_energy_site_command(command)
+    if not result["response"]["applied"]:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="config_not_applied",
+        )
+
+
 async def handle_vehicle_command(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,

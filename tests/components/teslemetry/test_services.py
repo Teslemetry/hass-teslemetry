@@ -930,7 +930,7 @@ async def test_battery_services_signed_command_available(
         await hass.services.async_call(
             DOMAIN,
             service,
-            {CommonServiceArgument.DEVICE_ID: device.id, **data},
+            {CONF_DEVICE_ID: device.id, **data},
             blocking=True,
         )
     assert mock_local.await_count == local_calls
@@ -969,7 +969,7 @@ async def test_battery_services_refused_without_pairing(
         await hass.services.async_call(
             DOMAIN,
             service,
-            {CommonServiceArgument.DEVICE_ID: device.id, **data},
+            {CONF_DEVICE_ID: device.id, **data},
             blocking=True,
         )
     assert exc_info.value.translation_key == "energy_site_not_paired"
