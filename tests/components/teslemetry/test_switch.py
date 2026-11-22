@@ -1,5 +1,6 @@
 """Test the Teslemetry switch platform."""
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -39,7 +40,7 @@ from . import (
     reload_platform,
     setup_platform,
 )
-from .const import COMMAND_ERRORS, COMMAND_OK, VEHICLE_DATA_ALT, VIN
+from .const import COMMAND_ERRORS, COMMAND_OK, METADATA, VEHICLE_DATA_ALT, VIN
 
 
 async def _async_enable_charge_on_solar_preview_feature(hass: HomeAssistant) -> None:
@@ -72,6 +73,41 @@ async def test_switch_alt(
     mock_vehicle_data.return_value = VEHICLE_DATA_ALT
     entry = await setup_platform(hass, [Platform.SWITCH])
     assert_entities_alt(hass, entry.entry_id, entity_registry, snapshot)
+
+
+@pytest.mark.parametrize(
+    ("config", "created"),
+    [
+        pytest.param({"car_type": "models"}, False, id="models"),
+        pytest.param({"car_type": "models2"}, False, id="models2"),
+        pytest.param({"car_type": "modelx"}, False, id="modelx"),
+        pytest.param({"car_type": "model3"}, True, id="model3"),
+        pytest.param({"car_type": "tamarind"}, True, id="tamarind"),
+        pytest.param({}, True, id="missing"),
+    ],
+)
+async def test_auto_steering_wheel_heat_car_type(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_metadata: AsyncMock,
+    config: dict[str, str],
+    created: bool,
+) -> None:
+    """Older Model S and X reject the auto steering wheel heat command."""
+    metadata = deepcopy(METADATA)
+    metadata["vehicles"][VIN]["config"] = config
+    mock_metadata.return_value = metadata
+
+    await setup_platform(hass, [Platform.SWITCH])
+
+    assert (
+        entity_registry.async_get_entity_id(
+            SWITCH_DOMAIN,
+            "teslemetry",
+            f"{VIN}-climate_state_auto_steering_wheel_heat",
+        )
+        is not None
+    ) is created
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
