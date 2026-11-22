@@ -35,6 +35,7 @@ LIVE_STATUS = load_json_object_fixture("live_status.json", DOMAIN)
 SITE_INFO = load_json_object_fixture("site_info.json", DOMAIN)
 POWERWALL_STATUS = load_json_object_fixture("powerwall_status.json", DOMAIN)
 POWERWALL_COMPONENTS = load_json_object_fixture("powerwall_components.json", DOMAIN)
+POWERWALL_CONFIG = load_json_object_fixture("powerwall_config.json", DOMAIN)
 SITE_INFO_WEEK_CROSSING = load_json_object_fixture(
     "site_info_week_crossing.json", DOMAIN
 )
