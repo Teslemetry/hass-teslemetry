@@ -6,6 +6,17 @@
   "config_flow": true,
   "connectivity": ["bluetooth", "cloud", "network"],
   "dependencies": ["application_credentials", "bluetooth_adapters"],
+  "dhcp": [
+    {
+      "hostname": "1118431-*"
+    },
+    {
+      "hostname": "1232100-*"
+    },
+    {
+      "hostname": "teslapw_*"
+    }
+  ],
   "documentation": "https://www.home-assistant.io/integrations/teslemetry",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
