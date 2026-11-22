@@ -1,5 +1,8 @@
 """Test the HACS-only issue refresh helpers for the pinned core release."""
 
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -132,3 +135,49 @@ async def test_refresh_cancelled_on_exception(
         raise RuntimeError
 
     assert issue_registry.async_get_issue(DOMAIN, "gateway_not_found_1")
+
+
+def test_create_issue_without_core_subentry_issues(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A core with issue refreshes but no issue subentries gets no subentry id.
+
+    Core 2026.11 has ``async_refresh_issues`` but its ``async_create_issue``
+    takes no ``config_subentry_id``.
+    """
+    created: list[dict[str, Any]] = []
+
+    def core_create_issue(
+        hass: HomeAssistant,
+        domain: str,
+        issue_id: str,
+        *,
+        config_entry_id: str | None = None,
+        is_fixable: bool,
+        severity: ir.IssueSeverity,
+        translation_key: str,
+        translation_placeholders: dict[str, str] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        created.append({"issue_id": issue_id, "config_entry_id": config_entry_id})
+
+    monkeypatch.setattr(
+        hacs_issue_registry, "ir", SimpleNamespace(async_create_issue=core_create_issue)
+    )
+    monkeypatch.setattr(hacs_issue_registry, "_CORE_HAS_REFRESH", True)
+    monkeypatch.setattr(hacs_issue_registry, "_CORE_HAS_SUBENTRY_ISSUES", False)
+
+    hacs_issue_registry.async_create_issue(
+        hass,
+        DOMAIN,
+        "energy_site_not_paired_123",
+        config_entry_id="entry",
+        config_subentry_id="subentry",
+        is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="energy_site_not_paired",
+    )
+
+    assert created == [
+        {"issue_id": "energy_site_not_paired_123", "config_entry_id": "entry"}
+    ]

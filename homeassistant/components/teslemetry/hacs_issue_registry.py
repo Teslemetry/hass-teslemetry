@@ -8,9 +8,14 @@ issues, so this module adds a local equivalent: an issue belongs to the config
 entry its ``data["entry_id"]`` names. ``async_begin_issues_refresh`` is the old name of ``async_refresh_issues``,
 which core dev renamed before any release had it. Retire it once the floor
 reaches the first core release with ``async_refresh_issues``.
+
+Core 2026.11 has ``async_refresh_issues`` but no ``config_subentry_id`` on
+``async_create_issue``, so this module drops that keyword where core lacks it.
+Retire that once the floor reaches the first core release which accepts it.
 """
 
 from collections.abc import Iterable
+import inspect
 import re
 from types import TracebackType
 from typing import Any, Self
@@ -20,6 +25,9 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.util.hass_dict import HassKey
 
 _CORE_HAS_REFRESH = hasattr(ir, "async_refresh_issues")
+_CORE_HAS_SUBENTRY_ISSUES = (
+    "config_subentry_id" in inspect.signature(ir.async_create_issue).parameters
+)
 _REFRESHES: HassKey[list[IssuesRefresh]] = HassKey("teslemetry_hacs_issue_refreshes")
 
 
@@ -145,13 +153,10 @@ def async_create_issue(
 ) -> None:
     """Create an issue, or replace an existing one."""
     if _CORE_HAS_REFRESH:
+        if _CORE_HAS_SUBENTRY_ISSUES:
+            kwargs["config_subentry_id"] = config_subentry_id
         ir.async_create_issue(
-            hass,
-            domain,
-            issue_id,
-            config_entry_id=config_entry_id,
-            config_subentry_id=config_subentry_id,
-            **kwargs,
+            hass, domain, issue_id, config_entry_id=config_entry_id, **kwargs
         )
         return
     ir.async_create_issue(hass, domain, issue_id, **kwargs)
