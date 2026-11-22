@@ -2,12 +2,13 @@
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla import EnergySiteRouter
+from tesla_fleet_api.tesla.powerwall import BatteryUnit, battery_units
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import EnergySite, Vehicle
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
@@ -158,6 +159,8 @@ class TeslemetryEnergyData:
     local_status_coordinator: TeslemetryLocalStatusCoordinator | None = None
     local_components_coordinator: TeslemetryLocalComponentsCoordinator | None = None
     local_config_coordinator: TeslemetryLocalConfigCoordinator | None = None
+    # Battery units by DIN, or by serial number for an expansion; None until matched.
+    local_battery_units: dict[str, BatteryUnit] | None = None
 
     def signed_commands_available(self, metadata: dict[str, Any]) -> bool:
         """Return whether commands Teslemetry signs with its own key can reach the site.
@@ -168,3 +171,27 @@ class TeslemetryEnergyData:
         return isinstance(self.api, EnergySiteRouter) or bool(
             metadata["energy_sites"].get(str(self.id), {}).get("paired")
         )
+
+    def match_battery_units(self) -> dict[str, BatteryUnit] | None:
+        """Return the battery units of a paired site, matched once the gateway answered.
+
+        The status, components and config documents refresh on different
+        intervals, so the units are matched once from the first refresh of both
+        coordinators.
+        """
+        status = self.local_status_coordinator
+        components = self.local_components_coordinator
+        if TYPE_CHECKING:
+            assert status
+            assert components
+        if (
+            self.local_battery_units is None
+            and status.last_update_success
+            and components.last_update_success
+        ):
+            self.local_battery_units = {
+                unit_id: unit
+                for unit in battery_units({}, status.data, components.data)
+                if (unit_id := unit.unit_id)
+            }
+        return self.local_battery_units
