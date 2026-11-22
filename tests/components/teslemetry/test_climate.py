@@ -878,7 +878,7 @@ async def test_passenger_climate_polling_preset(
     [
         pytest.param({}, [], STATE_UNKNOWN, id="temperature"),
         pytest.param(
-            {ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
+            {ClimateServiceArgument.HVAC_MODE: HVACMode.HEAT_COOL},
             [call()],
             HVACMode.HEAT_COOL,
             id="temperature_and_hvac_mode",
@@ -909,10 +909,10 @@ async def test_passenger_climate_set_temperature(
     ):
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
+            ClimateService.SET_TEMPERATURE,
             {
-                ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID],
-                ATTR_TEMPERATURE: 20,
+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
+                ClimateServiceArgument.TEMPERATURE: 20,
                 **service_data,
             },
             blocking=True,
@@ -942,8 +942,11 @@ async def test_passenger_climate_set_temperature_sync(
     ):
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_TEMPERATURE: 20},
+            ClimateService.SET_TEMPERATURE,
+            {
+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
+                ClimateServiceArgument.TEMPERATURE: 20,
+            },
             blocking=True,
         )
     mock_set_temps.assert_not_called()
@@ -989,8 +992,11 @@ async def test_passenger_climate_set_preset_mode(
     ) as mock_set_temps:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_PRESET_MODE,
-            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: preset_mode},
+            ClimateService.SET_PRESET_MODE,
+            {
+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
+                ClimateServiceArgument.PRESET_MODE: preset_mode,
+            },
             blocking=True,
         )
     assert mock_set_temps.call_args_list == expected_calls
@@ -1014,8 +1020,11 @@ async def test_passenger_climate_set_preset_mode_driver_unknown(
     ):
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_PRESET_MODE,
-            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: "sync"},
+            ClimateService.SET_PRESET_MODE,
+            {
+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
+                ClimateServiceArgument.PRESET_MODE: "sync",
+            },
             blocking=True,
         )
     assert error.value.translation_key == "driver_temperature_unknown"
@@ -1033,8 +1042,8 @@ async def test_passenger_climate_turn_on_off(hass: HomeAssistant) -> None:
     ) as mock_stop:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
+            ClimateService.TURN_OFF,
+            {TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID]},
             blocking=True,
         )
     mock_stop.assert_called_once()
@@ -1046,8 +1055,8 @@ async def test_passenger_climate_turn_on_off(hass: HomeAssistant) -> None:
     ) as mock_start:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_TURN_ON,
-            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
+            ClimateService.TURN_ON,
+            {TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID]},
             blocking=True,
         )
     mock_start.assert_called_once()
@@ -1078,8 +1087,11 @@ async def test_climate_streaming_set_temperature_passenger(
     ) as mock_set_temps:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
+            ClimateService.SET_TEMPERATURE,
+            {
+                TargetKey.ENTITY_ID: ["climate.test_climate"],
+                ClimateServiceArgument.TEMPERATURE: 20,
+            },
             blocking=True,
         )
     mock_set_temps.assert_called_once_with(
@@ -1118,8 +1130,11 @@ async def test_climate_polling_set_temperature_passenger(
     ) as mock_set_temps:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
+            ClimateService.SET_TEMPERATURE,
+            {
+                TargetKey.ENTITY_ID: ["climate.test_climate"],
+                ClimateServiceArgument.TEMPERATURE: 20,
+            },
             blocking=True,
         )
     mock_set_temps.assert_called_once_with(
