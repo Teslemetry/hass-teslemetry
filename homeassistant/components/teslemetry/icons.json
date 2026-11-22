@@ -820,6 +820,21 @@
       "vehicle_state_valet_mode": {
         "default": "mdi:speedometer-slow"
       }
+    },
+    "vacuum": {
+      "roadster": {
+        "default": "mdi:car-sports",
+        "state_attributes": {
+          "fan_speed": {
+            "default": "mdi:fan",
+            "state": {
+              "gentle_breeze": "mdi:weather-windy",
+              "ludicrous": "mdi:rocket-launch",
+              "upside_down": "mdi:rotate-3d-variant"
+            }
+          }
+        }
+      }
     }
   },
   "services": {
