@@ -190,6 +190,16 @@
             }
           }
         }
+      },
+      "passenger_temp": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "split": "mdi:link-variant-off",
+              "sync": "mdi:link-variant"
+            }
+          }
+        }
       }
     },
     "cover": {
