@@ -1517,6 +1517,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             "Teslemetry Stream",
         )
 
+    return True
+
 
 async def _async_listen_stream(
     hass: HomeAssistant,
@@ -1542,8 +1544,6 @@ async def _async_listen_stream(
             entry.async_start_reauth(hass)
             return
         refreshed_token = oauth_session.token[CONF_ACCESS_TOKEN]
-
-    return True
 
 
 def _setup_subentry_change_reload(
