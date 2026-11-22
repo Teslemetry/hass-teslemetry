@@ -10,9 +10,12 @@ from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.tesla.powerwall import (
-    component_float,
+    PV_STRINGS,
     current_power,
+    islander_frequency,
+    islander_voltage,
     pv_string_current,
+    pv_string_voltage,
 )
 from teslemetry_stream import TeslemetryStream, TeslemetryStreamVehicle
 from teslemetry_stream.const import CreditsEvent
@@ -32,6 +35,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfFrequency,
     UnitOfLength,
     UnitOfPower,
     UnitOfPressure,
@@ -1715,17 +1719,13 @@ class TeslemetryLocalSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], StateType]
 
 
-PV_STRINGS = ("A", "B", "C", "D", "E", "F")
-
 ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
     TeslemetryLocalSensorEntityDescription, ...
 ] = (
     *(
         TeslemetryLocalSensorEntityDescription(
             key=f"pv_string_{string.lower()}_voltage",
-            value_fn=partial(
-                component_float, kind="pch", name=f"PCH_PvVoltage{string}"
-            ),
+            value_fn=partial(pv_string_voltage, string=string),
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -1777,6 +1777,31 @@ ENERGY_LOCAL_STATUS_DESCRIPTIONS: tuple[TeslemetryLocalSensorEntityDescription, 
         suggested_display_precision=2,
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"island_freq_l{phase}_{side}",
+            value_fn=partial(islander_frequency, phase=phase, side=side),
+            device_class=SensorDeviceClass.FREQUENCY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfFrequency.HERTZ,
+            entity_registry_enabled_default=False,
+        )
+        for phase in (1, 2, 3)
+        for side in ("load", "main")
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"island_voltage_l{phase}n_{side}",
+            value_fn=partial(islander_voltage, phase=phase, side=side),
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            # Single phase sites report near zero on L2 and L3.
+            entity_registry_enabled_default=phase == 1,
+        )
+        for phase in (1, 2, 3)
+        for side in ("load", "main")
     ),
 )
 
