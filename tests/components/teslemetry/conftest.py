@@ -524,6 +524,7 @@ _TESTS_NEEDING_CORE_ISSUE_OWNERSHIP = {
     "test_gateway_repairs_per_entry_for_shared_site",
     "test_local_gateway_repair_cleared_without_subentry",
     "test_repair_issues_per_entry_for_shared_vehicle",
+    "test_streaming_allowance_repair_cleared_on_reload",
 }
 
 
