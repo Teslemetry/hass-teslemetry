@@ -657,6 +657,9 @@
       }
     },
     "sensor": {
+      "ac_charging_energy_in": {
+        "name": "AC charging energy in"
+      },
       "ac_frequency": {
         "name": "AC frequency"
       },

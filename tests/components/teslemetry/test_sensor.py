@@ -68,6 +68,7 @@ from .const import (
 # VIN used across the Teslemetry test fixtures.
 VEHICLE_VIN = "LRW3F7EK4NC700000"
 
+AC_CHARGING_ENERGY_IN_ENTITY = "sensor.test_ac_charging_energy_in"
 CHARGE_ENERGY_ADDED_ENTITY = "sensor.test_charge_energy_added"
 CHARGER_POWER_ENTITY = "sensor.test_charger_power"
 ENERGY_HISTORY_ENTITY = "sensor.energy_site_battery_discharged"
@@ -293,6 +294,7 @@ async def test_sensors_streaming(
                 Signal.DETAILED_CHARGE_STATE: "DetailedChargeStateCharging",
                 Signal.BATTERY_LEVEL: 90,
                 Signal.DC_CHARGING_ENERGY_IN: 10,
+                Signal.AC_CHARGING_ENERGY_IN: 10.543,
                 Signal.AC_CHARGING_POWER: 2,
                 Signal.CHARGING_CABLE_TYPE: None,
                 Signal.TIME_TO_FULL_CHARGE: 0.166666667,
@@ -341,6 +343,7 @@ async def test_sensors_streaming(
     assert hass.states.get("sensor.test_battery_level").state == "90"
     assert hass.states.get(CHARGE_ENERGY_ADDED_ENTITY).state == "10"
     assert hass.states.get(CHARGER_POWER_ENTITY).state == "2"
+    assert hass.states.get(AC_CHARGING_ENERGY_IN_ENTITY).state == "10.543"
     assert hass.states.get("sensor.test_charge_cable").state == "unknown"
     assert hass.states.get("sensor.test_time_to_full_charge").state == "unknown"
     assert hass.states.get("sensor.test_time_to_arrival").state == "unknown"
@@ -371,6 +374,7 @@ async def test_sensors_streaming(
     assert [
         entity_registry.async_get(entity_id)
         for entity_id in (
+            AC_CHARGING_ENERGY_IN_ENTITY,
             "sensor.test_lifetime_energy_gained_regen",
             "sensor.test_miles_since_reset",
             "sensor.test_self_driving_miles_since_reset",
@@ -381,6 +385,7 @@ async def test_sensors_streaming(
 @pytest.mark.parametrize(
     "entity_id",
     [
+        pytest.param(AC_CHARGING_ENERGY_IN_ENTITY, id="ac_charging_energy_in"),
         pytest.param(
             "sensor.test_lifetime_energy_gained_regen",
             id="lifetime_energy_gained_regen",
@@ -399,7 +404,7 @@ async def test_new_streaming_sensors_disabled_by_default(
     mock_add_listener: AsyncMock,
     entity_id: str,
 ) -> None:
-    """Test the new firmware-2025.44 streaming sensors are disabled-by-default diagnostics."""
+    """Test the newer streaming sensors are disabled-by-default diagnostics."""
 
     # miles_since_reset and self_driving_miles_since_reset are HW4-only fields.
     mock_metadata.return_value = _metadata_with_driver_assist("TeslaAP4")
