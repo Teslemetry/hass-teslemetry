@@ -21,7 +21,6 @@ from homeassistant.components.switch import (
     DOMAIN as SWITCH_DOMAIN,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
-    SwitchService,
 )
 from homeassistant.components.teslemetry.const import (
     DOMAIN,
@@ -34,7 +33,6 @@ from homeassistant.const import (
     STATE_ON,
     STATE_UNKNOWN,
     Platform,
-    TargetKey,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -739,8 +737,8 @@ async def test_solar_curtailment_switch_unknown_from_cloud(hass: HomeAssistant) 
 @pytest.mark.parametrize(
     ("service", "enabled", "expected_state"),
     [
-        pytest.param(SwitchService.TURN_ON, True, STATE_ON, id="turn_on"),
-        pytest.param(SwitchService.TURN_OFF, False, STATE_OFF, id="turn_off"),
+        pytest.param(SERVICE_TURN_ON, True, STATE_ON, id="turn_on"),
+        pytest.param(SERVICE_TURN_OFF, False, STATE_OFF, id="turn_off"),
     ],
 )
 async def test_solar_curtailment_switch_cloud(
@@ -756,7 +754,7 @@ async def test_solar_curtailment_switch_cloud(
         await hass.services.async_call(
             SWITCH_DOMAIN,
             service,
-            {TargetKey.ENTITY_ID: SOLAR_CURTAILMENT_ENTITY_ID},
+            {ATTR_ENTITY_ID: SOLAR_CURTAILMENT_ENTITY_ID},
             blocking=True,
         )
     call.assert_awaited_once_with(enabled)
@@ -766,8 +764,8 @@ async def test_solar_curtailment_switch_cloud(
 @pytest.mark.parametrize(
     ("service", "enabled", "expected_state"),
     [
-        pytest.param(SwitchService.TURN_ON, True, STATE_ON, id="turn_on"),
-        pytest.param(SwitchService.TURN_OFF, False, STATE_OFF, id="turn_off"),
+        pytest.param(SERVICE_TURN_ON, True, STATE_ON, id="turn_on"),
+        pytest.param(SERVICE_TURN_OFF, False, STATE_OFF, id="turn_off"),
     ],
 )
 async def test_solar_curtailment_switch_local(
@@ -788,7 +786,7 @@ async def test_solar_curtailment_switch_local(
         await hass.services.async_call(
             SWITCH_DOMAIN,
             service,
-            {TargetKey.ENTITY_ID: SOLAR_CURTAILMENT_ENTITY_ID},
+            {ATTR_ENTITY_ID: SOLAR_CURTAILMENT_ENTITY_ID},
             blocking=True,
         )
     local.assert_awaited_once_with(enabled)
