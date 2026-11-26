@@ -17,6 +17,7 @@ from .const import (
     COMMAND_OK,
     ENERGY_TOTALS,
     ENERGY_TOTALS_DATE,
+    GATEWAY_DIN,
     LIVE_STATUS,
     METADATA,
     METADATA_ENERGY,
@@ -429,7 +430,7 @@ def mock_powerwall_connect() -> Generator[AsyncMock]:
     """Mock the local Powerwall gateway connection."""
     with patch(
         "tesla_fleet_api.tesla.powerwall.PowerwallClient.connect",
-        return_value="GATEWAY-DIN",
+        return_value=GATEWAY_DIN,
     ) as mock_connect:
         yield mock_connect
 
