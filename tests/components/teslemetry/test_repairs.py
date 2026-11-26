@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
 from datetime import timedelta
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -94,6 +95,8 @@ SITE_ID = 123456
 HOST = "192.168.91.1"
 NEW_HOST = "192.168.91.2"
 PASSWORD = "abcde"
+MANUAL_HOST = "192.168.91.3"
+GATEWAY_DIN = "1707000-11-L--TG1234567890AB"
 ENTRY_ID = "01JTESLEMETRYENTRY00000000"
 GATEWAY_ISSUE_ID = f"gateway_not_found_{ENTRY_ID}_{SITE_ID}"
 BLE_KEY_ISSUE_ID = f"{ISSUE_TYPE_BLE_KEY_REJECTED}_{ENTRY_ID}_{VEHICLE_VIN}"
@@ -1301,7 +1304,9 @@ def mock_powerwall_client() -> Generator[MagicMock]:
     client = MagicMock()
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=False)
-    client.connect = AsyncMock(side_effect=PowerwallConnectionError("unreachable"))
+    client.connect = AsyncMock(
+        return_value=GATEWAY_DIN, side_effect=PowerwallConnectionError("unreachable")
+    )
     client.get_status = AsyncMock()
     with patch(
         "homeassistant.components.teslemetry.helpers.PowerwallClient",
@@ -1445,24 +1450,27 @@ async def test_gateway_repair_verifies_gateway_1_with_full_password(
     ],
 )
 @pytest.mark.parametrize(
-    ("connect_error", "status_error", "error"),
+    ("connect_error", "status_error", "error", "expected_log"),
     [
         pytest.param(
             PowerwallConnectionError("unreachable"),
             None,
             "cannot_connect",
+            f"Local Powerwall verify failed at {MANUAL_HOST}: unreachable",
             id="cannot_connect",
         ),
         pytest.param(
             PowerwallAuthenticationError("denied"),
             None,
             "invalid_auth",
+            f"Powerwall at {MANUAL_HOST} rejected the password: denied",
             id="invalid_auth",
         ),
         pytest.param(
             None,
             PowerwallAuthenticationError("unapproved"),
             "key_not_approved",
+            "Powerwall rejected the signed read: unapproved",
             id="key_not_approved",
         ),
     ],
@@ -1471,15 +1479,18 @@ async def test_gateway_repair_manual_address(
     hass: HomeAssistant,
     hass_client: ClientSessionGenerator,
     issue_registry: ir.IssueRegistry,
+    caplog: pytest.LogCaptureFixture,
     mock_powerwall_client: MagicMock,
     lookup_result: list[str | None] | Exception,
     expected_default: str,
     lookup_errors: dict[str, str],
-    connect_error: PowerwallError | None,
+    connect_error: Exception | None,
     status_error: PowerwallError | None,
     error: str,
+    expected_log: str,
 ) -> None:
     """The fix flow asks for the address when the cloud lookup cannot fix it."""
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.teslemetry")
     entry = await _setup_entry_with_lost_gateway(hass)
     client = await hass_client()
 
@@ -1494,11 +1505,12 @@ async def test_gateway_repair_manual_address(
     mock_powerwall_client.connect.side_effect = connect_error
     mock_powerwall_client.get_status.side_effect = status_error
     result = await process_repair_fix_flow(
-        client, result["flow_id"], json={CONF_HOST: "192.168.91.3"}
+        client, result["flow_id"], json={CONF_HOST: MANUAL_HOST}
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": error}
-    assert _host_default(result) == "192.168.91.3"
+    assert _host_default(result) == MANUAL_HOST
+    assert expected_log in caplog.text
 
     mock_powerwall_client.connect.side_effect = None
     mock_powerwall_client.get_status.side_effect = None
