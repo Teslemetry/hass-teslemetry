@@ -73,7 +73,12 @@ from .entity import (
     TeslemetryWallConnectorTotalsEntity,
 )
 from .helpers import async_remove_stale_vehicle_entities
-from .models import TeslemetryConfigEntry, TeslemetryEnergyData, TeslemetryVehicleData
+from .models import (
+    TeslemetryConfigEntry,
+    TeslemetryEnergyData,
+    TeslemetryRoadsterData,
+    TeslemetryVehicleData,
+)
 
 PARALLEL_UPDATES = 0
 
@@ -1723,6 +1728,13 @@ class TeslemetryLocalSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], StateType]
 
 
+ROADSTER_BATTERY_DESCRIPTION = SensorEntityDescription(
+    key="roadster_battery",
+    device_class=SensorDeviceClass.BATTERY,
+    native_unit_of_measurement=PERCENTAGE,
+    state_class=SensorStateClass.MEASUREMENT,
+)
+
 ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
     TeslemetryLocalSensorEntityDescription, ...
 ] = (
@@ -2172,6 +2184,9 @@ async def async_setup_entry(
                 ),
             )
         )
+
+    if (roadster := entry.runtime_data.roadster) is not None:
+        entities.append(TeslemetryRoadsterBatterySensorEntity(roadster, entry.entry_id))
 
     async_remove_stale_vehicle_entities(
         hass,
@@ -2628,3 +2643,30 @@ class TeslemetryCreditQuotaSensor(RestoreSensor):
 
         self._attr_native_value = fraction * 100
         self.async_write_ha_state()
+
+
+class TeslemetryRoadsterBatterySensorEntity(SensorEntity):
+    """Battery level of the virtual Roadster vacuum Labs easter egg."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+
+    def __init__(self, roadster: TeslemetryRoadsterData, entry_id: str) -> None:
+        """Initialize the Roadster battery sensor."""
+        self.roadster = roadster
+        self.entity_description = ROADSTER_BATTERY_DESCRIPTION
+        self._attr_unique_id = f"{entry_id}_{ROADSTER_BATTERY_DESCRIPTION.key}"
+        self._attr_device_info = roadster.device
+
+    @property
+    @override
+    def native_value(self) -> int:
+        """Return the battery level."""
+        return self.roadster.battery_level
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Follow battery changes made by the Roadster vacuum."""
+        self.async_on_remove(
+            self.roadster.async_add_listener(self.async_write_ha_state)
+        )
