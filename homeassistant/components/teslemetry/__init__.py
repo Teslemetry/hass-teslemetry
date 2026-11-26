@@ -124,6 +124,7 @@ from .coordinator import (
 from .helpers import (
     async_expire_token,
     async_get_ble_parent,
+    async_get_local_networks,
     async_handle_credits,
     async_update_device_sw_version,
     create_powerwall_client,
@@ -799,8 +800,9 @@ async def _async_rediscover_gateway(
     """Return a client at the gateway's new address, or the stale client if not found."""
     site_id = cloud_energy_site.energy_site_id
     issue_id = gateway_issue_id(entry.entry_id, site_id)
+    networks = await async_get_local_networks(hass)
     try:
-        host = await cloud_energy_site.find_gateway_address()
+        host = await cloud_energy_site.find_gateway_address(networks)
     except (ClientError, TeslaFleetError, TimeoutError) as err:
         LOGGER.debug(
             "Gateway address lookup failed for energy site %s: %s", site_id, err
