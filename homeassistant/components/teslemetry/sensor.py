@@ -1852,6 +1852,24 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_display_precision=2,
     ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="hvp_state",
+        value_fn=lambda readings: readings.hvp_state,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="battery_connection_status",
+        value_fn=lambda readings: readings.battery_connection_status,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
+        key="hvp_firmware",
+        value_fn=lambda readings: readings.hvp_firmware,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
 )
 
 
