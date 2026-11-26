@@ -1869,11 +1869,8 @@ async def test_local_control_failure_falls_back_to_cloud(
         "site": "Energy Site",
         "key_file": "tesla_powerwall.key",
     }
-    assert issue.config_entry_id == entry.entry_id
-    assert (
-        issue.config_subentry_id
-        == entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0].subentry_id
-    )
+    # HACS stable-core compat: the pinned core release cannot tie an issue to a
+    # config entry or subentry.
 
 
 @pytest.mark.parametrize(
@@ -2636,7 +2633,6 @@ async def test_local_control_repair_cleared_without_subentry(
         hass,
         DOMAIN,
         issue_id,
-        config_entry_id=entry.entry_id,
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
         translation_key="local_control_failed",
