@@ -23,6 +23,7 @@ VEHICLE_KEY_FILE = "tesla_vehicle.key"
 BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
 BLE_PARENT_LOCK_KEY = f"{DOMAIN}_ble_parent_lock"
 BLE_DISCONNECT_TIMEOUT = 10
+BLE_HANDSHAKE_TIMEOUT = 60
 BLE_ADVERTISEMENT_TIMEOUT = 5
 # Nearly all stream drops reconnect within a few seconds.
 STREAM_DISCONNECT_GRACE = 10
@@ -70,6 +71,8 @@ VEHICLE_ISSUE_LEARN_MORE: dict[str, str | None] = {
     VEHICLE_ISSUE_KEY: "https://teslemetry.com/key",
     "streaming_toggle": None,
 }
+
+ISSUE_TYPE_BLE_KEY_REJECTED = "ble_key_rejected"
 
 
 class TeslemetryState(StrEnum):
