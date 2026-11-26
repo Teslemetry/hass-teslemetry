@@ -1,8 +1,22 @@
 diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
-index 1d74797d21b..b8d3d2e1c2a 100644
+index 3e107d1cdd4..722e2f5ebf5 100644
 --- a/tests/components/teslemetry/test_init.py
 +++ b/tests/components/teslemetry/test_init.py
-@@ -2435,7 +2435,6 @@ async def test_local_control_repair_cleared_without_subentry(
+@@ -1869,11 +1869,8 @@ async def test_local_control_failure_falls_back_to_cloud(
+         "site": "Energy Site",
+         "key_file": "tesla_powerwall.key",
+     }
+-    assert issue.config_entry_id == entry.entry_id
+-    assert (
+-        issue.config_subentry_id
+-        == entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0].subentry_id
+-    )
++    # HACS stable-core compat: the pinned core release cannot tie an issue to a
++    # config entry or subentry.
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -2636,7 +2633,6 @@ async def test_local_control_repair_cleared_without_subentry(
          hass,
          DOMAIN,
          issue_id,

@@ -1,78 +1,27 @@
-diff --git a/homeassistant/components/teslemetry/coordinator.py b/homeassistant/components/teslemetry/coordinator.py
-index 85ec19dfda5..fe17dfc03a4 100644
---- a/homeassistant/components/teslemetry/coordinator.py
-+++ b/homeassistant/components/teslemetry/coordinator.py
-@@ -243,21 +243,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-                 translation_domain=DOMAIN,
-                 translation_key="update_failed_missing_scopes",
-             ) from e
--        except Forbidden as e:
--            ir.async_create_issue(
--                self.hass,
--                DOMAIN,
--                f"{ISSUE_MISSING_SCOPES}_{self.config_entry.entry_id}",
--                config_entry_id=self.config_entry.entry_id,
--                is_fixable=False,
--                severity=ir.IssueSeverity.ERROR,
--                translation_key=ISSUE_MISSING_SCOPES,
--                learn_more_url=MISSING_SCOPES_URL,
--            )
--            raise UpdateFailed(
--                translation_domain=DOMAIN,
--                translation_key="update_failed_missing_scopes",
--            ) from e
-         except RETRY_EXCEPTIONS as e:
-             raise UpdateFailed(
-                 translation_domain=DOMAIN,
-diff --git a/tests/components/teslemetry/test_init.py b/tests/components/teslemetry/test_init.py
-index a068cc51873..b18c79358e9 100644
---- a/tests/components/teslemetry/test_init.py
-+++ b/tests/components/teslemetry/test_init.py
-@@ -1500,39 +1500,6 @@ async def test_vehicle_data_missing_scopes_repair(
-     assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
- 
- 
--async def test_vehicle_data_missing_scopes_repair(
--    hass: HomeAssistant,
--    freezer: FrozenDateTimeFactory,
--    issue_registry: ir.IssueRegistry,
--    mock_vehicle_data: AsyncMock,
--    mock_legacy: AsyncMock,
--) -> None:
--    """Missing scopes raise a repair that clears once vehicle data is readable."""
--    entry = await setup_platform(hass)
--    assert entry.state is ConfigEntryState.LOADED
--    issue_id = f"missing_scopes_{entry.entry_id}"
--
--    mock_vehicle_data.side_effect = Forbidden
--    freezer.tick(VEHICLE_INTERVAL)
--    async_fire_time_changed(hass)
--    await hass.async_block_till_done()
--
--    assert entry.state is ConfigEntryState.LOADED
--    assert hass.states.get("sensor.test_battery_level").state == STATE_UNAVAILABLE
--    issue = issue_registry.async_get_issue(DOMAIN, issue_id)
--    assert issue is not None
--    assert (
--        issue.learn_more_url == "https://teslemetry.com/login?prompt_missing_scopes=1"
--    )
--
--    mock_vehicle_data.side_effect = None
--    freezer.tick(VEHICLE_INTERVAL)
--    async_fire_time_changed(hass)
--    await hass.async_block_till_done()
--
--    assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
--
--
- def _oauth_session(hass: HomeAssistant, entry: MockConfigEntry) -> OAuth2Session:
-     """Build an OAuth2Session for directly exercising _get_access_token."""
-     return OAuth2Session(hass, entry, TeslemetryImplementation(hass, DOMAIN, CLIENT_ID))
 diff --git a/tests/components/teslemetry/test_number.py b/tests/components/teslemetry/test_number.py
-index 5c3edfe2481..fe700312c5a 100644
+index 54d8d38b98b..23fb1bd9a0d 100644
 --- a/tests/components/teslemetry/test_number.py
 +++ b/tests/components/teslemetry/test_number.py
-@@ -1011,8 +1011,8 @@ async def test_grid_limit_number_cloud(
+@@ -5,7 +5,9 @@ from copy import deepcopy
+ from typing import Any
+ from unittest.mock import AsyncMock, MagicMock, patch
+ 
++from freezegun.api import FrozenDateTimeFactory
+ import pytest
++from pytest_homeassistant.common import async_fire_time_changed
+ from syrupy.assertion import SnapshotAssertion
+ from tesla_fleet_api.exceptions import InvalidCommand
+ from teslemetry_stream import Signal
+@@ -28,7 +30,7 @@ from homeassistant.components.teslemetry.coordinator import (
+ from homeassistant.components.teslemetry.number import (
+     TeslemetryChargeOnSolarLowerLimitNumberEntity,
+ )
+-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform, TargetKey
++from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform
+ from homeassistant.core import HomeAssistant
+ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+ from homeassistant.helpers import entity_registry as er
+@@ -1009,8 +1011,8 @@ async def test_grid_limit_number_cloud(
      ) as call:
          await hass.services.async_call(
              NUMBER_DOMAIN,
@@ -83,7 +32,7 @@ index 5c3edfe2481..fe700312c5a 100644
              blocking=True,
          )
      call.assert_awaited_once_with(value)
-@@ -1108,8 +1108,8 @@ async def test_grid_limit_number_local(
+@@ -1121,8 +1123,8 @@ async def test_grid_limit_number_local(
      ):
          await hass.services.async_call(
              NUMBER_DOMAIN,
@@ -94,7 +43,7 @@ index 5c3edfe2481..fe700312c5a 100644
              blocking=True,
          )
      local.assert_awaited_once_with(value)
-@@ -1134,8 +1134,8 @@ async def test_grid_limit_number_not_applied(
+@@ -1147,8 +1149,8 @@ async def test_grid_limit_number_not_applied(
      ):
          await hass.services.async_call(
              NUMBER_DOMAIN,

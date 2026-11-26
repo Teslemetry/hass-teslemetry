@@ -1,8 +1,8 @@
 diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
-index 0bfc2524f3..bb32b82e3d 100644
+index 7715c2cb6d6..8bec224e9fd 100644
 --- a/homeassistant/components/teslemetry/__init__.py
 +++ b/homeassistant/components/teslemetry/__init__.py
-@@ -1515,6 +1515,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
+@@ -1518,6 +1518,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
              "Teslemetry Stream",
          )
  
@@ -11,8 +11,8 @@ index 0bfc2524f3..bb32b82e3d 100644
  
  async def _async_listen_stream(
      hass: HomeAssistant,
-@@ -1541,8 +1543,6 @@ async def _async_listen_stream(
-             return
+@@ -1547,8 +1549,6 @@ async def _async_listen_stream(
+             continue
          refreshed_token = oauth_session.token[CONF_ACCESS_TOKEN]
  
 -    return True
