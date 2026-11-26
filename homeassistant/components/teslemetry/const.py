@@ -41,6 +41,8 @@ STREAMING_ALLOWANCE_EXCEEDED = "streaming_allowance_exceeded"
 GATEWAY_1_PART_NUMBER = "1118431-"
 ISSUE_LOCAL_CONTROL_FAILED = "local_control_failed"
 ISSUE_GATEWAY_MISMATCH = "gateway_mismatch"
+ISSUE_INSUFFICIENT_CREDITS = "insufficient_credits"
+CREDITS_URL = "https://teslemetry.com/console/credits"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
