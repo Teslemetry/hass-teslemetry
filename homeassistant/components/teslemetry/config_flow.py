@@ -397,7 +397,17 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
                             cancel()
 
                 if info is None:
-                    errors["base"] = "device_not_found"
+                    modes = [
+                        scanner.requested_mode
+                        for scanner in async_current_scanners(self.hass)
+                        if scanner.connectable
+                    ]
+                    errors["base"] = (
+                        "passive_scanning"
+                        if modes
+                        and all(mode is BluetoothScanningMode.PASSIVE for mode in modes)
+                        else "device_not_found"
+                    )
                 else:
                     self._address = info.address
                     # Uses default keepalive so the link survives the on-screen key-approval wait.

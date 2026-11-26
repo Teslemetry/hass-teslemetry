@@ -119,6 +119,7 @@
         "no_connection_slot": "Every Bluetooth adapter or proxy that can reach the vehicle has no free connection slot. Free a connection slot on a Bluetooth proxy, or add another proxy near the vehicle, then try again.",
         "pair_denied": "The key was declined on the vehicle's touchscreen. Select Submit and tap a key card to try again.",
         "pair_failed": "The vehicle rejected the key. Make sure it is not in valet mode and does not already have the maximum number of keys, then try again.",
+        "passive_scanning": "Every Bluetooth adapter and proxy that can connect to the vehicle is set to passive scanning, so the vehicle's Bluetooth name can't be read. Set the scanning mode of a Bluetooth adapter (Settings > Devices & services > Bluetooth > Configure) or of an ESPHome Bluetooth proxy (Settings > Devices & services > ESPHome > Configure) to Auto or Active, then try again.",
         "tap_timeout": "The key card was not tapped in time. Select Submit and tap a key card within 30 seconds.",
         "timeout": "Timed out waiting for the vehicle to add the key. Select Submit and tap a key card on the center console card reader.",
         "vehicle_busy": "The vehicle is busy and may already have its maximum number of Bluetooth connections. Disconnect other phones or devices from the vehicle, then try again.",
