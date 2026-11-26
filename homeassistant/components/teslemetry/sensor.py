@@ -9,11 +9,14 @@ from typing import Any, override
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
 from tesla_fleet_api.tesla.powerwall import (
+    PV_STRING_STATES,
     PV_STRINGS,
     current_power,
     islander_frequency,
     islander_voltage,
+    pv_power,
     pv_string_current,
+    pv_string_state,
     pv_string_voltage,
     site_info,
 )
@@ -1717,6 +1720,24 @@ ENERGY_LOCAL_COMPONENTS_DESCRIPTIONS: tuple[
             suggested_display_precision=2,
         )
         for string in PV_STRINGS
+    ),
+    *(
+        TeslemetryLocalSensorEntityDescription(
+            key=f"pv_string_{string.lower()}_state",
+            value_fn=partial(pv_string_state, string=string),
+            options=list(PV_STRING_STATES),
+            device_class=SensorDeviceClass.ENUM,
+        )
+        for string in PV_STRINGS
+    ),
+    TeslemetryLocalSensorEntityDescription(
+        key="pv_power",
+        value_fn=pv_power,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_unit_of_measurement=UnitOfPower.KILO_WATT,
+        suggested_display_precision=2,
     ),
 )
 
