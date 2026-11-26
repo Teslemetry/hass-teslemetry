@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -54,10 +55,7 @@ from homeassistant.components.teslemetry.const import (
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
 )
-from homeassistant.components.teslemetry.coordinator import (
-    METADATA_INTERVAL,
-    VEHICLE_INTERVAL,
-)
+from homeassistant.components.teslemetry.coordinator import METADATA_INTERVAL
 from homeassistant.components.teslemetry.repairs import (
     BluetoothKeyRepairFlow,
     async_create_fix_flow,
@@ -90,6 +88,7 @@ OTHER_VIN = "LRW3F7EK4NC799999"
 OTHER_ADDRESS = "11:22:33:44:55:66"
 FLASH_LIGHTS_ENTITY_ID = "button.test_flash_lights"
 UNNAMED_FLASH_LIGHTS_ENTITY_ID = "button.flash_lights"
+VEHICLE_INTERVAL = timedelta(seconds=60)
 SITE_ID = 123456
 HOST = "192.168.91.1"
 NEW_HOST = "192.168.91.2"
