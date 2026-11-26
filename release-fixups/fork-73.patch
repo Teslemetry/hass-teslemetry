@@ -1,5 +1,5 @@
 diff --git a/homeassistant/components/teslemetry/__init__.py b/homeassistant/components/teslemetry/__init__.py
-index b07d0e4d39e..b1b7843a397 100644
+index 4aee4f3a367..37cb58f9119 100644
 --- a/homeassistant/components/teslemetry/__init__.py
 +++ b/homeassistant/components/teslemetry/__init__.py
 @@ -130,6 +130,7 @@ from .helpers import (
@@ -10,7 +10,7 @@ index b07d0e4d39e..b1b7843a397 100644
  )
  from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
  from .models import (
-@@ -1812,6 +1813,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
+@@ -1816,6 +1817,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry)
                  _gateway_mismatch_issue_id(entry.entry_id, int(subentry.unique_id)),
              )
      await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
@@ -20,34 +20,8 @@ index b07d0e4d39e..b1b7843a397 100644
  
  
  async def async_migrate_entry(
-diff --git a/homeassistant/components/teslemetry/coordinator.py b/homeassistant/components/teslemetry/coordinator.py
-index fe17dfc03a4..77eff78ffeb 100644
---- a/homeassistant/components/teslemetry/coordinator.py
-+++ b/homeassistant/components/teslemetry/coordinator.py
-@@ -228,21 +228,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-                 translation_domain=DOMAIN,
-                 translation_key="update_failed_missing_scopes",
-             ) from e
--        except Forbidden as e:
--            ir.async_create_issue(
--                self.hass,
--                DOMAIN,
--                f"{ISSUE_MISSING_SCOPES}_{self.config_entry.entry_id}",
--                config_entry_id=self.config_entry.entry_id,
--                is_fixable=False,
--                severity=ir.IssueSeverity.ERROR,
--                translation_key=ISSUE_MISSING_SCOPES,
--                learn_more_url=MISSING_SCOPES_URL,
--            )
--            raise UpdateFailed(
--                translation_domain=DOMAIN,
--                translation_key="update_failed_missing_scopes",
--            ) from e
-         except RETRY_EXCEPTIONS as e:
-             raise UpdateFailed(
-                 translation_domain=DOMAIN,
 diff --git a/homeassistant/components/teslemetry/helpers.py b/homeassistant/components/teslemetry/helpers.py
-index 30fab31460e..3e78ec46fd3 100644
+index 1e10cbcf8fc..0912b1a7f17 100644
 --- a/homeassistant/components/teslemetry/helpers.py
 +++ b/homeassistant/components/teslemetry/helpers.py
 @@ -209,7 +209,6 @@ async def handle_command(
@@ -59,41 +33,15 @@ index 30fab31460e..3e78ec46fd3 100644
              # Setup does not check credits, so nothing would raise it again
              # after a restart while the account is still short.
 diff --git a/homeassistant/components/teslemetry/services.py b/homeassistant/components/teslemetry/services.py
-index 9a5ba097542..e55c4586030 100644
+index 6e682f937ea..e55c4586030 100644
 --- a/homeassistant/components/teslemetry/services.py
 +++ b/homeassistant/components/teslemetry/services.py
-@@ -120,8 +120,8 @@ def async_get_energy_site_for_entry(
- 
+@@ -121,7 +121,7 @@ def async_get_energy_site_for_entry(
  def async_get_energy_site_for_signed_command(
      hass: HomeAssistant, call: ServiceCall
--) -> TeslemetryEnergyData:
+ ) -> tuple[TeslemetryEnergyData, TeslemetryConfigEntry]:
 -    """Get the energy site for a command Teslemetry signs with its own key."""
-+) -> tuple[TeslemetryEnergyData, TeslemetryConfigEntry]:
 +    """Get the energy site and its entry for a command Teslemetry signs with its own key."""
      device, config = async_get_device_and_config_for_service_call(hass, call)
      site = async_get_energy_site_for_entry(hass, device, config)
      if not site.signed_commands_available(
-@@ -132,12 +132,12 @@ def async_get_energy_site_for_signed_command(
-             translation_key="energy_site_not_paired",
-             translation_placeholders={"site": site.device["name"]},
-         )
--    return site
-+    return site, config
- 
- 
- async def async_dispatch_battery_power(call: ServiceCall) -> None:
-     """Charge or discharge the battery at a set power for a set time."""
--    site = async_get_energy_site_for_signed_command(call.hass, call)
-+    site, config = async_get_energy_site_for_signed_command(call.hass, call)
- 
-     await handle_energy_site_command(
-         call.hass,
-@@ -151,7 +151,7 @@ async def async_dispatch_battery_power(call: ServiceCall) -> None:
- 
- async def async_resume_battery_operation(call: ServiceCall) -> None:
-     """Return the battery to its configured operating mode."""
--    site = async_get_energy_site_for_signed_command(call.hass, call)
-+    site, config = async_get_energy_site_for_signed_command(call.hass, call)
- 
-     await handle_energy_site_command(
-         call.hass, config, site.api.resume_battery_operation()

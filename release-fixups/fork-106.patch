@@ -1,5 +1,5 @@
 diff --git a/homeassistant/components/teslemetry/climate.py b/homeassistant/components/teslemetry/climate.py
-index 7a31ee22906..8b0d4f42208 100644
+index a996e0e02ae..68a03e8e091 100644
 --- a/homeassistant/components/teslemetry/climate.py
 +++ b/homeassistant/components/teslemetry/climate.py
 @@ -16,7 +16,6 @@ from homeassistant.components.climate import (
@@ -21,9 +21,9 @@ index 7a31ee22906..8b0d4f42208 100644
 +from homeassistant.helpers.restore_state import RestoreEntity
 +from homeassistant.util.unit_conversion import TemperatureConverter
  
- from . import TeslemetryConfigEntry
  from .const import DOMAIN, TeslemetryClimateSide
-@@ -69,6 +70,27 @@ PASSENGER_FEATURES = (
+ from .entity import (
+@@ -68,6 +69,27 @@ PASSENGER_FEATURES = (
  PARALLEL_UPDATES = 0
  
  
@@ -51,7 +51,7 @@ index 7a31ee22906..8b0d4f42208 100644
  async def async_setup_entry(
      hass: HomeAssistant,
      entry: TeslemetryConfigEntry,
-@@ -131,7 +153,9 @@ class TeslemetryCabinClimateEntity(TeslemetryRootEntity, ClimateEntity):
+@@ -130,7 +152,9 @@ class TeslemetryCabinClimateEntity(TeslemetryRootEntity, ClimateEntity):
  
      api: Vehicle | VehicleRouter
      _attr_precision = PRECISION_HALVES
@@ -62,7 +62,7 @@ index 7a31ee22906..8b0d4f42208 100644
      _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
  
      @override
-@@ -193,7 +217,7 @@ class TeslemetryClimateEntity(TeslemetryCabinClimateEntity):
+@@ -192,7 +216,7 @@ class TeslemetryClimateEntity(TeslemetryCabinClimateEntity):
              passenger_temp = self._native_passenger_temperature
              if (
                  passenger_temp is None
@@ -71,15 +71,15 @@ index 7a31ee22906..8b0d4f42208 100644
              ):
                  passenger_temp = temp
  
-@@ -203,7 +227,7 @@ class TeslemetryClimateEntity(TeslemetryCabinClimateEntity):
+@@ -202,7 +226,7 @@ class TeslemetryClimateEntity(TeslemetryCabinClimateEntity):
                      passenger_temp=passenger_temp,
                  )
              )
 -            self._attr_native_target_temperature = temp
 +            self._attr_target_temperature = temp
+             self._native_passenger_temperature = passenger_temp
  
          if mode := kwargs.get(ATTR_HVAC_MODE):
-             # Set HVAC mode will call write_ha_state
 @@ -267,7 +291,7 @@ class TeslemetryPassengerClimateEntity(TeslemetryCabinClimateEntity):
      def _async_update_preset(self) -> None:
          """Derive the preset from the set points, as the vehicle reports no sync state."""
@@ -285,141 +285,46 @@ index 7a31ee22906..8b0d4f42208 100644
          )
          self.async_write_ha_state()
 diff --git a/tests/components/teslemetry/snapshots/test_climate.ambr b/tests/components/teslemetry/snapshots/test_climate.ambr
-index e793318e8d6..83e1dbc8e24 100644
+index 8e48df0f94c..83e1dbc8e24 100644
 --- a/tests/components/teslemetry/snapshots/test_climate.ambr
 +++ b/tests/components/teslemetry/snapshots/test_climate.ambr
-@@ -222,7 +222,6 @@
+@@ -174,7 +174,6 @@
+         'sync',
+         'split',
+       ]),
+-      <ClimateEntityCapabilityAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
+     }),
+     'config_entry_id': <ANY>,
+     'config_subentry_id': None,
+@@ -223,7 +222,6 @@
          'split',
        ]),
        <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <ClimateEntityFeature: 400>,
--      <ClimateEntityStateAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
+-      <ClimateEntityCapabilityAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
      }),
      'context': <ANY>,
      'entity_id': 'climate.test_passenger_climate',
-@@ -454,7 +453,6 @@
+@@ -407,7 +405,6 @@
+         'sync',
+         'split',
+       ]),
+-      <ClimateEntityCapabilityAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
+     }),
+     'config_entry_id': <ANY>,
+     'config_subentry_id': None,
+@@ -456,7 +453,6 @@
          'split',
        ]),
        <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <ClimateEntityFeature: 400>,
--      <ClimateEntityStateAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
+-      <ClimateEntityCapabilityAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
      }),
      'context': <ANY>,
      'entity_id': 'climate.test_passenger_climate',
-diff --git a/tests/components/teslemetry/test_climate.py b/tests/components/teslemetry/test_climate.py
-index 8d00b18b343..46b4c0bbfb3 100644
---- a/tests/components/teslemetry/test_climate.py
-+++ b/tests/components/teslemetry/test_climate.py
-@@ -878,7 +878,7 @@ async def test_passenger_climate_polling_preset(
-     [
-         pytest.param({}, [], STATE_UNKNOWN, id="temperature"),
-         pytest.param(
--            {ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
-+            {ClimateServiceArgument.HVAC_MODE: HVACMode.HEAT_COOL},
-             [call()],
-             HVACMode.HEAT_COOL,
-             id="temperature_and_hvac_mode",
-@@ -909,10 +909,10 @@ async def test_passenger_climate_set_temperature(
-     ):
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_TEMPERATURE,
-+            ClimateService.SET_TEMPERATURE,
-             {
--                ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID],
--                ATTR_TEMPERATURE: 20,
-+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
-+                ClimateServiceArgument.TEMPERATURE: 20,
-                 **service_data,
-             },
-             blocking=True,
-@@ -942,8 +942,11 @@ async def test_passenger_climate_set_temperature_sync(
-     ):
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_TEMPERATURE,
--            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_TEMPERATURE: 20},
-+            ClimateService.SET_TEMPERATURE,
-+            {
-+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
-+                ClimateServiceArgument.TEMPERATURE: 20,
-+            },
-             blocking=True,
-         )
-     mock_set_temps.assert_not_called()
-@@ -989,8 +992,11 @@ async def test_passenger_climate_set_preset_mode(
-     ) as mock_set_temps:
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_PRESET_MODE,
--            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: preset_mode},
-+            ClimateService.SET_PRESET_MODE,
-+            {
-+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
-+                ClimateServiceArgument.PRESET_MODE: preset_mode,
-+            },
-             blocking=True,
-         )
-     assert mock_set_temps.call_args_list == expected_calls
-@@ -1014,8 +1020,11 @@ async def test_passenger_climate_set_preset_mode_driver_unknown(
-     ):
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_PRESET_MODE,
--            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID], ATTR_PRESET_MODE: "sync"},
-+            ClimateService.SET_PRESET_MODE,
-+            {
-+                TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID],
-+                ClimateServiceArgument.PRESET_MODE: "sync",
-+            },
-             blocking=True,
-         )
-     assert error.value.translation_key == "driver_temperature_unknown"
-@@ -1033,8 +1042,8 @@ async def test_passenger_climate_turn_on_off(hass: HomeAssistant) -> None:
-     ) as mock_stop:
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_TURN_OFF,
--            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
-+            ClimateService.TURN_OFF,
-+            {TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID]},
-             blocking=True,
-         )
-     mock_stop.assert_called_once()
-@@ -1046,8 +1055,8 @@ async def test_passenger_climate_turn_on_off(hass: HomeAssistant) -> None:
-     ) as mock_start:
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_TURN_ON,
--            {ATTR_ENTITY_ID: [PASSENGER_ENTITY_ID]},
-+            ClimateService.TURN_ON,
-+            {TargetKey.ENTITY_ID: [PASSENGER_ENTITY_ID]},
-             blocking=True,
-         )
-     mock_start.assert_called_once()
-@@ -1078,8 +1087,11 @@ async def test_climate_streaming_set_temperature_passenger(
-     ) as mock_set_temps:
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_TEMPERATURE,
--            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
-+            ClimateService.SET_TEMPERATURE,
-+            {
-+                TargetKey.ENTITY_ID: ["climate.test_climate"],
-+                ClimateServiceArgument.TEMPERATURE: 20,
-+            },
-             blocking=True,
-         )
-     mock_set_temps.assert_called_once_with(
-@@ -1118,8 +1130,11 @@ async def test_climate_polling_set_temperature_passenger(
-     ) as mock_set_temps:
-         await hass.services.async_call(
-             CLIMATE_DOMAIN,
--            SERVICE_SET_TEMPERATURE,
--            {ATTR_ENTITY_ID: ["climate.test_climate"], ATTR_TEMPERATURE: 20},
-+            ClimateService.SET_TEMPERATURE,
-+            {
-+                TargetKey.ENTITY_ID: ["climate.test_climate"],
-+                ClimateServiceArgument.TEMPERATURE: 20,
-+            },
-             blocking=True,
-         )
-     mock_set_temps.assert_called_once_with(
+@@ -569,7 +565,6 @@
+       ]),
+       <ClimateEntityCapabilityAttribute.MAX_TEMP: 'max_temp'>: 28.0,
+       <ClimateEntityCapabilityAttribute.MIN_TEMP: 'min_temp'>: 15.0,
+-      <ClimateEntityCapabilityAttribute.TEMPERATURE_UNIT: 'temperature_unit'>: <UnitOfTemperature.CELSIUS: '°C'>,
+     }),
+     'config_entry_id': <ANY>,
+     'config_subentry_id': None,
