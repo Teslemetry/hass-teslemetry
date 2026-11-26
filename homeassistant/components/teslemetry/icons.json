@@ -245,6 +245,12 @@
           "100": "mdi:battery"
         }
       },
+      "max_site_meter_power_ac": {
+        "default": "mdi:transmission-tower-import"
+      },
+      "min_site_meter_power_ac": {
+        "default": "mdi:transmission-tower-export"
+      },
       "off_grid_vehicle_charging_reserve_percent": {
         "default": "mdi:battery-outline",
         "range": {
@@ -823,6 +829,9 @@
       },
       "guest_mode_enabled": {
         "default": "mdi:account-group"
+      },
+      "on_grid_solar_curtailment_enabled": {
+        "default": "mdi:solar-power-variant"
       },
       "vehicle_state_sentry_mode": {
         "default": "mdi:shield-car"
