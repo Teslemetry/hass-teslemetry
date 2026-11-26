@@ -43,7 +43,12 @@ from homeassistant.util import dt as dt_util
 
 from . import hacs_issue_registry as ir
 from .const import DOMAIN, LOGGER
-from .helpers import async_update_device_sw_version, flatten, gateway_issue_id
+from .helpers import (
+    async_call_with_token_refresh,
+    async_update_device_sw_version,
+    flatten,
+    gateway_issue_id,
+)
 
 if TYPE_CHECKING:
     from .models import TeslemetryConfigEntry
@@ -129,7 +134,9 @@ class TeslemetryMetadataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch latest metadata for subscription status."""
         try:
-            data = await self.teslemetry.metadata()
+            data = await async_call_with_token_refresh(
+                self.hass, self.config_entry, self.teslemetry.metadata
+            )
         except (InvalidToken, SubscriptionRequired, LoginRequired) as e:
             raise ConfigEntryAuthFailed from e
         except RETRY_EXCEPTIONS as e:
@@ -177,7 +184,13 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update vehicle data using Teslemetry API."""
         try:
-            data = (await self.api.vehicle_data(endpoints=ENDPOINTS))["response"]
+            data = (
+                await async_call_with_token_refresh(
+                    self.hass,
+                    self.config_entry,
+                    partial(self.api.vehicle_data, endpoints=ENDPOINTS),
+                )
+            )["response"]
         except (InvalidToken, SubscriptionRequired, LoginRequired) as e:
             raise ConfigEntryAuthFailed from e
         except InsufficientCredits as e:
@@ -402,7 +415,11 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
     async def _async_update_data(self) -> dict[str, Any]:
         """Cold-read the cloud live_status (setup and manual recovery only)."""
         try:
-            data: dict[str, Any] = (await self.api.live_status())["response"]
+            data: dict[str, Any] = (
+                await async_call_with_token_refresh(
+                    self.hass, self.config_entry, self.api.live_status
+                )
+            )["response"]
         except (InvalidToken, SubscriptionRequired, LoginRequired) as e:
             raise ConfigEntryAuthFailed from e
         except RETRY_EXCEPTIONS as e:
@@ -572,7 +589,11 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
     async def _async_update_data(self) -> dict[str, Any]:
         """Cold-read the cloud site_info (setup and manual recovery only)."""
         try:
-            data = (await self.api.site_info())["response"]
+            data = (
+                await async_call_with_token_refresh(
+                    self.hass, self.config_entry, self.api.site_info
+                )
+            )["response"]
         except (InvalidToken, SubscriptionRequired, LoginRequired) as e:
             raise ConfigEntryAuthFailed from e
         except RETRY_EXCEPTIONS as e:

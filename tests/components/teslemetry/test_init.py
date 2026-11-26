@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Generator
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from datetime import timedelta
+from http import HTTPStatus
 import logging
 import time
 from types import MappingProxyType
@@ -22,6 +23,7 @@ from pytest_homeassistant.common import (
     async_capture_events,
     async_fire_time_changed,
 )
+from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
 from syrupy.assertion import SnapshotAssertion
 from tesla_fleet_api.const import EnergyExportMode
 from tesla_fleet_api.exceptions import (
@@ -49,7 +51,7 @@ from tesla_fleet_api.tesla.powerwall import (
 )
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.tesla.vehicle.stream_glue import BleBroadcastStreamGlue
-from tesla_fleet_api.teslemetry import EnergySite, Vehicle
+from tesla_fleet_api.teslemetry import EnergySite, Teslemetry, Vehicle
 from tesla_protocol.command import vcsec_pb2
 from teslemetry_stream import TeslemetryStreamAuthenticationError
 
@@ -87,6 +89,7 @@ from homeassistant.components.teslemetry.const import (
     STREAM_DISCONNECT_GRACE,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
+    TOKEN_URL,
 )
 
 # Coordinator constants
@@ -1564,21 +1567,109 @@ async def test_get_access_token_rate_limited_after_setup_is_not_fatal(
     assert not hass.config_entries.flow.async_progress()
 
 
-async def test_stream_rejected_token_starts_reauth(
-    hass: HomeAssistant,
-    mock_stream_listen: AsyncMock,
-) -> None:
-    """Test the stream listener starts reauth when the token is rejected."""
-    mock_stream_listen.side_effect = TeslemetryStreamAuthenticationError
+STREAM_TOKEN_REFRESH_CASES = [
+    pytest.param(HTTPStatus.OK, None, False, id="refreshed_token_accepted"),
+    pytest.param(
+        HTTPStatus.BAD_REQUEST,
+        TeslemetryStreamAuthenticationError,
+        True,
+        id="refresh_rejected",
+    ),
+    pytest.param(
+        HTTPStatus.INTERNAL_SERVER_ERROR, None, False, id="refresh_unavailable"
+    ),
+    pytest.param(
+        HTTPStatus.OK,
+        TeslemetryStreamAuthenticationError,
+        True,
+        id="refreshed_token_rejected",
+    ),
+]
 
-    await setup_platform(hass)
+METADATA_TOKEN_REFRESH_CASES = [
+    pytest.param(HTTPStatus.OK, METADATA, False, id="refreshed_token_accepted"),
+    pytest.param(HTTPStatus.BAD_REQUEST, InvalidToken, True, id="refresh_rejected"),
+    pytest.param(HTTPStatus.OK, InvalidToken, True, id="refreshed_token_rejected"),
+]
+
+
+def _reauth_started(hass: HomeAssistant) -> bool:
+    """Return whether a Teslemetry reauth flow is in progress."""
+    return any(
+        flow["handler"] == DOMAIN and flow["context"].get("source") == "reauth"
+        for flow in hass.config_entries.flow.async_progress()
+    )
+
+
+@pytest.mark.parametrize(
+    ("token_status", "second_listen", "reauth"), STREAM_TOKEN_REFRESH_CASES
+)
+async def test_stream_rejected_token_refreshes_before_reauth(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    mock_token_response: dict[str, Any],
+    mock_stream_listen: AsyncMock,
+    token_status: HTTPStatus,
+    second_listen: type[Exception] | None,
+    reauth: bool,
+) -> None:
+    """Test a stream token rejection refreshes the token before starting reauth."""
+    aioclient_mock.post(TOKEN_URL, status=token_status, json=mock_token_response)
+    mock_stream_listen.side_effect = [
+        TeslemetryStreamAuthenticationError,
+        second_listen,
+    ]
+
+    entry = await setup_platform(hass)
     await hass.async_block_till_done()
 
-    flows = hass.config_entries.flow.async_progress()
-    assert any(
-        flow["handler"] == DOMAIN and flow["context"].get("source") == "reauth"
-        for flow in flows
+    # The rejected token still looked valid, so the refresh had to be forced.
+    assert aioclient_mock.call_count == 1
+    assert _reauth_started(hass) is reauth
+    assert entry.state is ConfigEntryState.LOADED
+
+
+@pytest.mark.parametrize(
+    ("token_status", "second_response", "reauth"), METADATA_TOKEN_REFRESH_CASES
+)
+async def test_metadata_rejected_token_refreshes_before_reauth(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    aioclient_mock: AiohttpClientMocker,
+    mock_token_response: dict[str, Any],
+    token_status: HTTPStatus,
+    second_response: type[Exception] | dict[str, Any],
+    reauth: bool,
+) -> None:
+    """Test a REST token rejection refreshes the token and retries before reauth."""
+    aioclient_mock.post(TOKEN_URL, status=token_status, json=mock_token_response)
+    entry = await setup_platform(hass)
+    assert entry.state is ConfigEntryState.LOADED
+
+    api_response = AsyncMock(side_effect=[InvalidToken, second_response])
+
+    async def metadata(teslemetry: Teslemetry) -> dict[str, Any]:
+        # Like the real request, fetch (and if needed refresh) the token first.
+        await teslemetry.access_token()
+        return await api_response()
+
+    # Keep the token valid by HA's clock past the poll, like a suspended host.
+    hass.config_entries.async_update_entry(
+        entry,
+        data={
+            **entry.data,
+            "token": {**entry.data["token"], "expires_at": time.time() + 7200},
+        },
     )
+    with patch.object(Teslemetry, "metadata", metadata):
+        freezer.tick(METADATA_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    # The rejected token still looked valid, so the refresh had to be forced.
+    assert aioclient_mock.call_count == 1
+    assert _reauth_started(hass) is reauth
+    assert entry.state is ConfigEntryState.LOADED
 
 
 SITE_ID = 123456
