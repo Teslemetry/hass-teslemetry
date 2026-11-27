@@ -1445,6 +1445,7 @@ async def test_gateway_repair_verifies_gateway_1_with_full_password(
         client = await hass_client()
 
         gateway.connect.side_effect = None
+        gateway.connect.return_value = GATEWAY_DIN
         with (
             patch(FIND_GATEWAY_ADDRESS, new=AsyncMock(return_value=NEW_HOST)),
             patch.object(hass.config_entries, "async_schedule_reload"),
