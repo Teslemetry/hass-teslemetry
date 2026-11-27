@@ -121,7 +121,7 @@ def async_get_energy_site_for_entry(
 def async_get_energy_site_for_signed_command(
     hass: HomeAssistant, call: ServiceCall
 ) -> tuple[TeslemetryEnergyData, TeslemetryConfigEntry]:
-    """Get the energy site for a command Teslemetry signs with its own key."""
+    """Get the energy site and its entry for a command Teslemetry signs with its own key."""
     device, config = async_get_device_and_config_for_service_call(hass, call)
     site = async_get_energy_site_for_entry(hass, device, config)
     if not site.signed_commands_available(

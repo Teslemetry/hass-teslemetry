@@ -130,6 +130,7 @@ from .helpers import (
     create_powerwall_client,
     flatten,
     gateway_issue_id,
+    insufficient_credits_issue_id,
 )
 from .logship import CONF_SHIP_LOGS_TO_CLICKSTACK, async_get_or_create_logship
 from .models import (
@@ -1806,6 +1807,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
 async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
     """Remove the stored charge-on-solar settings."""
     await TeslemetryChargeOnSolarStore(hass, entry.entry_id).async_remove()
+    # HACS stable-core compat: the pinned core release cannot tie an issue to a
+    # config entry, so the insufficient credits repair is removed with it here.
+    ir.async_delete_issue(hass, DOMAIN, insufficient_credits_issue_id(entry))
 
 
 async def async_migrate_entry(
