@@ -63,6 +63,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
+    OAuth2TokenRequestBaseError,
     OAuth2TokenRequestError,
     OAuth2TokenRequestReauthError,
 )
@@ -121,6 +122,7 @@ from .coordinator import (
     TeslemetryWallConnectorTotalsCoordinator,
 )
 from .helpers import (
+    async_expire_token,
     async_get_ble_parent,
     async_handle_credits,
     async_update_device_sw_version,
@@ -1507,14 +1509,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 )
             )
 
-        async def listen() -> None:
-            """Listen to the stream, prompting reauth if the token is rejected."""
-            try:
-                await stream.listen()
-            except TeslemetryStreamAuthenticationError:
-                entry.async_start_reauth(hass)
+        entry.async_create_background_task(
+            hass,
+            _async_listen_stream(hass, entry, stream, oauth_session),
+            "Teslemetry Stream",
+        )
 
-        entry.async_create_background_task(hass, listen(), "Teslemetry Stream")
+
+async def _async_listen_stream(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
+    stream: TeslemetryStream,
+    oauth_session: OAuth2Session,
+) -> None:
+    """Listen to the stream, refreshing a rejected token once before reauth."""
+    refreshed_token: str | None = None
+    while True:
+        try:
+            await stream.listen()
+        except TeslemetryStreamAuthenticationError:
+            if oauth_session.token[CONF_ACCESS_TOKEN] == refreshed_token:
+                entry.async_start_reauth(hass)
+                return
+        else:
+            return
+        async_expire_token(hass, entry)
+        try:
+            await oauth_session.async_ensure_token_valid()
+        except OAuth2TokenRequestReauthError:
+            # The session has already started reauth.
+            return
+        except OAuth2TokenRequestBaseError:
+            # Reconnecting retries the refresh, and the stream backs off on its errors.
+            continue
+        refreshed_token = oauth_session.token[CONF_ACCESS_TOKEN]
 
     return True
 
