@@ -41,6 +41,7 @@ ISSUE_STREAMING_ALLOWANCE = "streaming_allowance"
 STREAMING_ALLOWANCE_EXCEEDED = "streaming_allowance_exceeded"
 # Gateway 1 part number; these units refuse the last-5-characters login.
 GATEWAY_1_PART_NUMBER = "1118431-"
+ISSUE_GATEWAY_MISMATCH = "gateway_mismatch"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
