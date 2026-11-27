@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 from datetime import timedelta
 from http import HTTPStatus
+from ipaddress import IPv4Network
 import logging
 import time
 from types import MappingProxyType
@@ -63,6 +64,7 @@ from homeassistant.components.homeassistant import (
 )
 from homeassistant.components.labs import async_update_preview_feature
 from homeassistant.components.lock import LockState
+from homeassistant.components.network import Adapter
 from homeassistant.components.number import (
     ATTR_VALUE,
     DOMAIN as NUMBER_DOMAIN,
@@ -2233,6 +2235,96 @@ async def test_gateway_1_connects_with_full_password(
     ] == [(HOST, "long-wifi-password"), (NEW_HOST, "long-wifi-password")]
 
 
+def _adapter(address: str, enabled: bool = True) -> Adapter:
+    """Return a network adapter with one /24 IPv4 address."""
+    return Adapter(
+        name="eth0",
+        index=0,
+        enabled=enabled,
+        auto=True,
+        default=True,
+        ipv4=[{"address": address, "network_prefix": 24}],
+        ipv6=[],
+    )
+
+
+def _networking_status(eth: str, wifi: str) -> dict[str, Any]:
+    """Return a networking_status response with ethernet and Wi-Fi addresses."""
+    return {
+        "response": {
+            "eth": {"ipv4_config": {"address": eth}},
+            "wifi": {"ipv4_config": {"address": wifi}},
+        }
+    }
+
+
+@pytest.mark.parametrize(
+    ("adapters", "networking_status", "expected_host"),
+    [
+        pytest.param(
+            [_adapter("192.168.1.10")],
+            _networking_status("192.168.90.2", "192.168.1.252"),
+            "192.168.1.252",
+            id="multi_powerwall_wifi_on_ha_network",
+        ),
+        pytest.param(
+            [_adapter("192.168.1.10")],
+            _networking_status("192.168.2.252", "192.168.1.252"),
+            "192.168.1.252",
+            id="ha_network_over_ethernet",
+        ),
+        pytest.param(
+            [_adapter("10.0.0.10")],
+            _networking_status("192.168.2.252", "192.168.1.252"),
+            "192.168.2.252",
+            id="no_matching_network_prefers_ethernet",
+        ),
+        pytest.param(
+            [_adapter("10.0.0.10"), _adapter("192.168.1.10", enabled=False)],
+            _networking_status("192.168.2.252", "192.168.1.252"),
+            "192.168.2.252",
+            id="disabled_adapter_ignored",
+        ),
+    ],
+)
+async def test_local_gateway_rediscovered_on_home_assistant_network(
+    hass: HomeAssistant,
+    mock_powerwall_connect: AsyncMock,
+    adapters: list[Adapter],
+    networking_status: dict[str, Any],
+    expected_host: str,
+) -> None:
+    """Rediscovery prefers the gateway address on a network Home Assistant is on."""
+    entry = _entry_with_powerwall()
+    entry.add_to_hass(hass)
+    mock_powerwall_connect.side_effect = [
+        PowerwallConnectionError("unreachable"),
+        "GATEWAY-DIN",
+    ]
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry._async_get_rsa_key_pem",
+            return_value=_TEST_RSA_KEY_PEM,
+        ),
+        patch(
+            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.get_networking_status",
+            return_value=networking_status,
+        ),
+        patch(
+            "homeassistant.components.network.async_get_adapters",
+            return_value=adapters,
+        ),
+        patch("homeassistant.components.teslemetry.PLATFORMS", []),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    subentry = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0]
+    assert subentry.data[CONF_HOST] == expected_host
+
+
 @pytest.mark.parametrize(
     ("connect_error", "lookup_result"),
     [
@@ -2326,7 +2418,7 @@ async def test_gateway_repair_not_linked_to_subentry_removed_during_setup(
     subentry = entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)[0]
     mock_powerwall_connect.side_effect = PowerwallConnectionError("unreachable")
 
-    async def _remove_subentry_and_find_nothing() -> None:
+    async def _remove_subentry_and_find_nothing(networks: list[IPv4Network]) -> None:
         hass.config_entries.async_remove_subentry(entry, subentry.subentry_id)
 
     with patch.object(hass.config_entries, "async_schedule_reload"):

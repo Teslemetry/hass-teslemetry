@@ -90,6 +90,7 @@ from .const import (
 from .helpers import (
     PowerwallKeyRejectedError,
     async_get_ble_parent,
+    async_get_local_networks,
     async_verify_local_gateway,
     cloud_energy_site,
 )
@@ -524,8 +525,11 @@ class EnergySitePairingFlow[_ResultT: FlowResult[Any, Any]](
             for part_number in part_numbers
         )
 
+        networks = await async_get_local_networks(self.hass)
         try:
-            self._discovered_host = await energy_site.find_gateway_address() or ""
+            self._discovered_host = (
+                await energy_site.find_gateway_address(networks) or ""
+            )
         except (ClientError, TeslaFleetError) as err:
             LOGGER.warning("Gateway address discovery failed: %s", err)
             self._discovered_host = ""

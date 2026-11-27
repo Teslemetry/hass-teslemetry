@@ -50,6 +50,7 @@ from .const import (
 )
 from .helpers import (
     PowerwallKeyRejectedError,
+    async_get_local_networks,
     async_verify_local_gateway,
     cloud_energy_site,
 )
@@ -289,8 +290,11 @@ class GatewayNotFoundRepairFlow(RepairsFlow):
             LOGGER.debug("RSA key load failed: %s", err)
             return self.async_abort(reason="cannot_connect")
 
+        networks = await async_get_local_networks(self.hass)
         try:
-            host = await cloud_energy_site(energy_data.api).find_gateway_address()
+            host = await cloud_energy_site(energy_data.api).find_gateway_address(
+                networks
+            )
         except (ClientError, TeslaFleetError) as err:
             LOGGER.debug("Gateway address lookup failed: %s", err)
             host = None
