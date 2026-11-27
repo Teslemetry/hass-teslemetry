@@ -111,6 +111,7 @@ from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
     TeslemetryLocalComponentsCoordinator,
+    TeslemetryLocalConfigCoordinator,
     TeslemetryLocalStatusCoordinator,
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
@@ -1244,6 +1245,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 if isinstance(energy_site_api, EnergySiteRouter)
                 else None
             )
+            local_config_coordinator = (
+                TeslemetryLocalConfigCoordinator(
+                    hass, entry, energy_site_api.primary.powerwall, site_id
+                )
+                if isinstance(energy_site_api, EnergySiteRouter)
+                else None
+            )
 
             energysites.append(
                 TeslemetryEnergyData(
@@ -1258,6 +1266,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     subentry_id=subentry_id,
                     local_status_coordinator=local_status_coordinator,
                     local_components_coordinator=local_components_coordinator,
+                    local_config_coordinator=local_config_coordinator,
                 )
             )
 
@@ -1579,6 +1588,8 @@ async def _async_refresh_energy_site(energysite: TeslemetryEnergyData) -> None:
         await energysite.local_status_coordinator.async_refresh()
     if energysite.local_components_coordinator is not None:
         await energysite.local_components_coordinator.async_refresh()
+    if energysite.local_config_coordinator is not None:
+        await energysite.local_config_coordinator.async_refresh()
     if energysite.history_coordinator is not None:
         await energysite.history_coordinator.async_set_time_zone(time_zone)
     if energysite.wall_connector_totals_coordinator is not None:
