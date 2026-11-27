@@ -1,7 +1,7 @@
 """Test the Teslemetry config flow."""
 
 import asyncio
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from copy import deepcopy
 import logging
 import time
@@ -95,6 +95,7 @@ from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_ADDRESS,
     CONF_HOST,
+    CONF_MODE,
     CONF_PASSWORD,
     Platform,
 )
@@ -1580,6 +1581,171 @@ async def test_subentry_abandoned_during_connect_disconnects(
         "disconnect",
     ]
     assert not entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)
+
+
+@pytest.fixture
+async def bluetooth_scanners(
+    hass: HomeAssistant,
+    mock_bleak_scanner_start: MagicMock,
+    adapter_mode: BluetoothScanningMode,
+    proxy_connectable: bool,
+    proxy_mode: BluetoothScanningMode | None,
+) -> AsyncGenerator[None]:
+    """Set up a local adapter and a proxy in the given scanning modes."""
+    bluetooth_entry = MockConfigEntry(
+        domain="bluetooth",
+        unique_id="00:00:00:00:00:01",
+        options={CONF_MODE: adapter_mode.value},
+    )
+    bluetooth_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(bluetooth_entry.entry_id)
+    await hass.async_block_till_done()
+    unregister_proxy = async_register_scanner(
+        hass,
+        FakeScanner(
+            "AA:BB:CC:00:00:02",
+            "proxy",
+            connectable=proxy_connectable,
+            requested_mode=proxy_mode,
+        ),
+    )
+    yield
+    unregister_proxy()
+    await hass.config_entries.async_unload(bluetooth_entry.entry_id)
+
+
+@pytest.mark.parametrize(
+    ("adapter_mode", "proxy_connectable", "proxy_mode", "error"),
+    [
+        pytest.param(
+            BluetoothScanningMode.ACTIVE,
+            False,
+            BluetoothScanningMode.PASSIVE,
+            "device_not_found",
+            id="active_adapter",
+        ),
+        pytest.param(
+            BluetoothScanningMode.PASSIVE,
+            True,
+            BluetoothScanningMode.AUTO,
+            "device_not_found",
+            id="auto_proxy",
+        ),
+        # A proxy whose firmware cannot report its scanning mode may still scan actively.
+        pytest.param(
+            BluetoothScanningMode.PASSIVE,
+            True,
+            None,
+            "device_not_found",
+            id="unknown_mode_proxy",
+        ),
+        pytest.param(
+            BluetoothScanningMode.PASSIVE,
+            True,
+            BluetoothScanningMode.PASSIVE,
+            "passive_scanning",
+            id="passive_adapter_and_proxy",
+        ),
+        pytest.param(
+            BluetoothScanningMode.PASSIVE,
+            False,
+            BluetoothScanningMode.ACTIVE,
+            "passive_scanning",
+            id="active_non_connectable_proxy",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("bluetooth_scanners")
+async def test_subentry_scan_device_not_found_scanning_mode(
+    hass: HomeAssistant, error: str
+) -> None:
+    """The scan step says when no connectable scanner can scan actively for the name."""
+    entry = await _setup_account_entry(hass)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=MagicMock(),
+        ),
+    ):
+        result = await _start_pairing_at_scan(hass, entry)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "scan"
+    assert result["errors"] == {"base": error}
+    assert not entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=_mock_ble_parent(_mock_vehicle()),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload"),
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.usefixtures("enable_bluetooth")
+async def test_subentry_scan_device_not_found_without_scanners(
+    hass: HomeAssistant,
+) -> None:
+    """Losing every scanner before the scan is not reported as passive scanning."""
+    entry = await _setup_account_entry(hass)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=MagicMock(),
+        ),
+    ):
+        result = await _start_pairing_at_scan(hass, entry)
+        (bluetooth_entry,) = hass.config_entries.async_entries("bluetooth")
+        await hass.config_entries.async_unload(bluetooth_entry.entry_id)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "scan"
+    assert result["errors"] == {"base": "device_not_found"}
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=_mock_ble_parent(_mock_vehicle()),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload"),
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
 @pytest.mark.usefixtures("enable_bluetooth")
