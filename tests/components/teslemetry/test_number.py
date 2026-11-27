@@ -5,7 +5,9 @@ from copy import deepcopy
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from freezegun.api import FrozenDateTimeFactory
 import pytest
+from pytest_homeassistant.common import async_fire_time_changed
 from syrupy.assertion import SnapshotAssertion
 from tesla_fleet_api.exceptions import InvalidCommand
 from teslemetry_stream import Signal
@@ -28,7 +30,7 @@ from homeassistant.components.teslemetry.coordinator import (
 from homeassistant.components.teslemetry.number import (
     TeslemetryChargeOnSolarLowerLimitNumberEntity,
 )
-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform, TargetKey
+from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
@@ -1009,8 +1011,8 @@ async def test_grid_limit_number_cloud(
     ) as call:
         await hass.services.async_call(
             NUMBER_DOMAIN,
-            NumberService.SET_VALUE,
-            {TargetKey.ENTITY_ID: entity_id, NumberServiceArgument.VALUE: value},
+            SERVICE_SET_VALUE,
+            {ATTR_ENTITY_ID: entity_id, ATTR_VALUE: value},
             blocking=True,
         )
     call.assert_awaited_once_with(value)
@@ -1121,8 +1123,8 @@ async def test_grid_limit_number_local(
     ):
         await hass.services.async_call(
             NUMBER_DOMAIN,
-            NumberService.SET_VALUE,
-            {TargetKey.ENTITY_ID: entity_id, NumberServiceArgument.VALUE: value},
+            SERVICE_SET_VALUE,
+            {ATTR_ENTITY_ID: entity_id, ATTR_VALUE: value},
             blocking=True,
         )
     local.assert_awaited_once_with(value)
@@ -1147,8 +1149,8 @@ async def test_grid_limit_number_not_applied(
     ):
         await hass.services.async_call(
             NUMBER_DOMAIN,
-            NumberService.SET_VALUE,
-            {TargetKey.ENTITY_ID: entity_id, NumberServiceArgument.VALUE: value},
+            SERVICE_SET_VALUE,
+            {ATTR_ENTITY_ID: entity_id, ATTR_VALUE: value},
             blocking=True,
         )
     assert exc_info.value.translation_key == "config_not_applied"
