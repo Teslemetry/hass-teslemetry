@@ -328,6 +328,9 @@
       }
     },
     "sensor": {
+      "ac_charging_energy_in": {
+        "default": "mdi:ev-station"
+      },
       "battery_energy_exported": {
         "default": "mdi:battery-arrow-down"
       },

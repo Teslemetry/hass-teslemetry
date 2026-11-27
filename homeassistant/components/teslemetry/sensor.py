@@ -625,6 +625,17 @@ VEHICLE_DESCRIPTIONS: tuple[TeslemetryVehicleSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.DISTANCE,
     ),
     TeslemetryVehicleSensorEntityDescription(
+        key="ac_charging_energy_in",
+        streaming_listener=lambda vehicle, callback: vehicle.listen_ACChargingEnergyIn(
+            callback
+        ),
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    TeslemetryVehicleSensorEntityDescription(
         key="bms_state",
         streaming_listener=lambda vehicle, callback: vehicle.listen_BMSState(
             lambda value: callback(None if value is None else BMS_STATES.get(value))
