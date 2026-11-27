@@ -1853,6 +1853,14 @@ ENERGY_LOCAL_UNIT_DESCRIPTIONS: tuple[
         suggested_display_precision=2,
     ),
     TeslemetryLocalUnitSensorEntityDescription(
+        key="percentage_charged",
+        value_fn=lambda readings: readings.percentage_charged,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=2,
+    ),
+    TeslemetryLocalUnitSensorEntityDescription(
         key="hvp_state",
         value_fn=lambda readings: readings.hvp_state,
         entity_category=EntityCategory.DIAGNOSTIC,
