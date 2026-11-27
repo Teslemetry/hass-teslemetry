@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
@@ -55,10 +56,7 @@ from homeassistant.components.teslemetry.const import (
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
 )
-from homeassistant.components.teslemetry.coordinator import (
-    METADATA_INTERVAL,
-    VEHICLE_INTERVAL,
-)
+from homeassistant.components.teslemetry.coordinator import METADATA_INTERVAL
 from homeassistant.components.teslemetry.repairs import (
     BluetoothKeyRepairFlow,
     async_create_fix_flow,
@@ -86,6 +84,7 @@ from . import mock_config_entry, setup_paired_platform, setup_platform
 from .const import COMMAND_OK, METADATA, PRODUCTS
 
 VEHICLE_VIN = "LRW3F7EK4NC700000"
+VEHICLE_INTERVAL = timedelta(seconds=60)
 ADDRESS = "AA:BB:CC:DD:EE:FF"
 OTHER_VIN = "LRW3F7EK4NC799999"
 OTHER_ADDRESS = "11:22:33:44:55:66"
