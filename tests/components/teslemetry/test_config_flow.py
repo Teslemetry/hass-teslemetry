@@ -113,16 +113,7 @@ from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.setup import async_setup_component
 
 from . import mock_config_entry, setup_platform
-from .const import (
-    ADDRESS,
-    CONFIG_V1,
-    GATEWAY_DIN,
-    METADATA,
-    PRODUCTS,
-    SITE_INFO,
-    UNIQUE_ID,
-    VIN,
-)
+from .const import ADDRESS, CONFIG_V1, METADATA, PRODUCTS, SITE_INFO, UNIQUE_ID, VIN
 
 REDIRECT = "https://example.com/auth/external/callback"
 
@@ -2543,6 +2534,7 @@ SITE_ID = 123456
 WALL_CONNECTOR_SITE_ID = 555555
 HOST = "192.168.91.1"
 PASSWORD = "abcde"
+GATEWAY_DIN = "1707000-11-L--TG1234567890AB"
 PUBLIC_KEY_DER = b"public-key-der"
 PUBLIC_KEY_B64 = "cHVibGljLWtleS1kZXI="
 
@@ -2850,41 +2842,49 @@ async def test_subentry_lookup_failure_recovers(
 
 @pytest.mark.usefixtures("mock_rsa_key")
 @pytest.mark.parametrize(
-    ("client_kwargs", "expected_error"),
+    ("client_kwargs", "expected_error", "expected_log"),
     [
         pytest.param(
             {"connect_error": PowerwallAuthenticationError()},
             "invalid_password",
+            f"Powerwall at {HOST} rejected the password",
             id="wrong_gateway_password",
         ),
         pytest.param(
             {"connect_error": PowerwallConnectionError()},
             "cannot_connect",
+            f"Local Powerwall verify failed at {HOST}",
             id="gateway_unreachable",
         ),
         pytest.param(
             {"status_error": PowerwallAuthenticationError()},
             "key_not_approved",
+            "Powerwall rejected the signed read",
             id="signed_read_rejects_unapproved_key",
         ),
         pytest.param(
             {"status_error": PowerwallFaultError("MESSAGEFAULT_ERROR_BUSY")},
             "cannot_connect",
+            f"Local Powerwall verify failed at {HOST}",
             id="signed_read_generic_gateway_fault",
         ),
         pytest.param(
             {"status_error": PowerwallConnectionError()},
             "cannot_connect",
+            f"Local Powerwall verify failed at {HOST}",
             id="signed_read_unreachable",
         ),
     ],
 )
 async def test_subentry_credentials_errors(
     hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
     client_kwargs: dict[str, Exception],
     expected_error: str,
+    expected_log: str,
 ) -> None:
     """The credentials step reports each local verification failure distinctly."""
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.teslemetry")
     entry = await _setup_account_no_subentry(hass)
 
     client = _mock_powerwall_client(**client_kwargs)
@@ -2911,6 +2911,7 @@ async def test_subentry_credentials_errors(
     assert result["step_id"] == "credentials"
     assert result["errors"] == {"base": expected_error}
     assert not entry.get_subentries_of_type(SUBENTRY_TYPE_ENERGY_SITE)
+    assert expected_log in caplog.text
 
     with (
         patch(
@@ -2925,6 +2926,12 @@ async def test_subentry_credentials_errors(
         await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert f"Powerwall at {HOST} accepted the password, part number 1707000" in (
+        caplog.text
+    )
+    assert f"Powerwall at {HOST} verified for local control" in caplog.text
+    assert "TG1234567890AB" not in caplog.text
+    assert PASSWORD not in caplog.text
 
 
 @pytest.mark.usefixtures("mock_rsa_key")

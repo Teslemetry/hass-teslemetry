@@ -346,12 +346,14 @@ class GatewayNotFoundRepairFlow(RepairsFlow):
                 self._key_pem,
                 legacy_gateway=self._subentry.data.get(CONF_LEGACY_GATEWAY, False),
             )
-        except PowerwallKeyRejectedError:
+        except PowerwallKeyRejectedError as err:
+            LOGGER.warning("Powerwall rejected the signed read: %s", err.__cause__)
             return "key_not_approved"
-        except PowerwallAuthenticationError:
+        except PowerwallAuthenticationError as err:
+            LOGGER.warning("Powerwall at %s rejected the password: %s", host, err)
             return "invalid_auth"
         except PowerwallError as err:
-            LOGGER.debug("Local Powerwall verify failed at %s: %s", host, err)
+            LOGGER.warning("Local Powerwall verify failed at %s: %s", host, err)
             return "cannot_connect"
         return None
 
