@@ -225,6 +225,11 @@ _ENUMS = {
             "LABEL_ID": "label_id",
         },
     },
+    "homeassistant.components.button": {
+        "ButtonService": {
+            "PRESS": "press",
+        },
+    },
     "homeassistant.components.calendar": {
         "CalendarService": {
             "CREATE_EVENT": "create_event",
