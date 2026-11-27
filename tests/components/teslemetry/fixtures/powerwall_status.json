@@ -39,6 +39,16 @@
     "siteShutdown": {
       "isShutDown": false,
       "reasons": []
+    },
+    "batteryBlocks": [
+      {
+        "din": "1707000-30-L--TG10000000000A",
+        "disableReasons": []
+      }
+    ],
+    "systemStatus": {
+      "nominalEnergyRemainingWh": 33650,
+      "nominalFullPackEnergyWh": 43200
     }
   },
   "esCan": {
