@@ -437,6 +437,17 @@
             }
           }
         }
+      },
+      "passenger_temp": {
+        "name": "Passenger climate",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "split": "Split",
+              "sync": "Sync with driver"
+            }
+          }
+        }
       }
     },
     "cover": {
@@ -1501,6 +1512,9 @@
     },
     "command_reason": {
       "message": "Command was rejected: {reason}"
+    },
+    "driver_temperature_unknown": {
+      "message": "The driver temperature is not known yet, wait for the vehicle to report it and try again"
     },
     "energy_site_not_paired": {
       "message": "Teslemetry is not paired with the Powerwall system for {site}, pair it in the Teslemetry console or set up local control"
